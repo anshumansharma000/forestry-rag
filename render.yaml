@@ -1,0 +1,75 @@
+services:
+  - type: web
+    name: forest-rag-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-2
+      - key: GEMINI_CHAT_MODEL
+        value: gemini-3.1-flash-lite
+      - key: EMBEDDING_DIMENSIONS
+        value: 768
+      - key: TOP_K
+        value: 3
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: BOOTSTRAP_ADMIN_TOKEN
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_EXPIRES_MINUTES
+        value: 1440
+      - key: REFRESH_TOKEN_EXPIRES_DAYS
+        value: 30
+      - key: AUTH_DISABLED
+        value: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: VALIDATE_CONFIG_ON_STARTUP
+        value: true
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ALLOWED_UPLOAD_EXTENSIONS
+        value: pdf,txt,docx
+      - key: UPLOAD_MAX_BYTES
+        value: 26214400
+      - key: ALLOW_DOCUMENT_REPLACE
+        value: false
+      - key: DOCUMENT_STORAGE_BACKEND
+        value: r2
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PREFIX
+        value: docs/
+      - key: CHUNK_TOKENS
+        value: 600
+      - key: CHUNK_OVERLAP_TOKENS
+        value: 100
+      - key: MAX_UNIT_TOKENS
+        value: 220
+      - key: FAQ_CHUNK_TOKENS
+        value: 650
+      - key: FAQ_CHUNK_OVERLAP_TOKENS
+        value: 80
+      - key: FAQ_UNIT_TOKENS
+        value: 260
+      - key: PROCEDURE_CHUNK_TOKENS
+        value: 720
+      - key: PROCEDURE_CHUNK_OVERLAP_TOKENS
+        value: 160
+      - key: PROCEDURE_UNIT_TOKENS
+        value: 260
