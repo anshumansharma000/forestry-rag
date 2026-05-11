@@ -1,3 +1,4 @@
+import logging
 from enum import StrEnum
 from typing import Any
 
@@ -18,6 +19,10 @@ class ErrorCode(StrEnum):
     NOT_FOUND = "not_found"
     CONFLICT = "conflict"
     INVALID_INPUT = "invalid_input"
+    INTERNAL_ERROR = "internal_error"
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApiError(BaseModel):
@@ -72,4 +77,16 @@ def validation_error_handler(_request: Request, exc: RequestValidationError):
         ErrorCode.VALIDATION_ERROR,
         "Request validation failed",
         {"errors": exc.errors()},
+    )
+
+
+def unhandled_error_handler(request: Request, exc: Exception):
+    logger.exception(
+        "unhandled_error",
+        extra={"method": request.method, "path": request.url.path},
+    )
+    return error_response(
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ErrorCode.INTERNAL_ERROR,
+        "Internal server error",
     )

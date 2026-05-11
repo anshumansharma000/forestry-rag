@@ -1,14 +1,3 @@
-create index if not exists document_chunks_fts_idx
-on document_chunks
-using gin (
-  to_tsvector(
-    'english',
-    coalesce(source, '') || ' ' || coalesce(section_heading, '') || ' ' || content
-  )
-);
-
-drop function if exists match_document_chunks(extensions.vector, integer, jsonb);
-
 create or replace function match_document_chunks (
   query_embedding extensions.vector(768),
   query_text text default '',

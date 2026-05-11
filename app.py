@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
-from errors import AppError, app_error_handler, http_error_handler, validation_error_handler
+from errors import AppError, app_error_handler, http_error_handler, unhandled_error_handler, validation_error_handler
 from routers import admin, auth_routes, chat, documents, qa, system
 from settings import validate_runtime_config
 from structured_logging import configure_logging
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(HTTPException, http_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
+    app.add_exception_handler(Exception, unhandled_error_handler)
     app.include_router(system.router)
     app.include_router(auth_routes.router)
     app.include_router(documents.router)

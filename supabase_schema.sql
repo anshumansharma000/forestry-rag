@@ -219,9 +219,9 @@ begin
     limit greatest(match_count, text_candidate_count)
   ),
   candidates as (
-    select id from vector_matches
+    select vm.id from vector_matches vm
     union
-    select id from text_matches
+    select tm.id from text_matches tm
   ),
   scored as (
     select
