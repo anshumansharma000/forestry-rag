@@ -39,10 +39,10 @@ class DocumentRepository:
             self.client.table("document_chunks").insert(rows).execute()
         return len(rows)
 
-    def match_chunks(self, query_embedding: list[float], match_count: int) -> list[dict]:
+    def match_chunks(self, query_embedding: list[float], query_text: str, match_count: int) -> list[dict]:
         result = self.client.rpc(
             "match_document_chunks",
-            {"query_embedding": query_embedding, "match_count": match_count, "filter": {}},
+            {"query_embedding": query_embedding, "query_text": query_text, "match_count": match_count, "filter": {}},
         ).execute()
         return result.data or []
 

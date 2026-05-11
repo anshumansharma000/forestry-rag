@@ -23,7 +23,7 @@ def retrieve(question: str, top_k: int | None = None, repository: DocumentReposi
     repository = repository or DocumentRepository()
     k = top_k or int(os.getenv("TOP_K", "3"))
     query_embedding = embed_query(question)
-    rows = repository.match_chunks(query_embedding, k)
+    rows = repository.match_chunks(query_embedding, question, k)
 
     return [
         {

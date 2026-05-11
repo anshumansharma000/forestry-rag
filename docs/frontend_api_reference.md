@@ -481,7 +481,7 @@ Notes:
 
 - All IDs are UUID strings.
 - Timestamps are ISO strings from Supabase/Postgres.
-- `score` is rounded similarity; higher means more relevant.
+- `score` is the rounded hybrid retrieval score; higher means more relevant.
 - `display_source` already includes page labels, such as `file.pdf, page 4`.
 - `source` is the original file name.
 - `text` is the retrieved chunk excerpt. Use it in expandable citation panels.
@@ -545,6 +545,7 @@ Important constraints:
 - `document_chunks` are unique by `(source, chunk_index)`.
 - `chat_messages.role` is either `user` or `assistant`.
 - `document_chunks.embedding` is `vector(768)`.
+- Retrieval uses both pgvector cosine candidates and PostgreSQL full-text candidates over source, section heading, and chunk content, with small metadata boosts.
 - `ingest_jobs.status` is one of `queued`, `running`, `succeeded`, or `failed`.
 
 ## UX Recommendations
@@ -552,7 +553,7 @@ Important constraints:
 - Main screen: chat-first interface with a session sidebar, message timeline, source drawer, and small setup/indexing status area.
 - Admin/setup screen: config status, document upload, ingest button, chunk preview.
 - For answers, parse citations like `[1]`, `[2]` only for display affordances; the authoritative source list is the returned `sources` array in order.
-- Show citation chips using `display_source`; open a side panel with `text`, page range, file name, and score.
+- Show citation chips using `display_source`; open a side panel with `text`, page range, file name, and retrieval score.
 - Keep upload/indexing controls separate from end-user chat if the app is meant for non-admin users.
 - Disable ask/send when config is incomplete or while a request is in flight.
 - Show a clear empty state when there are no sessions or no indexed chunks.
@@ -615,7 +616,7 @@ Chat behavior:
 - If there is no active session, create one when the user sends the first message.
 - Send chat messages to /chat/sessions/{session_id}/ask, not /ask, for normal conversation.
 - Optimistically show the user's message while waiting, then reconcile with returned user_message and assistant_message.
-- Render assistant citations from assistant_message.sources or response.sources. Use display_source for citation labels. Show the source text in an expandable side panel/drawer with file name, page range, chunk index, and similarity score.
+- Render assistant citations from assistant_message.sources or response.sources. Use display_source for citation labels. Show the source text in an expandable side panel/drawer with file name, page range, chunk index, and retrieval score.
 - Show search_query only in a debug/details view.
 
 Admin/setup behavior:

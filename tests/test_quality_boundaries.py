@@ -7,6 +7,7 @@ import pytest
 from docx import Document
 
 import ingest_service
+import retrieval
 from auth import validate_password
 from chunking import chunk_document
 from documents import read_docx, read_pdf_with_pdfplumber
@@ -100,6 +101,48 @@ def test_chunk_document_preserves_heading_context(monkeypatch):
     assert chunks
     assert chunks[0]["source"] == "rules.txt"
     assert "forest transit permits" in chunks[0]["content"]
+
+
+def test_retrieve_passes_query_text_for_hybrid_search(monkeypatch):
+    calls = []
+
+    class Repository:
+        def match_chunks(self, query_embedding, query_text, match_count):
+            calls.append(
+                {
+                    "query_embedding": query_embedding,
+                    "query_text": query_text,
+                    "match_count": match_count,
+                }
+            )
+            return [
+                {
+                    "id": "chunk-1",
+                    "document_id": "doc-1",
+                    "source": "forest-rules.pdf",
+                    "chunk_index": 0,
+                    "chunk_type": "section",
+                    "section_heading": "Transit permits",
+                    "page_start": 1,
+                    "page_end": 1,
+                    "content": "Transit permits require approval.",
+                    "metadata": {},
+                    "similarity": 0.82,
+                }
+            ]
+
+    monkeypatch.setattr(retrieval, "embed_query", lambda text: [0.1, 0.2, 0.3])
+
+    contexts = retrieval.retrieve("Rule 12 transit permits", top_k=7, repository=Repository())
+
+    assert calls == [
+        {
+            "query_embedding": [0.1, 0.2, 0.3],
+            "query_text": "Rule 12 transit permits",
+            "match_count": 7,
+        }
+    ]
+    assert contexts[0]["score"] == 0.82
 
 
 def test_read_docx_extracts_tables_as_structured_blocks(tmp_path):

@@ -342,7 +342,7 @@ python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py docu
 ## Files
 
 - `data/docs/*.pdf`, `data/docs/*.docx`, and `data/docs/*.txt`: local source documents when `DOCUMENT_STORAGE_BACKEND=local`
-- `supabase_schema.sql`: fresh database schema, pgvector index, and similarity-search RPC
+- `supabase_schema.sql`: fresh database schema, pgvector/full-text indexes, and hybrid-search RPC
 - `migrations/*.sql`: incremental database changes for existing deployments
 - `app.py`: FastAPI app factory, middleware, router registration, and exception handler wiring
 - `routers/`: route groups for auth, admin, documents, QA, chat, and system endpoints
@@ -351,7 +351,7 @@ python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py docu
 - `auth_repository.py` and `repositories.py`: Supabase persistence boundaries
 - `documents.py`: source document loading and text extraction
 - `chunking.py`: structure-aware chunking
-- `retrieval.py`: embeddings, vector retrieval, and source formatting
+- `retrieval.py`: embeddings, hybrid retrieval, and source formatting
 - `prompts.py`: prompt construction and Gemini answer/rewrite calls
 - `chat_service.py`: chat orchestration
 - `ingest_service.py`: ingest orchestration and durable job updates
@@ -395,3 +395,7 @@ TOP_K=3
 ```
 
 For this use case, the regular section chunk size is intentionally moderate. Rules and circulars often need enough context to include exceptions, amendments, and conditions, but very large chunks reduce retrieval precision. FAQ chunks are allowed a little more room because question text is repeated for context. Procedure chunks are larger and have more overlap because a complete answer often depends on neighboring steps. `MAX_UNIT_TOKENS`, `FAQ_UNIT_TOKENS`, and `PROCEDURE_UNIT_TOKENS` keep individual sentence/clause/step units manageable before they are packed into retrieval chunks. The defaults are a practical starting point, not a final production setting.
+
+## Retrieval strategy
+
+Retrieval is hybrid. The API embeds the user question or rewritten chat search query with Gemini, then Supabase combines vector candidates with PostgreSQL full-text candidates over `source`, `section_heading`, and `content`. The RPC scores candidates with weighted vector similarity, text rank, reciprocal-rank fusion, and small metadata boosts for exact source/section mentions plus FAQ/procedure intent. `score` in source responses is the final hybrid score, not raw cosine similarity.
