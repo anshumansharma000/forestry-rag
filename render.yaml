@@ -2,7 +2,7 @@ services:
   - type: web
     name: forest-rag-api
     runtime: docker
-    instanceType: free
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
