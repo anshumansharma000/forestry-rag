@@ -72,7 +72,7 @@ async def log_requests(request: Request, call_next):
 def allowed_cors_origins() -> list[str]:
     raw_origins = os.getenv("CORS_ALLOWED_ORIGINS")
     if not raw_origins:
-        return ["http://localhost:3000", "http://127.0.0.1:3000", "*"]
+        return ["http://localhost:3000", "http://127.0.0.1:3000"]
     raw = raw_origins.strip()
     if raw == "*":
         return ["*"]
