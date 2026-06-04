@@ -1,13 +1,17 @@
 import json
 import logging
 import sys
+from io import BytesIO
 from types import SimpleNamespace
 
 import pytest
 from docx import Document
+from fastapi import UploadFile, status
+from starlette.datastructures import Headers
 
 import ingest_service
 import retrieval
+import routers.documents
 from auth import validate_password
 from chunking import chunk_document
 from documents import read_docx, read_pdf_with_pdfplumber
@@ -18,6 +22,14 @@ from services.document_storage import R2DocumentStorage
 from services.gemini import GeminiClient
 from structured_logging import JsonLogFormatter
 from upload_utils import allowed_upload_extensions, safe_filename
+
+
+def upload_file(filename: str, content: bytes = b"content", content_type: str = "text/plain") -> UploadFile:
+    return UploadFile(
+        BytesIO(content),
+        filename=filename,
+        headers=Headers({"content-type": content_type}),
+    )
 
 
 def test_password_validation_rejects_weak_passwords():
@@ -58,6 +70,66 @@ def test_upload_helpers_normalize_names_and_extensions(monkeypatch):
     assert allowed_upload_extensions() == {"pdf", "txt", "docx"}
 
 
+def test_prepare_uploads_accepts_multiple_files(monkeypatch):
+    monkeypatch.setenv("ALLOWED_UPLOAD_EXTENSIONS", "pdf, txt, docx")
+
+    pending = routers.documents.prepare_uploads(
+        [
+            upload_file("Forest Rules.pdf", b"pdf-bytes", "application/pdf"),
+            upload_file("Notes.txt", b"text-bytes"),
+        ]
+    )
+
+    assert [(item.filename, item.content, item.content_type) for item in pending] == [
+        ("Forest Rules.pdf", b"pdf-bytes", "application/pdf"),
+        ("Notes.txt", b"text-bytes", "text/plain"),
+    ]
+
+
+def test_prepare_uploads_rejects_duplicate_filenames_in_one_request(monkeypatch):
+    monkeypatch.setenv("ALLOWED_UPLOAD_EXTENSIONS", "pdf, txt, docx")
+
+    with pytest.raises(AppError) as exc:
+        routers.documents.prepare_uploads(
+            [
+                upload_file("Forest Rules.pdf"),
+                upload_file("Forest Rules.pdf"),
+            ]
+        )
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.details == {"filename": "Forest Rules.pdf"}
+
+
+def test_batch_save_checks_conflicts_before_writing(monkeypatch):
+    saved = []
+
+    class Storage:
+        def exists(self, filename):
+            return filename == "existing.pdf"
+
+        def save(self, filename, content):
+            saved.append((filename, content))
+            return f"/docs/{filename}"
+
+    monkeypatch.delenv("ALLOW_DOCUMENT_REPLACE", raising=False)
+    monkeypatch.setattr(routers.documents, "document_storage", lambda: Storage())
+    monkeypatch.setattr(routers.documents, "audit_event", lambda *_args, **_kwargs: None)
+
+    with pytest.raises(AppError) as exc:
+        routers.documents.save_uploads(
+            SimpleNamespace(client=None, headers={}),
+            SimpleNamespace(id="user-1", email="user@example.com", role="knowledge_manager"),
+            [
+                routers.documents.PendingUpload("new.pdf", b"new", "application/pdf"),
+                routers.documents.PendingUpload("existing.pdf", b"existing", "application/pdf"),
+            ],
+        )
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert saved == []
+
+
 def test_r2_document_storage_uses_prefixed_s3_keys(monkeypatch):
     calls = []
 
@@ -80,6 +152,97 @@ def test_r2_document_storage_uses_prefixed_s3_keys(monkeypatch):
 
     assert path == "r2://fisrag-docs/source-docs/rules.pdf"
     assert calls == [{"Bucket": "fisrag-docs", "Key": "source-docs/rules.pdf", "Body": b"content"}]
+
+
+def test_create_presigned_uploads_uses_isolated_staging_key(monkeypatch):
+    calls = []
+
+    class Storage:
+        backend = "r2"
+        prefix = "docs/"
+
+        def exists(self, filename):
+            return False
+
+        def key_for(self, filename):
+            return f"docs/{filename}"
+
+        def presigned_put_url(self, key, content_type, expires_in_seconds):
+            calls.append({"key": key, "content_type": content_type, "expires_in_seconds": expires_in_seconds})
+            return f"https://r2.example/{key}"
+
+        def head_key(self, key):
+            return None
+
+        def copy_key(self, source_key, destination_key):
+            return f"r2://bucket/{destination_key}"
+
+        def delete_key(self, key):
+            pass
+
+    monkeypatch.setattr(routers.documents, "document_storage", lambda: Storage())
+    monkeypatch.setenv("R2_UPLOAD_STAGING_PREFIX", "pending")
+    monkeypatch.setenv("PRESIGNED_UPLOAD_EXPIRES_SECONDS", "600")
+
+    [upload] = routers.documents.create_presigned_uploads(
+        SimpleNamespace(id="user-1"),
+        [routers.documents.PendingDirectUpload("rules.pdf", 7, "application/pdf")],
+    )
+
+    assert upload["filename"] == "rules.pdf"
+    assert upload["method"] == "PUT"
+    assert upload["headers"] == {"Content-Type": "application/pdf"}
+    assert upload["expires_in_seconds"] == 600
+    assert calls[0]["key"].startswith(f"pending/user-1/{upload['upload_id']}/")
+    assert calls[0]["key"].endswith("/rules.pdf")
+    assert calls[0]["content_type"] == "application/pdf"
+
+
+def test_complete_direct_uploads_copies_staged_file_and_audits(monkeypatch):
+    calls = []
+    audits = []
+
+    class Storage:
+        backend = "r2"
+        prefix = "docs/"
+
+        def exists(self, filename):
+            return False
+
+        def key_for(self, filename):
+            return f"docs/{filename}"
+
+        def presigned_put_url(self, key, content_type, expires_in_seconds):
+            return f"https://r2.example/{key}"
+
+        def head_key(self, key):
+            calls.append(("head", key))
+            return {"ContentLength": 12, "ContentType": "application/pdf"}
+
+        def copy_key(self, source_key, destination_key):
+            calls.append(("copy", source_key, destination_key))
+            return f"r2://bucket/{destination_key}"
+
+        def delete_key(self, key):
+            calls.append(("delete", key))
+
+    upload_id = "3792898e-4aef-4985-a786-2980c069098f"
+    monkeypatch.setattr(routers.documents, "document_storage", lambda: Storage())
+    monkeypatch.setattr(routers.documents, "audit_event", lambda *args, **_kwargs: audits.append(args))
+    monkeypatch.setenv("R2_UPLOAD_STAGING_PREFIX", "pending")
+
+    [result] = routers.documents.complete_direct_uploads(
+        SimpleNamespace(client=None, headers={}),
+        SimpleNamespace(id="user-1", email="user@example.com", role="knowledge_manager"),
+        [routers.documents.CompletedDirectUpload(upload_id, "rules.pdf")],
+    )
+
+    staging_key = f"pending/user-1/{upload_id}/rules.pdf"
+    assert result == {"status": "ok", "filename": "rules.pdf", "path": "r2://bucket/docs/rules.pdf"}
+    assert calls == [("head", staging_key), ("copy", staging_key, "docs/rules.pdf"), ("delete", staging_key)]
+    assert audits[0][2] == "documents.upload"
+    assert audits[0][5]["direct_upload"] is True
+    assert audits[0][5]["bytes"] == 12
 
 
 def test_chunk_document_preserves_heading_context(monkeypatch):

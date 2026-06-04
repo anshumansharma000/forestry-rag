@@ -87,6 +87,45 @@ class R2DocumentStorage:
             raise AppError("Could not upload document to R2.", code=ErrorCode.STORAGE_ERROR) from exc
         return f"r2://{self.bucket}/{key}"
 
+    def presigned_put_url(self, key: str, content_type: str, expires_in_seconds: int) -> str:
+        try:
+            return self.client.generate_presigned_url(
+                "put_object",
+                Params={"Bucket": self.bucket, "Key": key, "ContentType": content_type},
+                ExpiresIn=expires_in_seconds,
+                HttpMethod="PUT",
+            )
+        except Exception as exc:
+            raise AppError("Could not create R2 upload URL.", code=ErrorCode.STORAGE_ERROR) from exc
+
+    def head_key(self, key: str) -> dict | None:
+        try:
+            return self.client.head_object(Bucket=self.bucket, Key=key)
+        except Exception as exc:
+            response = getattr(exc, "response", {})
+            code = str(response.get("Error", {}).get("Code", ""))
+            status_code = response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if code in {"404", "NoSuchKey", "NotFound"} or status_code == 404:
+                return None
+            raise AppError("Could not check uploaded document in R2.", code=ErrorCode.STORAGE_ERROR) from exc
+
+    def copy_key(self, source_key: str, destination_key: str) -> str:
+        try:
+            self.client.copy_object(
+                Bucket=self.bucket,
+                Key=destination_key,
+                CopySource={"Bucket": self.bucket, "Key": source_key},
+            )
+        except Exception as exc:
+            raise AppError("Could not finalize uploaded document in R2.", code=ErrorCode.STORAGE_ERROR) from exc
+        return f"r2://{self.bucket}/{destination_key}"
+
+    def delete_key(self, key: str) -> None:
+        try:
+            self.client.delete_object(Bucket=self.bucket, Key=key)
+        except Exception as exc:
+            raise AppError("Could not delete temporary document from R2.", code=ErrorCode.STORAGE_ERROR) from exc
+
     @contextmanager
     def document_files(self) -> Iterator[list[StoredDocumentFile]]:
         with TemporaryDirectory() as temp_dir:

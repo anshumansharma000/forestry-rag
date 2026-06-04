@@ -149,6 +149,96 @@ Frontend use:
 - After upload, prompt the user to add the new document to the index with `POST /ingest`.
 - `path` is a backend storage path for diagnostics only; do not expose it as a user-facing document link.
 
+### `POST /documents/uploads`
+
+Uploads multiple source documents into the configured document storage backend. Use this with a file input that has the `multiple` attribute.
+
+Request:
+
+- `Content-Type: multipart/form-data`
+- Field: `files`
+- Send one `files` part per selected file
+- Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`
+- Requires `knowledge_manager` or `admin`
+
+Response:
+
+```ts
+type UploadDocumentsResponse = {
+  status: "ok";
+  files: UploadDocumentResponse[];
+};
+```
+
+Frontend use:
+
+- Append every selected file with `formData.append("files", file)`.
+- Treat the upload as a single batch; duplicate filenames in the same request return `409`.
+- After upload, prompt the user to add the new documents to the index with `POST /ingest`.
+
+### `POST /documents/uploads/presign`
+
+Creates short-lived R2 presigned `PUT` URLs for direct browser uploads. This endpoint only works when `DOCUMENT_STORAGE_BACKEND=r2`.
+
+Request:
+
+```ts
+type CreatePresignedUploadsRequest = {
+  files: {
+    filename: string;
+    size_bytes: number;
+    content_type?: string | null;
+  }[];
+};
+```
+
+Response:
+
+```ts
+type PresignedUploadsResponse = {
+  status: "ok";
+  uploads: {
+    upload_id: string;
+    filename: string;
+    upload_url: string;
+    method: "PUT";
+    headers: Record<string, string>;
+    expires_in_seconds: number;
+    max_bytes: number;
+  }[];
+};
+```
+
+Frontend use:
+
+- Send one entry per selected file before uploading bytes.
+- Use each returned `upload_url` with `fetch(upload_url, { method: "PUT", headers, body: file })`.
+- The `Content-Type` header must exactly match the returned `headers["Content-Type"]`.
+- Do not call `POST /ingest` yet; direct uploads are staged until completed.
+
+### `POST /documents/uploads/complete`
+
+Finalizes direct R2 uploads after the browser has successfully uploaded every file. The backend verifies the staged object, copies it into the ingestable R2 prefix, deletes the staged object, and writes the audit event.
+
+Request:
+
+```ts
+type CompleteDirectUploadsRequest = {
+  files: {
+    upload_id: string;
+    filename: string;
+  }[];
+};
+```
+
+Response: same as `POST /documents/uploads`.
+
+Frontend use:
+
+- Call this only after every direct `PUT` request succeeds.
+- After completion succeeds, prompt the user to add the new documents to the index with `POST /ingest`.
+- If completion fails, show the backend error. The staged object may have expired, been rejected for size, or conflicted with an existing filename.
+
 ### `POST /ingest`
 
 Queues a background ingest job for previously unindexed files from the configured document storage backend. Existing indexed sources are skipped and their rows are left intact.
@@ -584,6 +674,7 @@ Implement these API calls:
 - POST /admin/users/{user_id}/reset-password -> reset password, admin only
 - GET /admin/audit-events -> recent audit events, admin only
 - POST /documents/upload as multipart/form-data field "file"; accept only .pdf, .docx, and .txt by default
+- POST /documents/uploads as multipart/form-data field "files"; send one field per file for batch uploads
 - POST /ingest -> { job }
 - GET /ingest/jobs/{job_id} -> { job }
 - GET /chunks/preview -> { documents, chunks }
@@ -623,7 +714,7 @@ Admin/setup behavior:
 - Show backend/config status without exposing secrets.
 - Admins can create users with email, initial password, role, full name, metadata, and must_change_password.
 - Admins can list users, update email/full name/role/active status/metadata, and reset passwords. Never display existing passwords.
-- Allow PDF/DOCX/TXT upload via /documents/upload.
+- Allow PDF/DOCX/TXT upload via /documents/upload for one file or /documents/uploads for multiple files.
 - After upload, indicate that /ingest must be run before new content is searchable.
 - Provide an ingest button wired to /ingest, poll /ingest/jobs/{job_id}, and show added/skipped document and chunk counts.
 - Provide a chunk preview view using /chunks/preview for debugging extraction quality.

@@ -149,9 +149,12 @@ R2_ACCESS_KEY_ID=<r2-access-key-id>
 R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
 R2_BUCKET=fisrag-docs
 R2_PREFIX=docs/
+R2_UPLOAD_STAGING_PREFIX=pending-uploads/
+PRESIGNED_UPLOAD_EXPIRES_SECONDS=900
 ```
 
 When R2 is enabled, uploads are written to `r2://fisrag-docs/<prefix>/<filename>`, and ingestion lists/downloads supported files from that prefix before indexing them into Supabase pgvector.
+Direct browser uploads use presigned R2 `PUT` URLs. Files first land under `R2_UPLOAD_STAGING_PREFIX`, then the backend finalizes them into `R2_PREFIX` after verifying the upload. Keep `R2_UPLOAD_STAGING_PREFIX` outside `R2_PREFIX`.
 
 Supported formats:
 
@@ -170,6 +173,9 @@ Content-Type: multipart/form-data
 
 file=<your PDF, DOCX, or TXT file>
 ```
+
+For multiple files, send repeated `files` fields to `POST /documents/uploads`.
+For browser-to-R2 uploads, call `POST /documents/uploads/presign`, upload each file with the returned `PUT` URL and headers, then call `POST /documents/uploads/complete`.
 
 ## Run
 
@@ -193,6 +199,15 @@ Upload a PDF, DOCX, or TXT file:
 curl -X POST http://127.0.0.1:8000/documents/upload \
   -H "Authorization: Bearer <knowledge_manager_or_admin_token>" \
   -F "file=@/absolute/path/to/document.pdf"
+```
+
+Upload multiple files in one request:
+
+```bash
+curl -X POST http://127.0.0.1:8000/documents/uploads \
+  -H "Authorization: Bearer <knowledge_manager_or_admin_token>" \
+  -F "files=@/absolute/path/to/document.pdf" \
+  -F "files=@/absolute/path/to/notes.txt"
 ```
 
 Queue indexing for any documents that have not already been indexed:

@@ -124,6 +124,45 @@ class UploadDocumentResponse(BaseModel):
     path: str
 
 
+class UploadDocumentsResponse(BaseModel):
+    status: str
+    files: list[UploadDocumentResponse]
+
+
+class DirectUploadFileRequest(BaseModel):
+    filename: NonEmptyStr
+    size_bytes: int = Field(gt=0)
+    content_type: str | None = Field(default=None, max_length=255)
+
+
+class CreatePresignedUploadsRequest(BaseModel):
+    files: list[DirectUploadFileRequest] = Field(min_length=1, max_length=50)
+
+
+class PresignedUploadResponse(BaseModel):
+    upload_id: UUID | str
+    filename: str
+    upload_url: str
+    method: str
+    headers: dict[str, str]
+    expires_in_seconds: int
+    max_bytes: int
+
+
+class PresignedUploadsResponse(BaseModel):
+    status: str
+    uploads: list[PresignedUploadResponse]
+
+
+class CompleteDirectUploadFileRequest(BaseModel):
+    upload_id: UUID
+    filename: NonEmptyStr
+
+
+class CompleteDirectUploadsRequest(BaseModel):
+    files: list[CompleteDirectUploadFileRequest] = Field(min_length=1, max_length=50)
+
+
 class ChatSessionResponse(BaseModel):
     id: UUID | str
     user_id: UUID | str | None = None
