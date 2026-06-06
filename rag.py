@@ -55,7 +55,7 @@ from documents import (
     read_txt,
 )
 from ingest_service import build_index, preview_chunks
-from prompts import answer_with_gemini, format_history, rewrite_question_for_retrieval
+from prompts import answer_is_abstention, answer_with_gemini, format_history, rewrite_question_for_retrieval, validate_answer_citations
 from rag_errors import RagError
 from repositories import DocumentRepository
 from retrieval import (
@@ -65,6 +65,8 @@ from retrieval import (
     format_source,
     generate_with_gemini,
     normalize_embedding,
+    retrieval_confidence,
+    retrieval_is_confident,
     retrieve,
     source_payload,
 )

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import CurrentUser, require_roles
-from rag import answer_with_gemini, retrieve, source_payload
+from rag import answer_is_abstention, answer_with_gemini, retrieval_confidence, retrieve, source_payload
 from schemas import AskRequest, AskResponse
 
 router = APIRouter(tags=["qa"])
@@ -17,4 +17,6 @@ def ask(request_body: AskRequest, _user: CurrentUser = Depends(require_roles("vi
     return {
         "answer": answer,
         "sources": source_payload(contexts),
+        "confidence": retrieval_confidence(contexts),
+        "abstained": answer_is_abstention(answer),
     }

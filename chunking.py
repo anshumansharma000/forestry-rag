@@ -3,7 +3,7 @@ import re
 
 import tiktoken
 
-from documents import normalize_text
+from documents import extract_legal_identifiers, normalize_text
 from settings import env_int
 
 TOKEN_ENCODING = tiktoken.get_encoding("cl100k_base")
@@ -35,8 +35,8 @@ def chunk_settings(profile: str, max_tokens: int | None, overlap_tokens: int | N
         default_tokens = env_int("FAQ_CHUNK_TOKENS", 650)
         default_overlap = env_int("FAQ_CHUNK_OVERLAP_TOKENS", 80)
     elif profile == PROCEDURE_PROFILE:
-        default_tokens = env_int("PROCEDURE_CHUNK_TOKENS", 720)
-        default_overlap = env_int("PROCEDURE_CHUNK_OVERLAP_TOKENS", 160)
+        default_tokens = env_int("PROCEDURE_CHUNK_TOKENS", 600)
+        default_overlap = env_int("PROCEDURE_CHUNK_OVERLAP_TOKENS", 120)
     else:
         default_tokens = env_int("CHUNK_TOKENS", env_int("CHUNK_SIZE", 600))
         default_overlap = env_int("CHUNK_OVERLAP_TOKENS", env_int("CHUNK_OVERLAP", 100))
@@ -83,6 +83,8 @@ def is_boilerplate_line(line: str) -> bool:
     if re.match(r"^CG-[A-Z]+-[A-Z]-\d{8}-\d+$", normalized):
         return True
     if re.match(r"^\d+\s+GI/\d{4}\s*\(\d+\)$", normalized):
+        return True
+    if re.search(r"[.…·]{4,}\s*\d+\s*$", normalized):
         return True
     return False
 
@@ -506,6 +508,8 @@ def chunk_document(doc: dict, max_tokens: int | None = None, overlap_tokens: int
         else:
             chunk_type = "heading" if types == {"heading"} else "section"
         table_indexes = unit_table_indexes(units)
+        document_metadata = dict(doc.get("metadata") or {})
+        document_identifiers = document_metadata.pop("identifiers", [])
         chunks.append(
             {
                 "source": doc["source"],
@@ -522,6 +526,9 @@ def chunk_document(doc: dict, max_tokens: int | None = None, overlap_tokens: int
                     "profile": profile,
                     "unit_types": sorted(types),
                     "table_indexes": table_indexes,
+                    **document_metadata,
+                    "document_identifiers": document_identifiers,
+                    "identifiers": extract_legal_identifiers(f"{unit_heading(units) or ''}\n{text}"),
                 },
             }
         )

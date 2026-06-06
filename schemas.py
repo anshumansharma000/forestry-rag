@@ -91,13 +91,17 @@ class SourceResponse(BaseModel):
     page_start: int | None = None
     page_end: int | None = None
     chunk_index: int
+    section_heading: str | None = None
     score: float
+    evidence_role: str = "matched"
     text: str
 
 
 class AskResponse(BaseModel):
     answer: str
     sources: list[SourceResponse]
+    confidence: float | None = None
+    abstained: bool = False
 
 
 class IngestJobResponse(BaseModel):

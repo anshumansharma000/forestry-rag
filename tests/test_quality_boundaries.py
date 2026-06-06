@@ -10,11 +10,12 @@ from fastapi import UploadFile, status
 from starlette.datastructures import Headers
 
 import ingest_service
+import prompts
 import retrieval
 import routers.documents
 from auth import validate_password
 from chunking import chunk_document
-from documents import read_docx, read_pdf_with_pdfplumber
+from documents import extract_document_metadata, infer_title, read_docx, read_pdf_with_pdfplumber, remove_repeated_margin_lines
 from errors import AppError
 from rag_errors import RagError
 from repositories import ChatRepository
@@ -302,10 +303,318 @@ def test_retrieve_passes_query_text_for_hybrid_search(monkeypatch):
         {
             "query_embedding": [0.1, 0.2, 0.3],
             "query_text": "Rule 12 transit permits",
-            "match_count": 7,
+            "match_count": 40,
         }
     ]
-    assert contexts[0]["score"] == 0.82
+    assert contexts[0]["base_score"] == 0.82
+    assert contexts[0]["score"] > 0.5
+
+
+def test_reranker_boosts_exact_legal_identifier():
+    candidates = [
+        retrieval.context_from_row(
+            {
+                "id": "semantic",
+                "document_id": "doc-1",
+                "source": "general-guidance.pdf",
+                "chunk_index": 0,
+                "chunk_type": "section",
+                "section_heading": "Transit permits",
+                "page_start": 1,
+                "page_end": 1,
+                "content": "General guidance about transit permits.",
+                "metadata": {},
+                "similarity": 0.8,
+            }
+        ),
+        retrieval.context_from_row(
+            {
+                "id": "exact",
+                "document_id": "doc-2",
+                "source": "rules-2022.pdf",
+                "chunk_index": 4,
+                "chunk_type": "section",
+                "section_heading": "Rule 12",
+                "page_start": 5,
+                "page_end": 5,
+                "content": "Rule 12 requires prior approval for the transit permit.",
+                "metadata": {"identifiers": ["Rule 12"], "years": ["2022"]},
+                "similarity": 0.68,
+            }
+        ),
+    ]
+
+    ranked = retrieval.rerank_candidates("What does Rule 12 require?", candidates)
+
+    assert ranked[0]["id"] == "exact"
+    assert ranked[0]["metadata"]["retrieval"]["identifier_match"] == 1.0
+
+
+def test_reranker_keeps_hybrid_score_dominant_for_generic_matches():
+    candidates = [
+        retrieval.context_from_row(
+            {
+                "id": "strong-hybrid",
+                "document_id": "doc-1",
+                "source": "forest-guidelines.pdf",
+                "chunk_index": 0,
+                "chunk_type": "section",
+                "section_heading": "Forest diversion",
+                "page_start": 1,
+                "page_end": 1,
+                "content": "Forest diversion proposals require scrutiny by the competent authority.",
+                "metadata": {},
+                "similarity": 0.84,
+            },
+            rank=0,
+        ),
+        retrieval.context_from_row(
+            {
+                "id": "weak-lexical",
+                "document_id": "doc-2",
+                "source": "general-note.pdf",
+                "chunk_index": 0,
+                "chunk_type": "section",
+                "section_heading": "Forest diversion proposal scrutiny",
+                "page_start": 5,
+                "page_end": 5,
+                "content": "This paragraph repeats forest diversion proposal scrutiny terms but is generic.",
+                "metadata": {},
+                "similarity": 0.62,
+            },
+            rank=1,
+        ),
+    ]
+
+    ranked = retrieval.rerank_candidates("forest diversion proposal scrutiny", candidates)
+
+    assert ranked[0]["id"] == "strong-hybrid"
+
+
+def test_retrieve_expands_neighbor_chunks(monkeypatch):
+    class Repository:
+        def match_chunks(self, _query_embedding, _query_text, _match_count):
+            return [
+                {
+                    "id": "chunk-2",
+                    "document_id": "doc-1",
+                    "source": "rules.pdf",
+                    "chunk_index": 2,
+                    "chunk_type": "section",
+                    "section_heading": "Rule 12",
+                    "page_start": 2,
+                    "page_end": 2,
+                    "content": "Rule 12 requires prior approval.",
+                    "metadata": {"identifiers": ["Rule 12"]},
+                    "similarity": 0.9,
+                }
+            ]
+
+        def neighbor_chunks(self, _document_id, _chunk_index, radius=1):
+            assert radius == 1
+            return [
+                {
+                    "id": "chunk-2",
+                    "document_id": "doc-1",
+                    "source": "rules.pdf",
+                    "chunk_index": 2,
+                    "chunk_type": "section",
+                    "section_heading": "Rule 12",
+                    "page_start": 2,
+                    "page_end": 2,
+                    "content": "Rule 12 requires prior approval.",
+                    "metadata": {},
+                },
+                {
+                    "id": "chunk-3",
+                    "document_id": "doc-1",
+                    "source": "rules.pdf",
+                    "chunk_index": 3,
+                    "chunk_type": "section",
+                    "section_heading": "Rule 12",
+                    "page_start": 3,
+                    "page_end": 3,
+                    "content": "The exception applies to emergency work.",
+                    "metadata": {},
+                },
+            ]
+
+    monkeypatch.setattr(retrieval, "embed_query", lambda _text: [0.1])
+
+    contexts = retrieval.retrieve("What does Rule 12 require?", top_k=2, repository=Repository())
+
+    assert [context["id"] for context in contexts] == ["chunk-2", "chunk-3"]
+    assert contexts[1]["evidence_role"] == "neighbor"
+
+
+def test_neighbor_expansion_does_not_displace_direct_matches(monkeypatch):
+    class Repository:
+        def match_chunks(self, _query_embedding, _query_text, _match_count):
+            return [
+                {
+                    "id": f"chunk-{index}",
+                    "document_id": "doc-1",
+                    "source": "rules.pdf",
+                    "chunk_index": index,
+                    "chunk_type": "section",
+                    "section_heading": f"Rule {index}",
+                    "page_start": index,
+                    "page_end": index,
+                    "content": f"Directly matched rule text {index}.",
+                    "metadata": {},
+                    "similarity": 0.9 - (index * 0.01),
+                }
+                for index in range(3)
+            ]
+
+        def neighbor_chunks(self, _document_id, _chunk_index, radius=1):
+            return [
+                {
+                    "id": "neighbor",
+                    "document_id": "doc-1",
+                    "source": "rules.pdf",
+                    "chunk_index": 99,
+                    "chunk_type": "section",
+                    "section_heading": "Nearby",
+                    "page_start": 99,
+                    "page_end": 99,
+                    "content": "Nearby context.",
+                    "metadata": {},
+                }
+            ]
+
+    monkeypatch.setattr(retrieval, "embed_query", lambda _text: [0.1])
+
+    contexts = retrieval.retrieve("rule text", top_k=3, repository=Repository())
+
+    assert [context["id"] for context in contexts] == ["chunk-0", "chunk-1", "chunk-2"]
+    assert all(context["evidence_role"] == "matched" for context in contexts)
+
+
+def test_retrieve_keeps_low_scored_hybrid_candidates_by_default(monkeypatch):
+    class Repository:
+        def match_chunks(self, _query_embedding, _query_text, _match_count):
+            return [
+                {
+                    "id": "chunk-low",
+                    "document_id": "doc-1",
+                    "source": "rules.pdf",
+                    "chunk_index": 0,
+                    "chunk_type": "section",
+                    "section_heading": "Prior approval",
+                    "page_start": 1,
+                    "page_end": 1,
+                    "content": "Prior approval is required for diversion of forest land.",
+                    "metadata": {},
+                    "similarity": 0.08,
+                }
+            ]
+
+    monkeypatch.setattr(retrieval, "embed_query", lambda _text: [0.1])
+    monkeypatch.delenv("RETRIEVAL_MIN_CONTEXT_SCORE", raising=False)
+    monkeypatch.delenv("RETRIEVAL_CONFIDENCE_THRESHOLD", raising=False)
+
+    contexts = retrieval.retrieve("Is prior approval required?", top_k=1, repository=Repository())
+
+    assert len(contexts) == 1
+    assert retrieval.retrieval_is_confident(contexts)
+
+
+def test_chunk_embedding_includes_document_and_section_context():
+    text = retrieval.embedding_text(
+        {
+            "source": "rules.pdf",
+            "section_heading": "Rule 12 Prior approval",
+            "content": "Approval is required.",
+            "metadata": {
+                "title": "Forest Conservation Rules, 2022",
+                "document_type": "rules",
+                "authority": "Ministry of Environment",
+            },
+        }
+    )
+
+    assert "Document: Forest Conservation Rules, 2022" in text
+    assert "Section: Rule 12 Prior approval" in text
+    assert "Legal identifiers: Rule 12" in text
+
+
+def test_document_metadata_extracts_legal_fields_and_better_title():
+    pages = [
+        {
+            "page": 1,
+            "text": (
+                "EXTRAORDINARY\n"
+                "MINISTRY OF ENVIRONMENT, FOREST AND CLIMATE CHANGE\n"
+                "THE FOREST CONSERVATION RULES, 2022\n"
+                "G.S.R. 480(E). Rule 12 requires approval."
+            ),
+        }
+    ]
+
+    title = infer_title("gazette.pdf", pages)
+    metadata = extract_document_metadata("gazette.pdf", title, pages)
+
+    assert title == "THE FOREST CONSERVATION RULES, 2022"
+    assert metadata["document_type"] == "rules"
+    assert "G.S.R. 480(E)" in metadata["identifiers"]
+    assert metadata["years"] == ["2022"]
+
+
+def test_repeated_pdf_margin_lines_are_removed():
+    pages = [
+        {"page": number, "text": f"REPEATED HEADER\nPage-specific text {number}\nREPEATED FOOTER"}
+        for number in range(1, 5)
+    ]
+
+    cleaned = remove_repeated_margin_lines(pages)
+
+    assert all("REPEATED HEADER" not in page["text"] for page in cleaned)
+    assert all("Page-specific text" in page["text"] for page in cleaned)
+
+
+def test_answer_abstains_when_retrieval_confidence_is_low(monkeypatch):
+    monkeypatch.setattr(prompts, "generate_with_gemini", lambda _prompt: pytest.fail("model should not be called"))
+
+    answer = prompts.answer_with_gemini("Question?", [])
+
+    assert answer == prompts.INSUFFICIENT_EVIDENCE_ANSWER
+    assert prompts.answer_is_abstention(answer)
+
+
+def test_answer_uses_model_when_low_scored_context_exists(monkeypatch):
+    called = []
+    monkeypatch.setattr(prompts, "generate_with_gemini", lambda _prompt: called.append(True) or "Approval is required [1].")
+    monkeypatch.delenv("RETRIEVAL_CONFIDENCE_THRESHOLD", raising=False)
+
+    answer = prompts.answer_with_gemini(
+        "Is approval required?",
+        [
+            {
+                "source": "rules.pdf",
+                "chunk_index": 0,
+                "section_heading": "Prior approval",
+                "page_start": 1,
+                "page_end": 1,
+                "text": "Approval is required.",
+                "score": 0.04,
+                "base_score": 0.08,
+                "evidence_role": "matched",
+            }
+        ],
+    )
+
+    assert called == [True]
+    assert answer == "Approval is required [1]."
+
+
+def test_citation_validation_preserves_uncited_answers_and_removes_invalid_references():
+    assert prompts.validate_answer_citations("Approval is required.", 2) == "Approval is required."
+    assert prompts.validate_answer_citations("Approval is required [1], not [8].", 2) == "Approval is required [1], not ."
+
+
+def test_unsupported_answer_is_not_reported_as_abstention():
+    assert not prompts.answer_is_abstention(prompts.UNSUPPORTED_ANSWER)
 
 
 def test_read_docx_extracts_tables_as_structured_blocks(tmp_path):

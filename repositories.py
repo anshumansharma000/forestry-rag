@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,11 +13,23 @@ class DocumentRepository:
         self.client = client or supabase_client()
 
     def indexed_sources(self) -> set[str]:
-        result = self.client.table("documents").select("source").execute()
-        return {row["source"] for row in result.data or [] if row.get("source")}
+        result = self.client.table("documents").select("source,metadata").execute()
+        current_version = index_version()
+        return {
+            row["source"]
+            for row in result.data or []
+            if row.get("source")
+            and (row.get("metadata") or {}).get("index_version") == current_version
+            and (row.get("metadata") or {}).get("ingest_status") == "indexed"
+        }
 
     def upsert_document(self, doc: dict, status: str = "indexing") -> str:
-        metadata = {"ingest_status": status, "ingest_started_at": datetime.now(UTC).isoformat()}
+        metadata = {
+            **(doc.get("metadata") or {}),
+            "index_version": index_version(),
+            "ingest_status": status,
+            "ingest_started_at": datetime.now(UTC).isoformat(),
+        }
         document_row = {
             "source": doc["source"],
             "kind": doc["kind"],
@@ -45,6 +58,22 @@ class DocumentRepository:
             {"query_embedding": query_embedding, "query_text": query_text, "match_count": match_count, "filter": {}},
         ).execute()
         return result.data or []
+
+    def neighbor_chunks(self, document_id: str, chunk_index: int, radius: int = 1) -> list[dict]:
+        result = (
+            self.client.table("document_chunks")
+            .select("id,document_id,source,chunk_index,chunk_type,section_heading,page_start,page_end,content,metadata")
+            .eq("document_id", document_id)
+            .gte("chunk_index", max(0, chunk_index - radius))
+            .lte("chunk_index", chunk_index + radius)
+            .order("chunk_index")
+            .execute()
+        )
+        return result.data or []
+
+
+def index_version() -> str:
+    return os.getenv("RAG_INDEX_VERSION", "2").strip() or "2"
 
 
 class ChatRepository:

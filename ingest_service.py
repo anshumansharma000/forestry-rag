@@ -1,6 +1,6 @@
 from chunking import chunk_document
 from documents import load_documents
-from repositories import DocumentRepository, IngestJobRepository
+from repositories import DocumentRepository, IngestJobRepository, index_version
 from retrieval import chunk_row
 
 
@@ -19,12 +19,13 @@ def build_index(repository: DocumentRepository | None = None) -> dict:
 
         document_id = repository.upsert_document(doc, status="indexing")
         chunks = chunk_document(doc)
+        index_metadata = {**(doc.get("metadata") or {}), "index_version": index_version()}
         try:
             rows = [chunk_row(document_id, chunk) for chunk in chunks]
             chunks_added += repository.replace_chunks(doc["source"], rows)
-            repository.mark_document_status(doc["source"], "indexed", {"chunks": len(rows)})
+            repository.mark_document_status(doc["source"], "indexed", {**index_metadata, "chunks": len(rows)})
         except Exception:
-            repository.mark_document_status(doc["source"], "failed")
+            repository.mark_document_status(doc["source"], "failed", index_metadata)
             raise
 
         documents_added += 1

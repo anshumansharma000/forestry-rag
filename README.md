@@ -402,15 +402,32 @@ FAQ_CHUNK_TOKENS=650
 FAQ_CHUNK_OVERLAP_TOKENS=80
 FAQ_UNIT_TOKENS=260
 
-PROCEDURE_CHUNK_TOKENS=720
-PROCEDURE_CHUNK_OVERLAP_TOKENS=160
+PROCEDURE_CHUNK_TOKENS=600
+PROCEDURE_CHUNK_OVERLAP_TOKENS=120
 PROCEDURE_UNIT_TOKENS=260
 
 TOP_K=3
+RETRIEVAL_CANDIDATES=40
+RETRIEVAL_MAX_PER_SOURCE=0
+RETRIEVAL_DUPLICATE_THRESHOLD=0.82
+RETRIEVAL_EXPAND_NEIGHBORS=true
+RETRIEVAL_MIN_CONTEXT_SCORE=0.0
+RETRIEVAL_CONFIDENCE_THRESHOLD=0.01
+RAG_INDEX_VERSION=2
 ```
 
 For this use case, the regular section chunk size is intentionally moderate. Rules and circulars often need enough context to include exceptions, amendments, and conditions, but very large chunks reduce retrieval precision. FAQ chunks are allowed a little more room because question text is repeated for context. Procedure chunks are larger and have more overlap because a complete answer often depends on neighboring steps. `MAX_UNIT_TOKENS`, `FAQ_UNIT_TOKENS`, and `PROCEDURE_UNIT_TOKENS` keep individual sentence/clause/step units manageable before they are packed into retrieval chunks. The defaults are a practical starting point, not a final production setting.
 
 ## Retrieval strategy
 
-Retrieval is hybrid. The API embeds the user question or rewritten chat search query with Gemini, then Supabase combines vector candidates with PostgreSQL full-text candidates over `source`, `section_heading`, and `content`. The RPC scores candidates with weighted vector similarity, text rank, reciprocal-rank fusion, and small metadata boosts for exact source/section mentions plus FAQ/procedure intent. `score` in source responses is the final hybrid score, not raw cosine similarity.
+Retrieval is a multi-stage hybrid pipeline:
+
+- The API embeds the user question or rewritten chat search query with Gemini.
+- Supabase returns a broad candidate set using pgvector similarity plus PostgreSQL English full-text search over `source`, `section_heading`, and `content`.
+- A conservative deterministic reranker keeps the database hybrid score as the dominant signal, then adds small boosts for lexical overlap, exact legal identifiers, years, document titles, section headings, and question intent while penalizing likely table-of-contents noise.
+- Results suppress near-duplicate chunks. Neighboring chunks are added only when there are open context slots, so nearby context does not displace stronger direct matches.
+- Low-confidence evidence causes the answer layer to abstain. Generated answers must contain valid citations or they are rejected as unsupported.
+
+Embeddings include document title, document type, authority, section heading, legal identifiers, and chunk content. `RAG_INDEX_VERSION` controls automatic reindexing when this representation changes. After deploying a new index version, run `POST /ingest`; documents indexed with an older version will be rebuilt.
+
+`score` in source responses is the final reranked score, not raw cosine similarity. `evidence_role` is `matched` for directly retrieved chunks and `neighbor` for adjacent context.

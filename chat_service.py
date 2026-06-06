@@ -1,7 +1,7 @@
-from prompts import answer_with_gemini, rewrite_question_for_retrieval
+from prompts import answer_is_abstention, answer_with_gemini, rewrite_question_for_retrieval
 from rag_errors import RagError
 from repositories import ChatRepository
-from retrieval import retrieve, source_payload
+from retrieval import retrieval_confidence, retrieve, source_payload
 
 
 def create_chat_session(title: str | None = None, user_id: str | None = None, repository: ChatRepository | None = None) -> dict:
@@ -53,12 +53,14 @@ def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = No
     contexts = retrieve(search_query, top_k)
     answer = answer_with_gemini(message, contexts, history_with_latest)
     sources = source_payload(contexts)
+    confidence = retrieval_confidence(contexts)
+    abstained = answer_is_abstention(answer)
     assistant_message = save_chat_message(
         session_id,
         "assistant",
         answer,
         sources=sources,
-        metadata={"search_query": search_query},
+        metadata={"search_query": search_query, "retrieval_confidence": confidence, "abstained": abstained},
         repository=repository,
     )
     return {
@@ -68,4 +70,6 @@ def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = No
         "search_query": search_query,
         "answer": answer,
         "sources": sources,
+        "confidence": confidence,
+        "abstained": abstained,
     }

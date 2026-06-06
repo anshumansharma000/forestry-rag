@@ -343,6 +343,8 @@ Response:
 type AskResponse = {
   answer: string;
   sources: Source[];
+  confidence: number;
+  abstained: boolean;
 };
 ```
 
@@ -450,6 +452,8 @@ type ChatAskResponse = {
   search_query: string;
   answer: string;
   sources: Source[];
+  confidence: number;
+  abstained: boolean;
 };
 ```
 
@@ -469,7 +473,9 @@ type Source = {
   page_start: number | null;
   page_end: number | null;
   chunk_index: number;
+  section_heading: string | null;
   score: number;
+  evidence_role: "matched" | "neighbor";
   text: string;
 };
 
@@ -571,7 +577,9 @@ Notes:
 
 - All IDs are UUID strings.
 - Timestamps are ISO strings from Supabase/Postgres.
-- `score` is the rounded hybrid retrieval score; higher means more relevant.
+- `score` is the rounded post-reranking retrieval score; higher means more relevant.
+- `evidence_role` distinguishes directly matched chunks from neighboring context.
+- `confidence` summarizes evidence strength. When `abstained` is true, the backend intentionally declined to answer because evidence or citations were insufficient.
 - `display_source` already includes page labels, such as `file.pdf, page 4`.
 - `source` is the original file name.
 - `text` is the retrieved chunk excerpt. Use it in expandable citation panels.
@@ -685,7 +693,7 @@ Implement these API calls:
 - POST /chat/sessions/{session_id}/ask with { message, top_k? } -> { session_id, user_message, assistant_message, search_query, answer, sources }
 
 Use these TypeScript types:
-type Source = { source: string; display_source: string; page_start: number | null; page_end: number | null; chunk_index: number; score: number; text: string };
+type Source = { source: string; display_source: string; page_start: number | null; page_end: number | null; chunk_index: number; section_heading: string | null; score: number; evidence_role: "matched" | "neighbor"; text: string };
 type ChatMessage = { id: string; session_id: string; role: "user" | "assistant"; content: string; sources: Source[]; metadata: Record<string, unknown>; created_at: string };
 type ChatSession = { id: string; title: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string };
 type IngestJob = { id: string; kind: string; status: "queued" | "running" | "succeeded" | "failed"; actor_user_id: string | null; result: Record<string, unknown> | null; error: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string; started_at: string | null; finished_at: string | null };
