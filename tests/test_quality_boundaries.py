@@ -21,6 +21,7 @@ from rag_errors import RagError
 from repositories import ChatRepository
 from services.document_storage import R2DocumentStorage
 from services.gemini import GeminiClient
+from settings import validate_runtime_config
 from structured_logging import JsonLogFormatter
 from upload_utils import allowed_upload_extensions, safe_filename
 
@@ -717,6 +718,34 @@ def test_gemini_client_redacts_upstream_error_body(monkeypatch):
     assert exc.value.message == "Gemini API returned an error."
     assert exc.value.details == {"status_code": 500}
     assert "secret upstream diagnostics" not in exc.value.message
+
+
+def test_runtime_config_allows_zero_retrieval_max_per_source(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("SUPABASE_URL", "https://project-ref.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret")
+    monkeypatch.setenv("DOCUMENT_STORAGE_BACKEND", "local")
+    monkeypatch.setenv("RETRIEVAL_MAX_PER_SOURCE", "0")
+
+    status = validate_runtime_config()
+
+    assert status["ok"] is True
+    assert "RETRIEVAL_MAX_PER_SOURCE" not in status["invalid"]
+
+
+def test_runtime_config_rejects_negative_retrieval_max_per_source(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("SUPABASE_URL", "https://project-ref.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret")
+    monkeypatch.setenv("DOCUMENT_STORAGE_BACKEND", "local")
+    monkeypatch.setenv("RETRIEVAL_MAX_PER_SOURCE", "-1")
+
+    status = validate_runtime_config()
+
+    assert status["ok"] is False
+    assert "RETRIEVAL_MAX_PER_SOURCE" in status["invalid"]
 
 
 def test_chat_repository_rejects_missing_owned_session():

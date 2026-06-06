@@ -158,7 +158,7 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
             r2_settings()
         except AppError as exc:
             missing.extend(exc.details.get("missing", ["valid R2 document storage settings"]))
-    for name in ("JWT_EXPIRES_MINUTES", "REFRESH_TOKEN_EXPIRES_DAYS", "TOP_K", "RETRIEVAL_CANDIDATES", "RETRIEVAL_MAX_PER_SOURCE"):
+    for name in ("JWT_EXPIRES_MINUTES", "REFRESH_TOKEN_EXPIRES_DAYS", "TOP_K", "RETRIEVAL_CANDIDATES"):
         raw = os.getenv(name)
         if raw is None or not raw.strip():
             continue
@@ -169,6 +169,15 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
             continue
         if value <= 0:
             invalid.append(name)
+    raw = os.getenv("RETRIEVAL_MAX_PER_SOURCE")
+    if raw is not None and raw.strip():
+        try:
+            value = int(raw)
+        except ValueError:
+            invalid.append("RETRIEVAL_MAX_PER_SOURCE")
+        else:
+            if value < 0:
+                invalid.append("RETRIEVAL_MAX_PER_SOURCE")
     for name in ("RETRIEVAL_DUPLICATE_THRESHOLD", "RETRIEVAL_MIN_CONTEXT_SCORE", "RETRIEVAL_CONFIDENCE_THRESHOLD"):
         raw = os.getenv(name)
         if raw is None or not raw.strip():
