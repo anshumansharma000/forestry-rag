@@ -29,12 +29,12 @@ class LocalDocumentStorage:
         return str(destination)
 
     @contextmanager
-    def document_files(self) -> Iterator[list[StoredDocumentFile]]:
+    def document_files(self, source: str | None = None) -> Iterator[list[StoredDocumentFile]]:
         DOCS_DIR.mkdir(parents=True, exist_ok=True)
         yield [
             StoredDocumentFile(name=path.name, path=path)
             for path in sorted(DOCS_DIR.iterdir())
-            if path.suffix.lower() in SUPPORTED_STORAGE_EXTENSIONS
+            if path.suffix.lower() in SUPPORTED_STORAGE_EXTENSIONS and (source is None or path.name == source)
         ]
 
 
@@ -127,11 +127,11 @@ class R2DocumentStorage:
             raise AppError("Could not delete temporary document from R2.", code=ErrorCode.STORAGE_ERROR) from exc
 
     @contextmanager
-    def document_files(self) -> Iterator[list[StoredDocumentFile]]:
+    def document_files(self, source: str | None = None) -> Iterator[list[StoredDocumentFile]]:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             files = []
-            for key in self._document_keys():
+            for key in self._document_keys(source):
                 destination = root / Path(key).name
                 try:
                     self.client.download_file(self.bucket, key, str(destination))
@@ -140,7 +140,11 @@ class R2DocumentStorage:
                 files.append(StoredDocumentFile(name=Path(key).name, path=destination))
             yield sorted(files, key=lambda item: item.name)
 
-    def _document_keys(self) -> list[str]:
+    def _document_keys(self, source: str | None = None) -> list[str]:
+        if source is not None:
+            key = self.key_for(source)
+            return [key] if Path(key).suffix.lower() in SUPPORTED_STORAGE_EXTENSIONS and self.head_key(key) else []
+
         keys = []
         paginator = self.client.get_paginator("list_objects_v2")
         try:

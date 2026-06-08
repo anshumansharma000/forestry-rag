@@ -839,3 +839,106 @@ def test_ingest_marks_document_failed_when_chunk_insert_fails(monkeypatch):
         ingest_service.build_index(repository)
 
     assert repository.statuses == ["indexing", "failed"]
+
+
+def test_preview_chunks_returns_bounded_page_and_omits_content_by_default(monkeypatch):
+    monkeypatch.setattr(
+        ingest_service,
+        "iter_documents",
+        lambda source=None: iter([{"source": "a.txt", "kind": "txt", "title": "A", "pages": []}]),
+    )
+    monkeypatch.setattr(
+        ingest_service,
+        "chunk_document",
+        lambda _doc, max_chunks=None: [
+            {
+                "source": "a.txt",
+                "chunk_index": index,
+                "content": f"chunk {index}",
+                "metadata": {},
+            }
+            for index in range(max_chunks or 0)
+        ],
+    )
+
+    result = ingest_service.preview_chunks(source="a.txt", limit=2)
+
+    assert result["chunks_returned"] == 2
+    assert result["has_more"] is True
+    assert result["chunks"][0]["content"] == ""
+    assert result["chunks"][0]["content_omitted"] is True
+    assert result["chunks"][0]["content_chars"] == len("chunk 0")
+
+
+def test_preview_chunks_can_include_truncated_content(monkeypatch):
+    monkeypatch.setattr(
+        ingest_service,
+        "iter_documents",
+        lambda source=None: iter([{"source": "a.txt", "kind": "txt", "title": "A", "pages": []}]),
+    )
+    monkeypatch.setattr(
+        ingest_service,
+        "chunk_document",
+        lambda _doc, max_chunks=None: [
+            {
+                "source": "a.txt",
+                "chunk_index": 0,
+                "content": "abcdef",
+                "metadata": {},
+            }
+        ],
+    )
+
+    result = ingest_service.preview_chunks(source="a.txt", limit=1, include_content=True, max_content_chars=4)
+
+    assert result["chunks"][0]["content"] == "abcd"
+    assert result["chunks"][0]["content_truncated"] is True
+    assert result["chunks"][0]["content_chars"] == 6
+
+
+def test_preview_chunks_passes_source_filter_to_document_iterator(monkeypatch):
+    seen_sources = []
+
+    def fake_iter_documents(source=None):
+        seen_sources.append(source)
+        return iter([])
+
+    monkeypatch.setattr(ingest_service, "iter_documents", fake_iter_documents)
+
+    result = ingest_service.preview_chunks(source="rules.pdf", limit=10)
+
+    assert result["chunks"] == []
+    assert result["source"] == "rules.pdf"
+    assert result["all_sources"] is False
+    assert seen_sources == ["rules.pdf"]
+
+
+def test_preview_chunks_requires_source_unless_all_sources_is_explicit():
+    with pytest.raises(AppError) as exc_info:
+        ingest_service.preview_chunks(limit=10)
+
+    assert "requires a source filename" in exc_info.value.message
+
+
+def test_preview_chunks_all_sources_requires_explicit_opt_in(monkeypatch):
+    seen_sources = []
+
+    def fake_iter_documents(source=None):
+        seen_sources.append(source)
+        return iter([])
+
+    monkeypatch.setattr(ingest_service, "iter_documents", fake_iter_documents)
+
+    result = ingest_service.preview_chunks(all_sources=True, limit=10)
+
+    assert result["chunks"] == []
+    assert result["source"] is None
+    assert result["all_sources"] is True
+    assert seen_sources == [None]
+
+
+def test_preview_chunks_rejects_source_and_all_sources_together():
+    with pytest.raises(AppError) as exc_info:
+        ingest_service.preview_chunks(source="rules.pdf", all_sources=True)
+
+    assert "Use either source or all_sources" in exc_info.value.message

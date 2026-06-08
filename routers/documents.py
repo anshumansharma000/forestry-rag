@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 
 from auth import CurrentUser, audit_event, require_roles
 from errors import AppError, ErrorCode
@@ -375,5 +375,20 @@ def normalized_staging_prefix() -> str:
 
 
 @router.get("/chunks/preview")
-def chunks_preview(_user: CurrentUser = Depends(require_roles("knowledge_manager"))):
-    return preview_chunks()
+def chunks_preview(
+    source: str | None = Query(default=None, min_length=1, max_length=255),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    include_content: bool = Query(default=False),
+    max_content_chars: int = Query(default=500, ge=0, le=5000),
+    all_sources: bool = Query(default=False),
+    _user: CurrentUser = Depends(require_roles("knowledge_manager")),
+):
+    return preview_chunks(
+        source=source,
+        limit=limit,
+        offset=offset,
+        include_content=include_content,
+        max_content_chars=max_content_chars,
+        all_sources=all_sources,
+    )

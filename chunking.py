@@ -392,11 +392,11 @@ def page_units(
     return units, active_heading
 
 
-def document_units(doc: dict, profile: str, chunk_token_limit: int | None = None) -> list[dict]:
+def iter_document_units(doc: dict, profile: str, chunk_token_limit: int | None = None):
     if profile == FAQ_PROFILE:
-        return faq_document_units(doc, chunk_token_limit)
+        yield from faq_document_units(doc, chunk_token_limit)
+        return
 
-    units = []
     active_heading = doc["title"] if profile == PROCEDURE_PROFILE else None
     configured_unit_tokens = (
         env_int("PROCEDURE_UNIT_TOKENS", env_int("MAX_UNIT_TOKENS", 260))
@@ -412,8 +412,11 @@ def document_units(doc: dict, profile: str, chunk_token_limit: int | None = None
             active_heading=active_heading,
             max_unit_tokens=max_unit_tokens,
         )
-        units.extend(page_result)
-    return units
+        yield from page_result
+
+
+def document_units(doc: dict, profile: str, chunk_token_limit: int | None = None) -> list[dict]:
+    return list(iter_document_units(doc, profile, chunk_token_limit))
 
 
 def chunk_token_count(units: list[dict]) -> int:
@@ -486,7 +489,12 @@ def add_context_unit(units: list[dict], profile: str, heading: str | None, next_
     return units
 
 
-def chunk_document(doc: dict, max_tokens: int | None = None, overlap_tokens: int | None = None) -> list[dict]:
+def chunk_document(
+    doc: dict,
+    max_tokens: int | None = None,
+    overlap_tokens: int | None = None,
+    max_chunks: int | None = None,
+) -> list[dict]:
     profile = document_profile(doc)
     max_tokens, overlap_tokens = chunk_settings(profile, max_tokens, overlap_tokens)
 
@@ -533,7 +541,10 @@ def chunk_document(doc: dict, max_tokens: int | None = None, overlap_tokens: int
             }
         )
 
-    for unit in document_units(doc, profile, max_tokens):
+    if max_chunks is not None and max_chunks <= 0:
+        return chunks
+
+    for unit in iter_document_units(doc, profile, max_tokens):
         current_tokens = chunk_token_count(current_units)
         unit_tokens = count_tokens(unit["text"])
         active_heading = unit_heading(current_units)
@@ -552,6 +563,10 @@ def chunk_document(doc: dict, max_tokens: int | None = None, overlap_tokens: int
             current_units = add_context_unit(current_units, profile, unit_heading(previous_units), unit_tokens, max_tokens)
 
         current_units.append(unit)
+        if max_chunks is not None and len(chunks) >= max_chunks:
+            return chunks
 
     flush(current_units)
+    if max_chunks is not None and len(chunks) > max_chunks:
+        return chunks[:max_chunks]
     return chunks

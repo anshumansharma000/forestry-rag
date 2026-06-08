@@ -296,7 +296,17 @@ Response:
 ```ts
 type ChunkPreviewResponse = {
   documents: number;
+  documents_processed: number;
   chunks: PreviewChunk[];
+  chunks_returned: number;
+  chunks_seen: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+  source: string | null;
+  all_sources: boolean;
+  include_content: boolean;
+  max_content_chars: number;
 };
 
 type PreviewChunk = {
@@ -313,14 +323,30 @@ type PreviewChunk = {
     title: string;
     [key: string]: unknown;
   };
+  content_chars: number;
+  content_omitted?: boolean;
+  content_truncated?: boolean;
 };
 ```
+
+Query params:
+
+- `limit`: page size, default `50`, maximum `200`.
+- `offset`: chunk offset, default `0`.
+- `source`: exact source filename. This is the normal production path and should be set to the uploaded/selected document filename.
+- `all_sources`: default `false`. Set `true` only for advanced corpus-wide debugging. Requests without `source` are rejected unless `all_sources=true`.
+- `include_content`: default `false`. When false, `content` is empty and `content_omitted` is true.
+- `max_content_chars`: per-chunk content cap when `include_content=true`, default `500`, maximum `5000`.
 
 Frontend use:
 
 - Optional admin/debug screen.
 - Useful before indexing to inspect extraction quality.
-- For large documents, render in a virtualized list or paginated table.
+- After upload, preview the returned `filename` with `source=<filename>`.
+- In document detail/debug views, preview the selected document only.
+- Do not call this endpoint on admin page load without a source.
+- Always page with `limit` and `offset`; use `has_more` to request the next page.
+- Request `include_content=true` only for a selected source or small page of chunks.
 
 ### `POST /ask`
 

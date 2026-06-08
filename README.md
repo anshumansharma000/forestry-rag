@@ -243,7 +243,7 @@ Ingest jobs are stored in Supabase `ingest_jobs`, so job status survives API res
 Preview extracted chunks without calling the embedding API:
 
 ```bash
-curl http://127.0.0.1:8000/chunks/preview
+curl "http://127.0.0.1:8000/chunks/preview?source=document.pdf&limit=25&include_content=true&max_content_chars=1000"
 ```
 
 Check environment configuration without exposing secrets:

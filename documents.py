@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+from collections.abc import Iterator
 from pathlib import Path
 
 from docx import Document
@@ -145,34 +146,42 @@ def read_docx(path: Path) -> list[dict]:
     return [{"page": None, "text": text, "blocks": blocks}] if text else []
 
 
-def load_documents() -> list[dict]:
-    docs = []
-    with document_storage().document_files() as files:
+def iter_documents(source: str | None = None) -> Iterator[dict]:
+    with document_storage().document_files(source=source) as files:
         for document_file in files:
-            path = document_file.path
-            if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-                continue
+            doc = read_document(document_file)
+            if doc:
+                yield doc
 
-            if path.suffix.lower() == ".pdf":
-                pages = read_pdf(path)
-            elif path.suffix.lower() == ".docx":
-                pages = read_docx(path)
-            else:
-                pages = read_txt(path)
 
-            if pages:
-                title = infer_title(document_file.name, pages)
-                docs.append(
-                    {
-                        "source": document_file.name,
-                        "kind": path.suffix.lower().lstrip("."),
-                        "title": title,
-                        "page_count": len([p for p in pages if p["page"] is not None]) or None,
-                        "metadata": extract_document_metadata(document_file.name, title, pages),
-                        "pages": pages,
-                    }
-                )
-    return docs
+def load_documents(source: str | None = None) -> list[dict]:
+    return list(iter_documents(source=source))
+
+
+def read_document(document_file) -> dict | None:
+    path = document_file.path
+    if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        return None
+
+    if path.suffix.lower() == ".pdf":
+        pages = read_pdf(path)
+    elif path.suffix.lower() == ".docx":
+        pages = read_docx(path)
+    else:
+        pages = read_txt(path)
+
+    if not pages:
+        return None
+
+    title = infer_title(document_file.name, pages)
+    return {
+        "source": document_file.name,
+        "kind": path.suffix.lower().lstrip("."),
+        "title": title,
+        "page_count": len([p for p in pages if p["page"] is not None]) or None,
+        "metadata": extract_document_metadata(document_file.name, title, pages),
+        "pages": pages,
+    }
 
 
 def infer_title(source: str, pages: list[dict]) -> str:
