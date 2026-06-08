@@ -13,6 +13,7 @@ import ingest_service
 import prompts
 import retrieval
 import routers.documents
+import task_queue
 from auth import validate_password
 from chunking import chunk_document
 from documents import extract_document_metadata, infer_title, read_docx, read_pdf_with_pdfplumber, remove_repeated_margin_lines
@@ -130,6 +131,40 @@ def test_batch_save_checks_conflicts_before_writing(monkeypatch):
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert saved == []
+
+
+def test_ingest_queue_requires_configured_broker(monkeypatch):
+    monkeypatch.delenv("CELERY_BROKER_URL", raising=False)
+    monkeypatch.delenv("REDIS_URL", raising=False)
+
+    with pytest.raises(AppError) as exc:
+        task_queue.ensure_queue_configured()
+
+    assert exc.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert exc.value.details == {"missing": ["CELERY_BROKER_URL"]}
+
+
+def test_celery_broker_url_defaults_rediss_certificate_validation(monkeypatch):
+    monkeypatch.setenv("CELERY_BROKER_URL", "rediss://default:secret@redis.example.com:6379/0")
+
+    assert task_queue.celery_broker_url() == "rediss://default:secret@redis.example.com:6379/0?ssl_cert_reqs=required"
+
+
+def test_enqueue_ingest_job_delegates_to_celery_task(monkeypatch):
+    calls = []
+
+    class Task:
+        def apply_async(self, args):
+            calls.append(args)
+            return SimpleNamespace(id="celery-task-1")
+
+    monkeypatch.setenv("CELERY_BROKER_URL", "rediss://default:secret@redis.example.com:6379/0")
+    monkeypatch.setitem(sys.modules, "tasks", SimpleNamespace(run_ingest_job_task=Task()))
+
+    task_id = task_queue.enqueue_ingest_job("job-1")
+
+    assert task_id == "celery-task-1"
+    assert calls == [["job-1"]]
 
 
 def test_r2_document_storage_uses_prefixed_s3_keys(monkeypatch):
@@ -727,6 +762,7 @@ def test_runtime_config_allows_zero_retrieval_max_per_source(monkeypatch):
     monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret")
     monkeypatch.setenv("DOCUMENT_STORAGE_BACKEND", "local")
     monkeypatch.setenv("RETRIEVAL_MAX_PER_SOURCE", "0")
+    monkeypatch.setenv("CELERY_BROKER_URL", "rediss://default:secret@redis.example.com:6379/0")
 
     status = validate_runtime_config()
 

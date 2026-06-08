@@ -59,12 +59,34 @@ def get_ingest_job(job_id: str, repository: IngestJobRepository | None = None) -
     return repository.get(job_id)
 
 
-def run_ingest_job(job_id: str, repository: IngestJobRepository | None = None) -> None:
+def mark_ingest_job_enqueued(
+    job_id: str,
+    *,
+    task_id: str,
+    repository: IngestJobRepository | None = None,
+) -> None:
+    repository = repository or IngestJobRepository()
+    repository.update(job_id, status="queued", metadata={"queue": "celery", "celery_task_id": task_id})
+
+
+def mark_ingest_job_enqueue_failed(
+    job_id: str,
+    *,
+    error: str,
+    repository: IngestJobRepository | None = None,
+) -> None:
+    repository = repository or IngestJobRepository()
+    repository.update(job_id, status="failed", error=error, metadata={"queue": "celery"})
+
+
+def run_ingest_job(job_id: str, repository: IngestJobRepository | None = None, *, raise_on_failure: bool = False) -> None:
     repository = repository or IngestJobRepository()
     repository.update(job_id, status="running")
     try:
         result = build_index()
     except Exception as exc:
         repository.update(job_id, status="failed", error=str(exc))
+        if raise_on_failure:
+            raise
         return
     repository.update(job_id, status="succeeded", result=result)

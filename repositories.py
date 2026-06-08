@@ -188,6 +188,10 @@ class IngestJobRepository:
         }
         if status == "running":
             updates["started_at"] = datetime.now(UTC).isoformat()
+            updates["finished_at"] = None
+        if status == "queued":
+            updates["started_at"] = None
+            updates["finished_at"] = None
         if status in {"succeeded", "failed"}:
             updates["finished_at"] = datetime.now(UTC).isoformat()
         self.client.table("ingest_jobs").update(updates).eq("id", job_id).execute()

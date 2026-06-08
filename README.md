@@ -177,6 +177,22 @@ file=<your PDF, DOCX, or TXT file>
 For multiple files, send repeated `files` fields to `POST /documents/uploads`.
 For browser-to-R2 uploads, call `POST /documents/uploads/presign`, upload each file with the returned `PUT` URL and headers, then call `POST /documents/uploads/complete`.
 
+Ingestion runs through Celery. Set `CELERY_BROKER_URL` to the Redis Cloud connection URL in both the API and worker environments. Use the `rediss://...` URL when TLS is enabled in Redis Cloud. Celery requires `ssl_cert_reqs` for `rediss://` URLs; the app defaults it to `required` when omitted.
+
+```env
+CELERY_BROKER_URL=rediss://default:<password>@<redis-cloud-host>:6379/0?ssl_cert_reqs=required
+CELERY_VISIBILITY_TIMEOUT_SECONDS=3600
+CELERY_TASK_MAX_RETRIES=3
+CELERY_TASK_RETRY_BASE_SECONDS=60
+CELERY_WORKER_CONCURRENCY=1
+```
+
+Run a worker separately from the API:
+
+```bash
+celery -A tasks.celery_app worker --loglevel=INFO --concurrency=1
+```
+
 ## Run
 
 ```bash
@@ -342,6 +358,8 @@ Build and run locally with Docker:
 docker compose up --build
 ```
 
+The compose file starts both the API and Celery worker. It expects `CELERY_BROKER_URL` in `.env`; for production, point that value at Redis Cloud rather than a platform-local Redis service.
+
 Use `deployment.env.example` as the production environment checklist. In pilot production, keep `AUTH_DISABLED=false`, set a strict `CORS_ALLOWED_ORIGINS`, set `VALIDATE_CONFIG_ON_STARTUP=true`, set `LOG_LEVEL=INFO` or stricter, store secrets in the platform secret manager, and run database migrations before deploying the API.
 
 ## Quality checks
@@ -351,7 +369,7 @@ Run these before shipping changes:
 ```bash
 python -m ruff check .
 python -m pytest -q
-python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py documents.py chunking.py retrieval.py prompts.py chat_service.py ingest_service.py repositories.py services routers tests
+python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py documents.py chunking.py retrieval.py prompts.py chat_service.py ingest_service.py repositories.py task_queue.py tasks.py services routers tests
 ```
 
 ## Files
@@ -370,6 +388,7 @@ python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py docu
 - `prompts.py`: prompt construction and Gemini answer/rewrite calls
 - `chat_service.py`: chat orchestration
 - `ingest_service.py`: ingest orchestration and durable job updates
+- `task_queue.py` and `tasks.py`: Celery enqueue helpers and worker task definitions
 - `rag.py`: compatibility facade that re-exports RAG helpers for older imports
 - `services/gemini.py`, `services/storage.py`, and `services/document_storage.py`: external service clients
 

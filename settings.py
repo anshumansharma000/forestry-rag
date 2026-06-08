@@ -127,6 +127,7 @@ def config_status() -> dict:
         "jwt_secret_key_configured": bool(os.getenv("JWT_SECRET_KEY", "").strip()),
         "document_storage_backend": document_storage_backend(),
         "r2_bucket_configured": bool(os.getenv("R2_BUCKET", "").strip()),
+        "celery_broker_configured": bool((os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL") or "").strip()),
         "rag_index_version": os.getenv("RAG_INDEX_VERSION", "2").strip() or "2",
         "retrieval_candidates": env_int("RETRIEVAL_CANDIDATES", 40),
         "retrieval_top_k": env_int("TOP_K", 3),
@@ -153,12 +154,23 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         missing.append("valid SUPABASE_URL")
     if require_auth and not status["auth_disabled"] and not status["jwt_secret_key_configured"]:
         missing.append("JWT_SECRET_KEY or AUTH_DISABLED=true")
+    if not status["celery_broker_configured"]:
+        missing.append("CELERY_BROKER_URL")
     if document_storage_backend() == "r2":
         try:
             r2_settings()
         except AppError as exc:
             missing.extend(exc.details.get("missing", ["valid R2 document storage settings"]))
-    for name in ("JWT_EXPIRES_MINUTES", "REFRESH_TOKEN_EXPIRES_DAYS", "TOP_K", "RETRIEVAL_CANDIDATES"):
+    for name in (
+        "JWT_EXPIRES_MINUTES",
+        "REFRESH_TOKEN_EXPIRES_DAYS",
+        "TOP_K",
+        "RETRIEVAL_CANDIDATES",
+        "CELERY_VISIBILITY_TIMEOUT_SECONDS",
+        "CELERY_TASK_MAX_RETRIES",
+        "CELERY_TASK_RETRY_BASE_SECONDS",
+        "CELERY_WORKER_CONCURRENCY",
+    ):
         raw = os.getenv(name)
         if raw is None or not raw.strip():
             continue

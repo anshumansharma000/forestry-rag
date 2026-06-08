@@ -2,11 +2,11 @@ import os
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
 from auth import CurrentUser, audit_event, require_roles
 from errors import AppError, ErrorCode
-from ingest_service import create_ingest_job, get_ingest_job, preview_chunks, run_ingest_job
+from ingest_service import create_ingest_job, get_ingest_job, mark_ingest_job_enqueue_failed, mark_ingest_job_enqueued, preview_chunks
 from schemas import (
     CompleteDirectUploadFileRequest,
     CompleteDirectUploadsRequest,
@@ -18,6 +18,7 @@ from schemas import (
     UploadDocumentsResponse,
 )
 from services.document_storage import document_storage
+from task_queue import enqueue_ingest_job, ensure_queue_configured
 from upload_utils import allowed_upload_extensions, read_upload_limited, safe_filename, upload_max_bytes
 
 router = APIRouter(tags=["documents"])
@@ -45,12 +46,17 @@ class CompletedDirectUpload:
 
 @router.post("/ingest", status_code=status.HTTP_202_ACCEPTED, response_model=IngestJobEnvelope)
 def ingest(
-    background_tasks: BackgroundTasks,
     request: Request,
     user: CurrentUser = Depends(require_roles("knowledge_manager")),
 ):
+    ensure_queue_configured()
     job = create_ingest_job(user.id)
-    background_tasks.add_task(run_ingest_job, job["id"])
+    try:
+        task_id = enqueue_ingest_job(job["id"])
+    except AppError as exc:
+        mark_ingest_job_enqueue_failed(job["id"], error=exc.message)
+        raise
+    mark_ingest_job_enqueued(job["id"], task_id=task_id)
     audit_event(request, user, "documents.ingest.requested", "ingest_job", job["id"])
     return {"job": job}
 
