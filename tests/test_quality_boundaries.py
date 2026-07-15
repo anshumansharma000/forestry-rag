@@ -170,17 +170,52 @@ def test_enqueue_ingest_job_delegates_to_celery_task(monkeypatch):
     calls = []
 
     class Task:
-        def apply_async(self, args):
-            calls.append(args)
-            return SimpleNamespace(id="celery-task-1")
+        def apply_async(self, args, task_id):
+            calls.append({"args": args, "task_id": task_id})
+            return SimpleNamespace(id=task_id)
 
     monkeypatch.setenv("CELERY_BROKER_URL", "rediss://default:secret@redis.example.com:6379/0")
     monkeypatch.setitem(sys.modules, "tasks", SimpleNamespace(run_ingest_job_task=Task()))
 
-    task_id = task_queue.enqueue_ingest_job("job-1")
+    task_id = task_queue.enqueue_ingest_job("job-1", on_enqueued=lambda queued_task_id: calls.append({"queued": queued_task_id}))
 
-    assert task_id == "celery-task-1"
-    assert calls == [["job-1"]]
+    assert calls[0]["queued"] == task_id
+    assert task_id == calls[1]["task_id"]
+    assert calls[1]["args"] == ["job-1"]
+
+
+def test_worker_status_reports_online_celery_consumer(monkeypatch):
+    class Control:
+        def ping(self, timeout):
+            assert timeout == 2
+            return [{"celery@worker-1": {"ok": "pong"}}]
+
+    monkeypatch.setenv("CELERY_BROKER_URL", "redis://redis.example.com:6379/0")
+    monkeypatch.setitem(sys.modules, "tasks", SimpleNamespace(celery_app=SimpleNamespace(control=Control())))
+
+    assert task_queue.celery_worker_status() == {
+        "status": "ok",
+        "broker_configured": True,
+        "broker_reachable": True,
+        "workers_online": 1,
+    }
+
+
+def test_worker_availability_fails_before_job_is_queued(monkeypatch):
+    class Control:
+        def ping(self, timeout):
+            return []
+
+    monkeypatch.setenv("CELERY_BROKER_URL", "redis://redis.example.com:6379/0")
+    monkeypatch.setenv("CELERY_REQUIRE_WORKER_ONLINE", "true")
+    monkeypatch.setitem(sys.modules, "tasks", SimpleNamespace(celery_app=SimpleNamespace(control=Control())))
+
+    with pytest.raises(AppError) as exc:
+        task_queue.ensure_worker_available()
+
+    assert exc.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert exc.value.message == "No ingestion worker is online."
+    assert exc.value.details["workers_online"] == 0
 
 
 def test_r2_document_storage_uses_prefixed_s3_keys(monkeypatch):

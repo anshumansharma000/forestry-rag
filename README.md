@@ -192,19 +192,25 @@ INGEST_BATCH_SIZE=24
 
 Ingestion runs through Celery. Set `CELERY_BROKER_URL` to the Redis Cloud connection URL in both the API and worker environments. Use the `rediss://...` URL when TLS is enabled in Redis Cloud. Celery requires `ssl_cert_reqs` for `rediss://` URLs; the app defaults it to `required` when omitted.
 
+The API pings Celery before creating an ingest job. If the worker is stopped, failed, or connected to a different broker, `POST /ingest` returns `503` with `No ingestion worker is online` instead of creating a job that remains queued indefinitely. Inspect the same check with `GET /ingest/worker/status`.
+
 ```env
 CELERY_BROKER_URL=rediss://default:<password>@<redis-cloud-host>:6379/0?ssl_cert_reqs=required
-CELERY_VISIBILITY_TIMEOUT_SECONDS=14400
+CELERY_VISIBILITY_TIMEOUT_SECONDS=3600
 CELERY_TASK_MAX_RETRIES=3
 CELERY_TASK_RETRY_BASE_SECONDS=60
 CELERY_WORKER_CONCURRENCY=1
+CELERY_REQUIRE_WORKER_ONLINE=true
+CELERY_WORKER_PING_TIMEOUT_SECONDS=2
 ```
 
-Run a worker separately from the API:
+For the free Render deployment, the Docker start script runs the API and a single Celery consumer in the same web-service container:
 
 ```bash
-celery -A tasks.celery_app worker --loglevel=INFO --pool=solo
+sh /app/start-render.sh
 ```
+
+There is no separate paid Render background-worker service. Redis Cloud remains the Celery broker, while the consumer shares the free 512 MB web container with the API. The consumer uses one thread and the bounded PDF/chunk pipeline. A healthy container emits `celery_worker_ready`, followed by `ingest_task_started` and `ingest_task_succeeded` or `ingest_task_failed` for each job.
 
 ## Run
 
@@ -252,6 +258,13 @@ The response includes a job id. Poll it until `status` is `succeeded` or `failed
 
 ```bash
 curl http://127.0.0.1:8000/ingest/jobs/<job_id>
+```
+
+Check whether the API can see a live Celery consumer:
+
+```bash
+curl http://127.0.0.1:8000/ingest/worker/status \
+  -H "Authorization: Bearer <knowledge_manager_or_admin_token>"
 ```
 
 Ingest jobs are stored in Supabase `ingest_jobs`, so job status survives API restarts. Documents are marked with ingest status metadata while indexing runs.

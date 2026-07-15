@@ -230,20 +230,23 @@ def mark_ingest_job_enqueued(
     job_id: str,
     *,
     task_id: str,
+    queue: str = "celery",
     repository: IngestJobRepository | None = None,
 ) -> None:
     repository = repository or IngestJobRepository()
-    repository.update(job_id, status="queued", metadata={"queue": "celery", "celery_task_id": task_id})
+    task_id_key = "celery_task_id" if queue == "celery" else "local_task_id"
+    repository.update(job_id, status="queued", metadata={"queue": queue, task_id_key: task_id})
 
 
 def mark_ingest_job_enqueue_failed(
     job_id: str,
     *,
     error: str,
+    queue: str = "celery",
     repository: IngestJobRepository | None = None,
 ) -> None:
     repository = repository or IngestJobRepository()
-    repository.update(job_id, status="failed", error=error, metadata={"queue": "celery"})
+    repository.update(job_id, status="failed", error=error, metadata={"queue": queue})
 
 
 def run_ingest_job(job_id: str, repository: IngestJobRepository | None = None, *, raise_on_failure: bool = False) -> None:

@@ -19,7 +19,14 @@ from schemas import (
     UploadDocumentsResponse,
 )
 from services.document_storage import document_storage
-from task_queue import enqueue_ingest_job, ensure_queue_configured
+from task_queue import (
+    enqueue_ingest_job,
+    ensure_queue_configured,
+    ensure_worker_available,
+)
+from task_queue import (
+    ingest_worker_status as get_ingest_worker_status,
+)
 from upload_utils import allowed_upload_extensions, read_upload_limited, safe_filename, upload_batch_max_bytes, upload_max_bytes
 
 router = APIRouter(tags=["documents"])
@@ -52,16 +59,24 @@ def ingest(
     user: CurrentUser = Depends(require_roles("knowledge_manager")),
 ):
     ensure_queue_configured()
+    ensure_worker_available()
+    execution_mode = "celery"
     source = None
     if request_body and request_body.source:
         source = validate_upload_filename(request_body.source, allowed_upload_extensions())
     job = create_ingest_job(user.id, source=source)
     try:
-        task_id = enqueue_ingest_job(job["id"])
+        enqueue_ingest_job(
+            job["id"],
+            on_enqueued=lambda queued_task_id: mark_ingest_job_enqueued(
+                job["id"],
+                task_id=queued_task_id,
+                queue=execution_mode,
+            ),
+        )
     except AppError as exc:
-        mark_ingest_job_enqueue_failed(job["id"], error=exc.message)
+        mark_ingest_job_enqueue_failed(job["id"], error=exc.message, queue=execution_mode)
         raise
-    mark_ingest_job_enqueued(job["id"], task_id=task_id)
     audit_event(
         request,
         user,
@@ -71,6 +86,11 @@ def ingest(
         {"source": source, "scope": "document" if source else "corpus"},
     )
     return {"job": job}
+
+
+@router.get("/ingest/worker/status")
+def ingest_worker_status(_user: CurrentUser = Depends(require_roles("knowledge_manager"))):
+    return get_ingest_worker_status()
 
 
 @router.get("/ingest/jobs/{job_id}", response_model=IngestJobEnvelope)

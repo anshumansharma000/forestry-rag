@@ -89,64 +89,12 @@ services:
       - key: CELERY_BROKER_URL
         sync: false
       - key: CELERY_VISIBILITY_TIMEOUT_SECONDS
-        value: 14400
+        value: 3600
       - key: CELERY_TASK_MAX_RETRIES
         value: 3
       - key: CELERY_TASK_RETRY_BASE_SECONDS
         value: 60
-
-  - type: worker
-    name: forest-rag-worker
-    runtime: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    dockerCommand: celery -A tasks.celery_app worker --loglevel=INFO --pool=solo
-    autoDeployTrigger: checksPass
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_EMBEDDING_MODEL
-        value: gemini-embedding-2
-      - key: GEMINI_CHAT_MODEL
-        value: gemini-3.1-flash-lite
-      - key: EMBEDDING_DIMENSIONS
-        value: 768
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: LOG_LEVEL
-        value: INFO
-      - key: ALLOWED_UPLOAD_EXTENSIONS
-        value: pdf,txt,docx
-      - key: DOCUMENT_STORAGE_BACKEND
-        value: r2
-      - key: R2_ACCOUNT_ID
-        sync: false
-      - key: R2_ACCESS_KEY_ID
-        sync: false
-      - key: R2_SECRET_ACCESS_KEY
-        sync: false
-      - key: R2_BUCKET
-        sync: false
-      - key: R2_PREFIX
-        value: docs/
-      - key: PDF_EXTRACT_TABLES
-        value: false
-      - key: MAX_PDF_PAGES
-        value: 300
-      - key: MAX_EXTRACTED_CHARS
-        value: 10000000
-      - key: MAX_DOCUMENT_CHUNKS
-        value: 2000
-      - key: INGEST_BATCH_SIZE
-        value: 24
-      - key: CELERY_BROKER_URL
-        sync: false
-      - key: CELERY_VISIBILITY_TIMEOUT_SECONDS
-        value: 14400
-      - key: CELERY_TASK_MAX_RETRIES
-        value: 3
-      - key: CELERY_TASK_RETRY_BASE_SECONDS
-        value: 60
+      - key: CELERY_REQUIRE_WORKER_ONLINE
+        value: true
+      - key: CELERY_WORKER_PING_TIMEOUT_SECONDS
+        value: 2

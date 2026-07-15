@@ -301,6 +301,21 @@ Frontend use:
 
 Returns the same `job` shape as `POST /ingest`. Job rows are stored in Supabase `ingest_jobs`, so status survives API restarts.
 
+### `GET /ingest/worker/status`
+
+Checks whether the API broker is reachable and at least one Celery consumer responds.
+
+```ts
+type IngestWorkerStatus = {
+  status: "ok" | "unavailable";
+  broker_configured: boolean;
+  broker_reachable: boolean;
+  workers_online: number;
+};
+```
+
+Call this from the knowledge-manager diagnostics view. `POST /ingest` returns `503` instead of creating a queued job when `workers_online` is zero.
+
 ### `GET /chunks/preview`
 
 Previews locally extracted chunks without creating embeddings or writing to Supabase.
@@ -727,6 +742,7 @@ Implement these API calls:
 - PUT each file directly to its returned upload_url using exactly the returned headers; do not attach the API bearer token to this R2 request
 - POST /documents/uploads/complete with { files: [{ upload_id, filename }] } -> { status, files }
 - POST /ingest with { source: filename } -> { job }; queue one job per completed file
+- GET /ingest/worker/status -> { status, broker_configured, broker_reachable, workers_online }
 - GET /ingest/jobs/{job_id} -> { job }
 - GET /chunks/preview -> { documents, chunks }
 - POST /ask with { question, top_k? } -> { answer, sources }
