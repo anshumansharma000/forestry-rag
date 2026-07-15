@@ -1,45 +1,106 @@
-from chunking import chunk_document
-from documents import iter_documents, load_documents
+import os
+
+from chunking import chunk_document, iter_document_chunks
+from documents import iter_documents
 from errors import AppError, ErrorCode
 from repositories import DocumentRepository, IngestJobRepository, index_version
 from retrieval import chunk_row
 
 
-def build_index(repository: DocumentRepository | None = None) -> dict:
+def build_index(repository: DocumentRepository | None = None, *, source: str | None = None) -> dict:
     repository = repository or DocumentRepository()
-    docs = load_documents()
     existing_sources = repository.indexed_sources()
+    if source and source in existing_sources:
+        return {
+            "documents": 1,
+            "documents_added": 0,
+            "documents_skipped": 1,
+            "chunks": 0,
+            "chunks_added": 0,
+            "source": source,
+            "storage": "supabase_pgvector",
+        }
+
+    documents_seen = 0
     documents_added = 0
     documents_skipped = 0
     chunks_added = 0
 
-    for doc in docs:
+    for doc in iter_documents(source=source):
+        documents_seen += 1
         if doc["source"] in existing_sources:
             documents_skipped += 1
             continue
 
         document_id = repository.upsert_document(doc, status="indexing")
-        chunks = chunk_document(doc)
         index_metadata = {**(doc.get("metadata") or {}), "index_version": index_version()}
         try:
-            rows = [chunk_row(document_id, chunk) for chunk in chunks]
-            chunks_added += repository.replace_chunks(doc["source"], rows)
-            repository.mark_document_status(doc["source"], "indexed", {**index_metadata, "chunks": len(rows)})
+            document_chunks = persist_document_chunks(repository, document_id, doc)
+            chunks_added += document_chunks
+            repository.mark_document_status(doc["source"], "indexed", {**index_metadata, "chunks": document_chunks})
         except Exception:
+            try:
+                repository.delete_chunks(doc["source"])
+            except Exception:
+                pass
             repository.mark_document_status(doc["source"], "failed", index_metadata)
             raise
 
         documents_added += 1
         existing_sources.add(doc["source"])
 
+    if source and documents_seen == 0:
+        raise AppError(
+            "Document was not found or contains no extractable text.",
+            code=ErrorCode.INVALID_INPUT,
+            details={"source": source},
+        )
+
     return {
-        "documents": len(docs),
+        "documents": documents_seen,
         "documents_added": documents_added,
         "documents_skipped": documents_skipped,
         "chunks": chunks_added,
         "chunks_added": chunks_added,
+        "source": source,
         "storage": "supabase_pgvector",
     }
+
+
+def persist_document_chunks(repository: DocumentRepository, document_id: str, doc: dict) -> int:
+    batch_size = positive_env_int("INGEST_BATCH_SIZE", 24)
+    max_chunks = positive_env_int("MAX_DOCUMENT_CHUNKS", 2000)
+    source = doc["source"]
+    repository.delete_chunks(source)
+    batch = []
+    inserted = 0
+
+    for chunk in iter_document_chunks(doc):
+        if inserted + len(batch) >= max_chunks:
+            raise AppError(
+                "Document produced too many chunks.",
+                code=ErrorCode.INVALID_INPUT,
+                details={"source": source, "max_chunks": max_chunks},
+            )
+        batch.append(chunk_row(document_id, chunk))
+        if len(batch) >= batch_size:
+            inserted += repository.insert_chunk_batch(batch)
+            batch.clear()
+
+    if batch:
+        inserted += repository.insert_chunk_batch(batch)
+    return inserted
+
+
+def positive_env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default))
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise AppError(f"{name} must be an integer.", code=ErrorCode.CONFIG_ERROR) from exc
+    if value <= 0:
+        raise AppError(f"{name} must be greater than 0.", code=ErrorCode.CONFIG_ERROR)
+    return value
 
 
 def preview_chunks(
@@ -150,9 +211,14 @@ def chunk_preview_response(
     }
 
 
-def create_ingest_job(actor_user_id: str | None = None, repository: IngestJobRepository | None = None) -> dict:
+def create_ingest_job(
+    actor_user_id: str | None = None,
+    *,
+    source: str | None = None,
+    repository: IngestJobRepository | None = None,
+) -> dict:
     repository = repository or IngestJobRepository()
-    return repository.create(actor_user_id)
+    return repository.create(actor_user_id, source=source)
 
 
 def get_ingest_job(job_id: str, repository: IngestJobRepository | None = None) -> dict | None:
@@ -182,9 +248,11 @@ def mark_ingest_job_enqueue_failed(
 
 def run_ingest_job(job_id: str, repository: IngestJobRepository | None = None, *, raise_on_failure: bool = False) -> None:
     repository = repository or IngestJobRepository()
+    job = repository.get(job_id)
+    source = ((job or {}).get("metadata") or {}).get("source")
     repository.update(job_id, status="running")
     try:
-        result = build_index()
+        result = build_index(source=source)
     except Exception as exc:
         repository.update(job_id, status="failed", error=str(exc))
         if raise_on_failure:

@@ -47,7 +47,13 @@ class DocumentRepository:
         ).eq("source", source).execute()
 
     def replace_chunks(self, source: str, rows: list[dict]) -> int:
+        self.delete_chunks(source)
+        return self.insert_chunk_batch(rows)
+
+    def delete_chunks(self, source: str) -> None:
         self.client.table("document_chunks").delete().eq("source", source).execute()
+
+    def insert_chunk_batch(self, rows: list[dict]) -> int:
         if rows:
             self.client.table("document_chunks").insert(rows).execute()
         return len(rows)
@@ -161,8 +167,9 @@ class IngestJobRepository:
     def __init__(self, client: Client | None = None):
         self.client = client or supabase_client()
 
-    def create(self, actor_user_id: str | None = None) -> dict:
-        row = {"kind": "documents.ingest", "status": "queued", "actor_user_id": actor_user_id, "metadata": {}}
+    def create(self, actor_user_id: str | None = None, *, source: str | None = None) -> dict:
+        metadata = {"source": source, "scope": "document"} if source else {"scope": "corpus"}
+        row = {"kind": "documents.ingest", "status": "queued", "actor_user_id": actor_user_id, "metadata": metadata}
         result = self.client.table("ingest_jobs").insert(row).execute()
         return result.data[0]
 
@@ -183,9 +190,11 @@ class IngestJobRepository:
             "status": status,
             "result": result,
             "error": error,
-            "metadata": metadata or {},
             "updated_at": datetime.now(UTC).isoformat(),
         }
+        if metadata is not None:
+            current = self.get(job_id)
+            updates["metadata"] = {**((current or {}).get("metadata") or {}), **metadata}
         if status == "running":
             updates["started_at"] = datetime.now(UTC).isoformat()
             updates["finished_at"] = None

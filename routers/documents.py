@@ -13,13 +13,14 @@ from schemas import (
     CreatePresignedUploadsRequest,
     DirectUploadFileRequest,
     IngestJobEnvelope,
+    IngestRequest,
     PresignedUploadsResponse,
     UploadDocumentResponse,
     UploadDocumentsResponse,
 )
 from services.document_storage import document_storage
 from task_queue import enqueue_ingest_job, ensure_queue_configured
-from upload_utils import allowed_upload_extensions, read_upload_limited, safe_filename, upload_max_bytes
+from upload_utils import allowed_upload_extensions, read_upload_limited, safe_filename, upload_batch_max_bytes, upload_max_bytes
 
 router = APIRouter(tags=["documents"])
 
@@ -47,17 +48,28 @@ class CompletedDirectUpload:
 @router.post("/ingest", status_code=status.HTTP_202_ACCEPTED, response_model=IngestJobEnvelope)
 def ingest(
     request: Request,
+    request_body: IngestRequest | None = None,
     user: CurrentUser = Depends(require_roles("knowledge_manager")),
 ):
     ensure_queue_configured()
-    job = create_ingest_job(user.id)
+    source = None
+    if request_body and request_body.source:
+        source = validate_upload_filename(request_body.source, allowed_upload_extensions())
+    job = create_ingest_job(user.id, source=source)
     try:
         task_id = enqueue_ingest_job(job["id"])
     except AppError as exc:
         mark_ingest_job_enqueue_failed(job["id"], error=exc.message)
         raise
     mark_ingest_job_enqueued(job["id"], task_id=task_id)
-    audit_event(request, user, "documents.ingest.requested", "ingest_job", job["id"])
+    audit_event(
+        request,
+        user,
+        "documents.ingest.requested",
+        "ingest_job",
+        job["id"],
+        {"source": source, "scope": "document" if source else "corpus"},
+    )
     return {"job": job}
 
 
@@ -116,6 +128,7 @@ def prepare_uploads(files: list[UploadFile]) -> list[PendingUpload]:
     max_bytes = upload_max_bytes()
     pending_uploads = []
     seen_filenames = set()
+    batch_bytes = 0
     for file in files:
         filename = safe_filename(file.filename or "")
         suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -134,6 +147,12 @@ def prepare_uploads(files: list[UploadFile]) -> list[PendingUpload]:
         content = read_upload_limited(file, max_bytes)
         if not content:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
+        batch_bytes += len(content)
+        if batch_bytes > upload_batch_max_bytes():
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Upload batch exceeds limit of {upload_batch_max_bytes()} bytes",
+            )
         pending_uploads.append(PendingUpload(filename=filename, content=content, content_type=file.content_type))
     return pending_uploads
 

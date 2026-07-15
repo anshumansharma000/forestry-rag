@@ -127,18 +127,24 @@ class R2DocumentStorage:
             raise AppError("Could not delete temporary document from R2.", code=ErrorCode.STORAGE_ERROR) from exc
 
     @contextmanager
-    def document_files(self, source: str | None = None) -> Iterator[list[StoredDocumentFile]]:
+    def document_files(self, source: str | None = None) -> Iterator[Iterator[StoredDocumentFile]]:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            files = []
-            for key in self._document_keys(source):
-                destination = root / Path(key).name
-                try:
-                    self.client.download_file(self.bucket, key, str(destination))
-                except Exception as exc:
-                    raise AppError("Could not download document from R2.", code=ErrorCode.STORAGE_ERROR) from exc
-                files.append(StoredDocumentFile(name=Path(key).name, path=destination))
-            yield sorted(files, key=lambda item: item.name)
+            keys = sorted(self._document_keys(source))
+
+            def downloaded_files() -> Iterator[StoredDocumentFile]:
+                for key in keys:
+                    destination = root / Path(key).name
+                    try:
+                        self.client.download_file(self.bucket, key, str(destination))
+                    except Exception as exc:
+                        raise AppError("Could not download document from R2.", code=ErrorCode.STORAGE_ERROR) from exc
+                    try:
+                        yield StoredDocumentFile(name=Path(key).name, path=destination)
+                    finally:
+                        destination.unlink(missing_ok=True)
+
+            yield downloaded_files()
 
     def _document_keys(self, source: str | None = None) -> list[str]:
         if source is not None:

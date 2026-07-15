@@ -122,6 +122,10 @@ class IngestJobEnvelope(BaseModel):
     job: IngestJobResponse
 
 
+class IngestRequest(BaseModel):
+    source: NonEmptyStr | None = Field(default=None, max_length=255)
+
+
 class UploadDocumentResponse(BaseModel):
     status: str
     filename: str

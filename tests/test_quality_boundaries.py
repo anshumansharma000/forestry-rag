@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from docx import Document
-from fastapi import UploadFile, status
+from fastapi import HTTPException, UploadFile, status
 from starlette.datastructures import Headers
 
 import ingest_service
@@ -102,6 +102,22 @@ def test_prepare_uploads_rejects_duplicate_filenames_in_one_request(monkeypatch)
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.details == {"filename": "Forest Rules.pdf"}
+
+
+def test_prepare_uploads_rejects_aggregate_batch_over_memory_limit(monkeypatch):
+    monkeypatch.setenv("ALLOWED_UPLOAD_EXTENSIONS", "txt")
+    monkeypatch.setenv("UPLOAD_MAX_BYTES", "10")
+    monkeypatch.setenv("UPLOAD_BATCH_MAX_BYTES", "10")
+
+    with pytest.raises(HTTPException) as exc:
+        routers.documents.prepare_uploads(
+            [
+                upload_file("one.txt", b"123456"),
+                upload_file("two.txt", b"123456"),
+            ]
+        )
+
+    assert exc.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
 
 
 def test_batch_save_checks_conflicts_before_writing(monkeypatch):
@@ -678,11 +694,14 @@ def test_read_docx_extracts_tables_as_structured_blocks(tmp_path):
 
 
 def test_read_pdf_extracts_tables_as_structured_blocks(monkeypatch, tmp_path):
+    closed = []
+
     class Pdf:
         pages = [
             SimpleNamespace(
                 extract_text=lambda: "Schedule of transit fees",
                 extract_tables=lambda: [[["Species", "Unit", "Fee"], ["Teak", "Cubic meter", "1200"]]],
+                close=lambda: closed.append(True),
             )
         ]
 
@@ -701,6 +720,7 @@ def test_read_pdf_extracts_tables_as_structured_blocks(monkeypatch, tmp_path):
     assert pages[0]["blocks"][1]["type"] == "table"
     assert pages[0]["blocks"][1]["headers"] == ["Species", "Unit", "Fee"]
     assert pages[0]["blocks"][1]["rows"] == [["Teak", "Cubic meter", "1200"]]
+    assert closed == [True]
 
 
 def test_chunk_document_preserves_table_header_context():
@@ -820,7 +840,10 @@ def test_ingest_marks_document_failed_when_chunk_insert_fails(monkeypatch):
             self.statuses.append(status)
             return "document-id"
 
-        def replace_chunks(self, _source, _rows):
+        def delete_chunks(self, _source):
+            pass
+
+        def insert_chunk_batch(self, _rows):
             raise RuntimeError("insert failed")
 
         def mark_document_status(self, _source, status, _details=None):
@@ -829,16 +852,86 @@ def test_ingest_marks_document_failed_when_chunk_insert_fails(monkeypatch):
     repository = Repository()
     monkeypatch.setattr(
         ingest_service,
-        "load_documents",
-        lambda: [{"source": "a.txt", "kind": "txt", "title": "A", "page_count": None, "pages": []}],
+        "iter_documents",
+        lambda source=None: iter([{"source": "a.txt", "kind": "txt", "title": "A", "page_count": None, "pages": []}]),
     )
-    monkeypatch.setattr(ingest_service, "chunk_document", lambda _doc: [{"source": "a.txt", "content": "x"}])
+    monkeypatch.setattr(ingest_service, "iter_document_chunks", lambda _doc: iter([{"source": "a.txt", "content": "x"}]))
     monkeypatch.setattr(ingest_service, "chunk_row", lambda _document_id, _chunk: {"source": "a.txt"})
 
     with pytest.raises(RuntimeError):
         ingest_service.build_index(repository)
 
     assert repository.statuses == ["indexing", "failed"]
+
+
+def test_ingest_persists_embedding_rows_in_bounded_batches(monkeypatch):
+    class Repository:
+        def __init__(self):
+            self.batches = []
+
+        def indexed_sources(self):
+            return set()
+
+        def upsert_document(self, _doc, status="indexing"):
+            return "document-id"
+
+        def delete_chunks(self, _source):
+            pass
+
+        def insert_chunk_batch(self, rows):
+            self.batches.append(list(rows))
+            return len(rows)
+
+        def mark_document_status(self, _source, _status, _details=None):
+            pass
+
+    repository = Repository()
+    monkeypatch.setenv("INGEST_BATCH_SIZE", "2")
+    monkeypatch.setenv("MAX_DOCUMENT_CHUNKS", "10")
+    monkeypatch.setattr(
+        ingest_service,
+        "iter_documents",
+        lambda source=None: iter([{"source": source, "kind": "txt", "title": "A", "page_count": None, "pages": []}]),
+    )
+    monkeypatch.setattr(
+        ingest_service,
+        "iter_document_chunks",
+        lambda _doc: iter({"source": "a.txt", "content": str(index)} for index in range(5)),
+    )
+    monkeypatch.setattr(
+        ingest_service,
+        "chunk_row",
+        lambda _document_id, chunk: {"source": chunk["source"], "content": chunk["content"]},
+    )
+
+    result = ingest_service.build_index(repository, source="a.txt")
+
+    assert [len(batch) for batch in repository.batches] == [2, 2, 1]
+    assert result["chunks_added"] == 5
+    assert result["source"] == "a.txt"
+
+
+def test_ingest_job_processes_only_source_stored_in_job_metadata(monkeypatch):
+    updates = []
+    calls = []
+
+    class JobRepository:
+        def get(self, _job_id):
+            return {"id": "job-1", "metadata": {"source": "rules.pdf", "scope": "document"}}
+
+        def update(self, job_id, **values):
+            updates.append((job_id, values))
+
+    monkeypatch.setattr(
+        ingest_service,
+        "build_index",
+        lambda *, source=None: calls.append(source) or {"source": source, "chunks_added": 3},
+    )
+
+    ingest_service.run_ingest_job("job-1", repository=JobRepository(), raise_on_failure=True)
+
+    assert calls == ["rules.pdf"]
+    assert [values["status"] for _job_id, values in updates] == ["running", "succeeded"]
 
 
 def test_preview_chunks_returns_bounded_page_and_omits_content_by_default(monkeypatch):

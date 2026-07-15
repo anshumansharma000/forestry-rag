@@ -17,6 +17,10 @@ def upload_max_bytes() -> int:
     return int(os.getenv("UPLOAD_MAX_BYTES", str(25 * 1024 * 1024)))
 
 
+def upload_batch_max_bytes() -> int:
+    return int(os.getenv("UPLOAD_BATCH_MAX_BYTES", str(25 * 1024 * 1024)))
+
+
 def allowed_upload_extensions() -> set[str]:
     raw = os.getenv("ALLOWED_UPLOAD_EXTENSIONS", "pdf,txt,docx")
     return {ext.strip().lower().lstrip(".") for ext in raw.split(",") if ext.strip()}

@@ -489,60 +489,57 @@ def add_context_unit(units: list[dict], profile: str, heading: str | None, next_
     return units
 
 
-def chunk_document(
+def chunk_from_units(doc: dict, profile: str, units: list[dict], chunk_index: int) -> dict:
+    text = normalize_text("\n\n".join(unit["text"] for unit in units))
+    pages = unit_pages(units)
+    types = unit_types(units)
+    if profile == FAQ_PROFILE:
+        chunk_type = "faq"
+    elif profile == PROCEDURE_PROFILE:
+        chunk_type = "procedure"
+    elif "table" in types and types <= {"context", "heading", "table"}:
+        chunk_type = "table"
+    else:
+        chunk_type = "heading" if types == {"heading"} else "section"
+    table_indexes = unit_table_indexes(units)
+    document_metadata = dict(doc.get("metadata") or {})
+    document_identifiers = document_metadata.pop("identifiers", [])
+    return {
+        "source": doc["source"],
+        "chunk_index": chunk_index,
+        "chunk_type": chunk_type,
+        "section_heading": unit_heading(units),
+        "page_start": pages[0] if pages else None,
+        "page_end": pages[-1] if pages else None,
+        "content": text,
+        "token_estimate": count_tokens(text),
+        "metadata": {
+            "kind": doc["kind"],
+            "title": doc["title"],
+            "profile": profile,
+            "unit_types": sorted(types),
+            "table_indexes": table_indexes,
+            **document_metadata,
+            "document_identifiers": document_identifiers,
+            "identifiers": extract_legal_identifiers(f"{unit_heading(units) or ''}\n{text}"),
+        },
+    }
+
+
+def iter_document_chunks(
     doc: dict,
     max_tokens: int | None = None,
     overlap_tokens: int | None = None,
     max_chunks: int | None = None,
-) -> list[dict]:
+):
     profile = document_profile(doc)
     max_tokens, overlap_tokens = chunk_settings(profile, max_tokens, overlap_tokens)
 
-    chunks = []
+    chunk_index = 0
     current_units: list[dict] = []
 
-    def flush(units: list[dict]) -> None:
-        if not units:
-            return
-        text = normalize_text("\n\n".join(unit["text"] for unit in units))
-        pages = unit_pages(units)
-        types = unit_types(units)
-        if profile == FAQ_PROFILE:
-            chunk_type = "faq"
-        elif profile == PROCEDURE_PROFILE:
-            chunk_type = "procedure"
-        elif "table" in types and types <= {"context", "heading", "table"}:
-            chunk_type = "table"
-        else:
-            chunk_type = "heading" if types == {"heading"} else "section"
-        table_indexes = unit_table_indexes(units)
-        document_metadata = dict(doc.get("metadata") or {})
-        document_identifiers = document_metadata.pop("identifiers", [])
-        chunks.append(
-            {
-                "source": doc["source"],
-                "chunk_index": len(chunks),
-                "chunk_type": chunk_type,
-                "section_heading": unit_heading(units),
-                "page_start": pages[0] if pages else None,
-                "page_end": pages[-1] if pages else None,
-                "content": text,
-                "token_estimate": count_tokens(text),
-                "metadata": {
-                    "kind": doc["kind"],
-                    "title": doc["title"],
-                    "profile": profile,
-                    "unit_types": sorted(types),
-                    "table_indexes": table_indexes,
-                    **document_metadata,
-                    "document_identifiers": document_identifiers,
-                    "identifiers": extract_legal_identifiers(f"{unit_heading(units) or ''}\n{text}"),
-                },
-            }
-        )
-
     if max_chunks is not None and max_chunks <= 0:
-        return chunks
+        return
 
     for unit in iter_document_units(doc, profile, max_tokens):
         current_tokens = chunk_token_count(current_units)
@@ -558,15 +555,30 @@ def chunk_document(
 
         if current_units and (current_tokens + unit_tokens > max_tokens or heading_changed):
             previous_units = current_units
-            flush(previous_units)
+            yield chunk_from_units(doc, profile, previous_units, chunk_index)
+            chunk_index += 1
+            if max_chunks is not None and chunk_index >= max_chunks:
+                return
             current_units = fit_overlap(overlap_units(previous_units, overlap_tokens), unit_tokens, max_tokens)
             current_units = add_context_unit(current_units, profile, unit_heading(previous_units), unit_tokens, max_tokens)
 
         current_units.append(unit)
-        if max_chunks is not None and len(chunks) >= max_chunks:
-            return chunks
 
-    flush(current_units)
-    if max_chunks is not None and len(chunks) > max_chunks:
-        return chunks[:max_chunks]
-    return chunks
+    if current_units and (max_chunks is None or chunk_index < max_chunks):
+        yield chunk_from_units(doc, profile, current_units, chunk_index)
+
+
+def chunk_document(
+    doc: dict,
+    max_tokens: int | None = None,
+    overlap_tokens: int | None = None,
+    max_chunks: int | None = None,
+) -> list[dict]:
+    return list(
+        iter_document_chunks(
+            doc,
+            max_tokens=max_tokens,
+            overlap_tokens=overlap_tokens,
+            max_chunks=max_chunks,
+        )
+    )

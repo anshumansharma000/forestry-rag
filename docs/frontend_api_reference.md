@@ -146,7 +146,7 @@ type UploadDocumentResponse = {
 Frontend use:
 
 - Accept only PDF/DOCX/TXT files in the file picker.
-- After upload, prompt the user to add the new document to the index with `POST /ingest`.
+- After upload, queue only the returned filename with `POST /ingest` and `{ "source": filename }`.
 - `path` is a backend storage path for diagnostics only; do not expose it as a user-facing document link.
 
 ### `POST /documents/uploads`
@@ -174,7 +174,7 @@ Frontend use:
 
 - Append every selected file with `formData.append("files", file)`.
 - Treat the upload as a single batch; duplicate filenames in the same request return `409`.
-- After upload, prompt the user to add the new documents to the index with `POST /ingest`.
+- Queue one ingest job per returned filename with `POST /ingest` and `{ "source": filename }`.
 
 ### `POST /documents/uploads/presign`
 
@@ -236,14 +236,28 @@ Response: same as `POST /documents/uploads`.
 Frontend use:
 
 - Call this only after every direct `PUT` request succeeds.
-- After completion succeeds, prompt the user to add the new documents to the index with `POST /ingest`.
+- After completion succeeds, queue one ingest job per returned filename with `POST /ingest` and `{ "source": filename }`.
 - If completion fails, show the backend error. The staged object may have expired, been rejected for size, or conflicted with an existing filename.
 
 ### `POST /ingest`
 
-Queues a background ingest job for previously unindexed files from the configured document storage backend. Existing indexed sources are skipped and their rows are left intact.
+Queues a background ingest job. The normal upload flow must set `source` so the worker downloads, extracts, chunks, and indexes only that document. Omitting the body retains the legacy corpus-wide maintenance operation; do not use the corpus-wide form after each upload.
 
-Request body: none.
+Recommended request body:
+
+```ts
+type IngestRequest = {
+  source?: string | null;
+};
+```
+
+```json
+{
+  "source": "forest-rules.pdf"
+}
+```
+
+The `source` must be the exact sanitized filename returned by the upload completion endpoint. An omitted body queues the backward-compatible corpus-wide ingest operation.
 
 Requires `knowledge_manager` or `admin`.
 
@@ -278,6 +292,8 @@ Frontend use:
 
 - Treat as a long-running admin action and poll `GET /ingest/jobs/{job_id}`.
 - Disable the ingest button while the latest job is queued or running.
+- For multi-file uploads, create and track one job per completed filename; do not queue a corpus-wide job.
+- `job.metadata.source` identifies a document-scoped job and `job.metadata.scope` is `document` or `corpus`.
 - After `succeeded`, show added/skipped document counts and added chunk counts.
 - Re-run after uploading new source files. Existing indexed files with the same source name are skipped.
 
@@ -707,9 +723,10 @@ Implement these API calls:
 - PATCH /admin/users/{user_id} -> update email/full_name/role/is_active/metadata, admin only
 - POST /admin/users/{user_id}/reset-password -> reset password, admin only
 - GET /admin/audit-events -> recent audit events, admin only
-- POST /documents/upload as multipart/form-data field "file"; accept only .pdf, .docx, and .txt by default
-- POST /documents/uploads as multipart/form-data field "files"; send one field per file for batch uploads
-- POST /ingest -> { job }
+- POST /documents/uploads/presign with { files: [{ filename, size_bytes, content_type }] } -> { status, uploads }
+- PUT each file directly to its returned upload_url using exactly the returned headers; do not attach the API bearer token to this R2 request
+- POST /documents/uploads/complete with { files: [{ upload_id, filename }] } -> { status, files }
+- POST /ingest with { source: filename } -> { job }; queue one job per completed file
 - GET /ingest/jobs/{job_id} -> { job }
 - GET /chunks/preview -> { documents, chunks }
 - POST /ask with { question, top_k? } -> { answer, sources }
@@ -723,6 +740,7 @@ type Source = { source: string; display_source: string; page_start: number | nul
 type ChatMessage = { id: string; session_id: string; role: "user" | "assistant"; content: string; sources: Source[]; metadata: Record<string, unknown>; created_at: string };
 type ChatSession = { id: string; title: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string };
 type IngestJob = { id: string; kind: string; status: "queued" | "running" | "succeeded" | "failed"; actor_user_id: string | null; result: Record<string, unknown> | null; error: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string; started_at: string | null; finished_at: string | null };
+type PresignedUpload = { upload_id: string; filename: string; upload_url: string; method: "PUT"; headers: Record<string, string>; expires_in_seconds: number; max_bytes: number };
 
 type AuthUser = { id: string; email: string; full_name: string | null; role: "viewer" | "officer" | "knowledge_manager" | "admin"; must_change_password: boolean };
 type AuthTokenResponse = { access_token: string; refresh_token: string; token_type: "bearer"; expires_at: string; refresh_expires_at: string; user: AuthUser };
@@ -748,9 +766,10 @@ Admin/setup behavior:
 - Show backend/config status without exposing secrets.
 - Admins can create users with email, initial password, role, full name, metadata, and must_change_password.
 - Admins can list users, update email/full name/role/active status/metadata, and reset passwords. Never display existing passwords.
-- Allow PDF/DOCX/TXT upload via /documents/upload for one file or /documents/uploads for multiple files.
-- After upload, indicate that /ingest must be run before new content is searchable.
-- Provide an ingest button wired to /ingest, poll /ingest/jobs/{job_id}, and show added/skipped document and chunk counts.
+- Use the presign -> direct R2 PUT -> complete flow for PDF/DOCX/TXT uploads. Do not send large file bytes through the FastAPI multipart endpoints.
+- Track upload progress separately from processing progress. The direct R2 PUT does not include the API Authorization header and must use exactly the Content-Type returned by /presign.
+- After /complete succeeds, call /ingest once per returned filename with { source: filename }. Never call the empty-body corpus-wide ingest operation after a routine upload.
+- Track and poll every returned job id through /ingest/jobs/{job_id}; show queued, processing, succeeded, and failed states per file, including job.error and added chunk counts.
 - Provide a chunk preview view using /chunks/preview for debugging extraction quality.
 
 Error/loading behavior:

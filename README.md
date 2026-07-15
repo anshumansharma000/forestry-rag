@@ -176,12 +176,25 @@ file=<your PDF, DOCX, or TXT file>
 
 For multiple files, send repeated `files` fields to `POST /documents/uploads`.
 For browser-to-R2 uploads, call `POST /documents/uploads/presign`, upload each file with the returned `PUT` URL and headers, then call `POST /documents/uploads/complete`.
+After completion, queue one job per returned filename with `POST /ingest` and `{"source":"<filename>"}`. The empty-body form remains available for deliberate corpus-wide maintenance but should not be used after routine uploads.
+
+Large-PDF ingestion is memory bounded by closing each parsed PDF page, yielding chunks incrementally, and inserting embedding rows in small batches. These settings control the limits:
+
+```env
+PDF_EXTRACT_TABLES=false
+MAX_PDF_PAGES=300
+MAX_EXTRACTED_CHARS=10000000
+MAX_DOCUMENT_CHUNKS=2000
+INGEST_BATCH_SIZE=24
+```
+
+`pdfplumber` table extraction is comparatively expensive. Keep `PDF_EXTRACT_TABLES=false` on a 512 MB worker unless table-aware retrieval is required and the worker has been load tested.
 
 Ingestion runs through Celery. Set `CELERY_BROKER_URL` to the Redis Cloud connection URL in both the API and worker environments. Use the `rediss://...` URL when TLS is enabled in Redis Cloud. Celery requires `ssl_cert_reqs` for `rediss://` URLs; the app defaults it to `required` when omitted.
 
 ```env
 CELERY_BROKER_URL=rediss://default:<password>@<redis-cloud-host>:6379/0?ssl_cert_reqs=required
-CELERY_VISIBILITY_TIMEOUT_SECONDS=3600
+CELERY_VISIBILITY_TIMEOUT_SECONDS=14400
 CELERY_TASK_MAX_RETRIES=3
 CELERY_TASK_RETRY_BASE_SECONDS=60
 CELERY_WORKER_CONCURRENCY=1
@@ -190,7 +203,7 @@ CELERY_WORKER_CONCURRENCY=1
 Run a worker separately from the API:
 
 ```bash
-celery -A tasks.celery_app worker --loglevel=INFO --concurrency=1
+celery -A tasks.celery_app worker --loglevel=INFO --pool=solo
 ```
 
 ## Run
@@ -229,7 +242,10 @@ curl -X POST http://127.0.0.1:8000/documents/uploads \
 Queue indexing for any documents that have not already been indexed:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/ingest
+curl -X POST http://127.0.0.1:8000/ingest \
+  -H "Authorization: Bearer <knowledge_manager_or_admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"source":"document.pdf"}'
 ```
 
 The response includes a job id. Poll it until `status` is `succeeded` or `failed`:

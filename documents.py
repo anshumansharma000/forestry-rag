@@ -11,6 +11,7 @@ from pypdf import PdfReader
 from rag_errors import RagError
 from services.document_storage import SUPPORTED_STORAGE_EXTENSIONS, document_storage
 from settings import DOCS_DIR as _DOCS_DIR
+from settings import env_bool, env_int
 
 SUPPORTED_EXTENSIONS = SUPPORTED_STORAGE_EXTENSIONS
 DOCS_DIR = _DOCS_DIR
@@ -37,6 +38,9 @@ def read_txt(path: Path) -> list[dict]:
 
 
 def read_pdf(path: Path) -> list[dict]:
+    if not env_bool("PDF_EXTRACT_TABLES", True):
+        return remove_repeated_margin_lines(read_pdf_with_pypdf(path))
+
     try:
         pages = read_pdf_with_pdfplumber(path)
         if pages:
@@ -53,36 +57,62 @@ def read_pdf_with_pypdf(path: Path) -> list[dict]:
     except Exception as exc:
         raise RagError(f"Could not read PDF {path.name}: {exc}") from exc
 
+    enforce_pdf_page_limit(path, len(reader.pages))
     pages = []
+    extracted_chars = 0
     for i, page in enumerate(reader.pages, start=1):
         text = normalize_text(page.extract_text() or "")
         if text:
+            extracted_chars += len(text)
+            enforce_extracted_text_limit(path, extracted_chars)
             pages.append({"page": i, "text": text})
     return pages
 
 
-def read_pdf_with_pdfplumber(path: Path) -> list[dict]:
+def read_pdf_with_pdfplumber(path: Path, *, extract_tables: bool = True) -> list[dict]:
     import pdfplumber
 
     pages = []
     table_index = 0
+    extracted_chars = 0
     with pdfplumber.open(str(path)) as pdf:
+        enforce_pdf_page_limit(path, len(pdf.pages))
         for page_number, page in enumerate(pdf.pages, start=1):
-            blocks = []
-            text = normalize_text(page.extract_text() or "")
-            if text:
-                blocks.append({"type": "text", "text": text})
+            try:
+                blocks = []
+                text = normalize_text(page.extract_text() or "")
+                if text:
+                    blocks.append({"type": "text", "text": text})
 
-            for table in page.extract_tables():
-                table_block = table_block_from_rows(table, table_index)
-                table_index += 1
-                if table_block:
-                    blocks.append(table_block)
+                if extract_tables:
+                    for table in page.extract_tables():
+                        table_block = table_block_from_rows(table, table_index)
+                        table_index += 1
+                        if table_block:
+                            blocks.append(table_block)
 
-            page_text = normalize_text("\n\n".join(block["text"] for block in blocks))
-            if page_text:
-                pages.append({"page": page_number, "text": page_text, "blocks": blocks})
+                page_text = normalize_text("\n\n".join(block["text"] for block in blocks))
+                if page_text:
+                    extracted_chars += len(page_text)
+                    enforce_extracted_text_limit(path, extracted_chars)
+                    pages.append({"page": page_number, "text": page_text, "blocks": blocks})
+            finally:
+                close_page = getattr(page, "close", None)
+                if callable(close_page):
+                    close_page()
     return pages
+
+
+def enforce_pdf_page_limit(path: Path, page_count: int) -> None:
+    max_pages = env_int("MAX_PDF_PAGES", 300)
+    if page_count > max_pages:
+        raise RagError(f"PDF {path.name} has {page_count} pages; the configured limit is {max_pages}.")
+
+
+def enforce_extracted_text_limit(path: Path, extracted_chars: int) -> None:
+    max_chars = env_int("MAX_EXTRACTED_CHARS", 10_000_000)
+    if extracted_chars > max_chars:
+        raise RagError(f"PDF {path.name} exceeds the extracted text limit of {max_chars} characters.")
 
 
 def iter_docx_blocks(document: Document):

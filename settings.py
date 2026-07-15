@@ -128,6 +128,11 @@ def config_status() -> dict:
         "document_storage_backend": document_storage_backend(),
         "r2_bucket_configured": bool(os.getenv("R2_BUCKET", "").strip()),
         "celery_broker_configured": bool((os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL") or "").strip()),
+        "pdf_extract_tables": env_bool("PDF_EXTRACT_TABLES", True),
+        "max_pdf_pages": env_int("MAX_PDF_PAGES", 300),
+        "max_extracted_chars": env_int("MAX_EXTRACTED_CHARS", 10_000_000),
+        "max_document_chunks": env_int("MAX_DOCUMENT_CHUNKS", 2000),
+        "ingest_batch_size": env_int("INGEST_BATCH_SIZE", 24),
         "rag_index_version": os.getenv("RAG_INDEX_VERSION", "2").strip() or "2",
         "retrieval_candidates": env_int("RETRIEVAL_CANDIDATES", 40),
         "retrieval_top_k": env_int("TOP_K", 3),
@@ -170,6 +175,12 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "CELERY_TASK_MAX_RETRIES",
         "CELERY_TASK_RETRY_BASE_SECONDS",
         "CELERY_WORKER_CONCURRENCY",
+        "UPLOAD_MAX_BYTES",
+        "UPLOAD_BATCH_MAX_BYTES",
+        "MAX_PDF_PAGES",
+        "MAX_EXTRACTED_CHARS",
+        "MAX_DOCUMENT_CHUNKS",
+        "INGEST_BATCH_SIZE",
     ):
         raw = os.getenv(name)
         if raw is None or not raw.strip():

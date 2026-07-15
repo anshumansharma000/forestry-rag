@@ -42,6 +42,8 @@ services:
         value: pdf,txt,docx
       - key: UPLOAD_MAX_BYTES
         value: 26214400
+      - key: UPLOAD_BATCH_MAX_BYTES
+        value: 26214400
       - key: ALLOW_DOCUMENT_REPLACE
         value: false
       - key: DOCUMENT_STORAGE_BACKEND
@@ -74,10 +76,20 @@ services:
         value: 160
       - key: PROCEDURE_UNIT_TOKENS
         value: 260
+      - key: PDF_EXTRACT_TABLES
+        value: false
+      - key: MAX_PDF_PAGES
+        value: 300
+      - key: MAX_EXTRACTED_CHARS
+        value: 10000000
+      - key: MAX_DOCUMENT_CHUNKS
+        value: 2000
+      - key: INGEST_BATCH_SIZE
+        value: 24
       - key: CELERY_BROKER_URL
         sync: false
       - key: CELERY_VISIBILITY_TIMEOUT_SECONDS
-        value: 3600
+        value: 14400
       - key: CELERY_TASK_MAX_RETRIES
         value: 3
       - key: CELERY_TASK_RETRY_BASE_SECONDS
@@ -89,7 +101,7 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: celery -A tasks.celery_app worker --loglevel=INFO --concurrency=1
+    dockerCommand: celery -A tasks.celery_app worker --loglevel=INFO --pool=solo
     autoDeployTrigger: checksPass
     envVars:
       - key: GEMINI_API_KEY
@@ -120,10 +132,20 @@ services:
         sync: false
       - key: R2_PREFIX
         value: docs/
+      - key: PDF_EXTRACT_TABLES
+        value: false
+      - key: MAX_PDF_PAGES
+        value: 300
+      - key: MAX_EXTRACTED_CHARS
+        value: 10000000
+      - key: MAX_DOCUMENT_CHUNKS
+        value: 2000
+      - key: INGEST_BATCH_SIZE
+        value: 24
       - key: CELERY_BROKER_URL
         sync: false
       - key: CELERY_VISIBILITY_TIMEOUT_SECONDS
-        value: 3600
+        value: 14400
       - key: CELERY_TASK_MAX_RETRIES
         value: 3
       - key: CELERY_TASK_RETRY_BASE_SECONDS
