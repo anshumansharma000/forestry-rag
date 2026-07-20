@@ -239,6 +239,69 @@ Frontend use:
 - After completion succeeds, queue one ingest job per returned filename with `POST /ingest` and `{ "source": filename }`.
 - If completion fails, show the backend error. The staged object may have expired, been rejected for size, or conflicted with an existing filename.
 
+### `GET /documents`
+
+Returns only successfully indexed documents for the document-library view. All authenticated roles may use this endpoint. Search, filtering, sorting, counting, and pagination happen on the server; the frontend must not fetch the entire corpus.
+
+Query parameters:
+
+```ts
+type DocumentLibraryQuery = {
+  search?: string; // Searches filename and inferred title; maximum 200 characters
+  kind?: "pdf" | "docx" | "txt";
+  document_type?: string; // Examples: rules, act, guidelines, circular
+  year?: string; // Four-digit year from 1900 through 2099
+  sort_by?: "updated_at" | "created_at" | "title" | "source" | "page_count";
+  sort_order?: "asc" | "desc";
+  offset?: number; // Default 0
+  limit?: number; // Default 25, maximum 100
+};
+```
+
+Response:
+
+```ts
+type DocumentLibraryResponse = {
+  items: {
+    id: string;
+    filename: string;
+    title: string;
+    kind: string;
+    page_count: number | null;
+    document_type: string;
+    authority: string | null;
+    years: string[];
+    chunk_count: number;
+    status: "indexed";
+    ingested_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+  }[];
+  pagination: {
+    offset: number;
+    limit: number;
+    total: number;
+    has_more: boolean;
+  };
+};
+```
+
+Example:
+
+```http
+GET /documents?search=forest&kind=pdf&sort_by=updated_at&sort_order=desc&offset=0&limit=25
+Authorization: Bearer <access_token>
+```
+
+Frontend use:
+
+- Debounce search by approximately 300 milliseconds.
+- Reset `offset` to `0` whenever search, filters, or sorting changes.
+- Use `pagination.total` for the page count and `pagination.has_more` for the next-page state.
+- Display `ingested_at` as the indexing date. The backend does not currently expose the original upload timestamp.
+- `page_count` may be `null` for DOCX and TXT documents.
+- Do not display a summary placeholder; summaries are intentionally not part of this contract.
+
 ### `POST /ingest`
 
 Queues a background ingest job. The normal upload flow must set `source` so the worker downloads, extracts, chunks, and indexes only that document. Omitting the body retains the legacy corpus-wide maintenance operation; do not use the corpus-wide form after each upload.

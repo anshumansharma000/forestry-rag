@@ -137,6 +137,34 @@ class UploadDocumentsResponse(BaseModel):
     files: list[UploadDocumentResponse]
 
 
+class DocumentLibraryItemResponse(BaseModel):
+    id: UUID | str
+    filename: str
+    title: str
+    kind: str
+    page_count: int | None = None
+    document_type: str
+    authority: str | None = None
+    years: list[str] = Field(default_factory=list)
+    chunk_count: int
+    status: str
+    ingested_at: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class DocumentLibraryPaginationResponse(BaseModel):
+    offset: int
+    limit: int
+    total: int
+    has_more: bool
+
+
+class DocumentLibraryResponse(BaseModel):
+    items: list[DocumentLibraryItemResponse]
+    pagination: DocumentLibraryPaginationResponse
+
+
 class DirectUploadFileRequest(BaseModel):
     filename: NonEmptyStr
     size_bytes: int = Field(gt=0)

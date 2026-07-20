@@ -28,6 +28,9 @@ migrations/001_phase1_pilot_hardening.sql
 migrations/002_jwt_auth.sql
 migrations/003_password_login_refresh_tokens.sql
 migrations/004_ingest_jobs.sql
+migrations/005_hybrid_retrieval.sql
+migrations/006_fix_match_document_chunks_ambiguous_id.sql
+migrations/007_document_library.sql
 ```
 
 If you already created the wrong vector dimension while experimenting, run:

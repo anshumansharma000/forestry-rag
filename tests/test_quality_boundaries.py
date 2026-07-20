@@ -19,7 +19,7 @@ from chunking import chunk_document
 from documents import extract_document_metadata, infer_title, read_docx, read_pdf_with_pdfplumber, remove_repeated_margin_lines
 from errors import AppError
 from rag_errors import RagError
-from repositories import ChatRepository
+from repositories import ChatRepository, DocumentRepository, document_library_item, postgrest_quoted_ilike
 from services.document_storage import R2DocumentStorage
 from services.gemini import GeminiClient
 from settings import validate_runtime_config
@@ -71,6 +71,116 @@ def test_upload_helpers_normalize_names_and_extensions(monkeypatch):
 
     assert safe_filename("../Forest Rules?.pdf") == "Forest Rules_.pdf"
     assert allowed_upload_extensions() == {"pdf", "txt", "docx"}
+
+
+def test_document_library_item_exposes_only_frontend_metadata():
+    item = document_library_item(
+        {
+            "id": "document-1",
+            "source": "forest-rules.pdf",
+            "kind": "pdf",
+            "title": "Forest Conservation Rules, 2022",
+            "page_count": 84,
+            "metadata": {
+                "ingest_status": "indexed",
+                "ingest_updated_at": "2026-07-18T10:00:00Z",
+                "document_type": "rules",
+                "authority": "Ministry of Environment",
+                "years": ["2022"],
+                "chunks": 42,
+            },
+            "created_at": "2026-07-18T09:00:00Z",
+            "updated_at": "2026-07-18T10:00:00Z",
+        }
+    )
+
+    assert item == {
+        "id": "document-1",
+        "filename": "forest-rules.pdf",
+        "title": "Forest Conservation Rules, 2022",
+        "kind": "pdf",
+        "page_count": 84,
+        "document_type": "rules",
+        "authority": "Ministry of Environment",
+        "years": ["2022"],
+        "chunk_count": 42,
+        "status": "indexed",
+        "ingested_at": "2026-07-18T10:00:00Z",
+        "created_at": "2026-07-18T09:00:00Z",
+        "updated_at": "2026-07-18T10:00:00Z",
+    }
+
+
+def test_document_library_search_quotes_postgrest_reserved_characters():
+    assert postgrest_quoted_ilike('rules, 2022 (final) "copy"') == '"*rules, 2022 (final) \\"copy\\"*"'
+
+
+def test_document_library_query_is_filtered_and_paginated():
+    calls = []
+
+    class Result:
+        data = [
+            {
+                "id": "document-1",
+                "source": "forest-rules.pdf",
+                "kind": "pdf",
+                "title": "Forest Rules",
+                "page_count": 20,
+                "metadata": {"ingest_status": "indexed", "chunks": 10},
+                "created_at": "2026-07-18T09:00:00Z",
+                "updated_at": "2026-07-18T10:00:00Z",
+            }
+        ]
+        count = 3
+
+    class Query:
+        def select(self, fields, count):
+            calls.append(("select", fields, count))
+            return self
+
+        def contains(self, column, value):
+            calls.append(("contains", column, value))
+            return self
+
+        def or_(self, value):
+            calls.append(("or", value))
+            return self
+
+        def eq(self, column, value):
+            calls.append(("eq", column, value))
+            return self
+
+        def order(self, column, desc):
+            calls.append(("order", column, desc))
+            return self
+
+        def range(self, start, end):
+            calls.append(("range", start, end))
+            return self
+
+        def execute(self):
+            return Result()
+
+    class Client:
+        def table(self, name):
+            calls.append(("table", name))
+            return Query()
+
+    response = DocumentRepository(Client()).list_indexed_documents(
+        search="forest",
+        kind="pdf",
+        document_type="rules",
+        year="2022",
+        offset=1,
+        limit=1,
+    )
+
+    assert ("eq", "metadata->>ingest_status", "indexed") in calls
+    assert ("eq", "kind", "pdf") in calls
+    assert ("eq", "metadata->>document_type", "rules") in calls
+    assert ("contains", "metadata", {"years": ["2022"]}) in calls
+    assert ("range", 1, 1) in calls
+    assert response["pagination"] == {"offset": 1, "limit": 1, "total": 3, "has_more": True}
 
 
 def test_prepare_uploads_accepts_multiple_files(monkeypatch):

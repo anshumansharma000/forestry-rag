@@ -23,6 +23,46 @@ class DocumentRepository:
             and (row.get("metadata") or {}).get("ingest_status") == "indexed"
         }
 
+    def list_indexed_documents(
+        self,
+        *,
+        search: str | None = None,
+        kind: str | None = None,
+        document_type: str | None = None,
+        year: str | None = None,
+        sort_by: str = "updated_at",
+        sort_order: str = "desc",
+        offset: int = 0,
+        limit: int = 25,
+    ) -> dict[str, Any]:
+        fields = "id,source,kind,title,page_count,metadata,created_at,updated_at"
+        query = self.client.table("documents").select(fields, count="exact").eq("metadata->>ingest_status", "indexed")
+
+        if search:
+            value = postgrest_quoted_ilike(search)
+            query = query.or_(f"source.ilike.{value},title.ilike.{value}")
+        if kind:
+            query = query.eq("kind", kind)
+        if document_type:
+            query = query.eq("metadata->>document_type", document_type)
+        if year:
+            query = query.contains("metadata", {"years": [year]})
+
+        descending = sort_order == "desc"
+        query = query.order(sort_by, desc=descending).order("id", desc=descending)
+        result = query.range(offset, offset + limit - 1).execute()
+        rows = result.data or []
+        total = int(result.count or 0)
+        return {
+            "items": [document_library_item(row) for row in rows],
+            "pagination": {
+                "offset": offset,
+                "limit": limit,
+                "total": total,
+                "has_more": offset + len(rows) < total,
+            },
+        }
+
     def upsert_document(self, doc: dict, status: str = "indexing") -> str:
         metadata = {
             **(doc.get("metadata") or {}),
@@ -80,6 +120,31 @@ class DocumentRepository:
 
 def index_version() -> str:
     return os.getenv("RAG_INDEX_VERSION", "2").strip() or "2"
+
+
+def postgrest_quoted_ilike(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"*{escaped}*"'
+
+
+def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
+    metadata = row.get("metadata") or {}
+    source = row.get("source") or ""
+    return {
+        "id": row["id"],
+        "filename": source,
+        "title": row.get("title") or source,
+        "kind": row.get("kind") or "document",
+        "page_count": row.get("page_count"),
+        "document_type": metadata.get("document_type") or "document",
+        "authority": metadata.get("authority"),
+        "years": metadata.get("years") or [],
+        "chunk_count": int(metadata.get("chunks") or 0),
+        "status": "indexed",
+        "ingested_at": metadata.get("ingest_updated_at") or row.get("updated_at"),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
 
 
 class ChatRepository:

@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
@@ -7,11 +8,13 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Upl
 from auth import CurrentUser, audit_event, require_roles
 from errors import AppError, ErrorCode
 from ingest_service import create_ingest_job, get_ingest_job, mark_ingest_job_enqueue_failed, mark_ingest_job_enqueued, preview_chunks
+from repositories import DocumentRepository
 from schemas import (
     CompleteDirectUploadFileRequest,
     CompleteDirectUploadsRequest,
     CreatePresignedUploadsRequest,
     DirectUploadFileRequest,
+    DocumentLibraryResponse,
     IngestJobEnvelope,
     IngestRequest,
     PresignedUploadsResponse,
@@ -30,6 +33,30 @@ from task_queue import (
 from upload_utils import allowed_upload_extensions, read_upload_limited, safe_filename, upload_batch_max_bytes, upload_max_bytes
 
 router = APIRouter(tags=["documents"])
+
+
+@router.get("/documents", response_model=DocumentLibraryResponse)
+def list_documents(
+    search: str | None = Query(default=None, min_length=1, max_length=200),
+    kind: Literal["pdf", "docx", "txt"] | None = None,
+    document_type: str | None = Query(default=None, min_length=1, max_length=50),
+    year: str | None = Query(default=None, pattern=r"^(?:19|20)\d{2}$"),
+    sort_by: Literal["updated_at", "created_at", "title", "source", "page_count"] = "updated_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=25, ge=1, le=100),
+    _user: CurrentUser = Depends(require_roles("viewer")),
+):
+    return DocumentRepository().list_indexed_documents(
+        search=search.strip() if search else None,
+        kind=kind,
+        document_type=document_type.strip().lower() if document_type else None,
+        year=year,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        offset=offset,
+        limit=limit,
+    )
 
 
 @dataclass(frozen=True)
