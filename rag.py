@@ -52,6 +52,8 @@ from documents import (
     normalize_text,
     read_docx,
     read_pdf,
+    read_ppt,
+    read_pptx,
     read_txt,
 )
 from ingest_service import build_index, preview_chunks

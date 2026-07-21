@@ -1,5 +1,6 @@
 import json
 import logging
+import struct
 import sys
 from io import BytesIO
 from types import SimpleNamespace
@@ -7,6 +8,8 @@ from types import SimpleNamespace
 import pytest
 from docx import Document
 from fastapi import HTTPException, UploadFile, status
+from pptx import Presentation
+from pptx.util import Inches
 from starlette.datastructures import Headers
 
 import ingest_service
@@ -16,7 +19,15 @@ import routers.documents
 import task_queue
 from auth import validate_password
 from chunking import chunk_document
-from documents import extract_document_metadata, infer_title, read_docx, read_pdf_with_pdfplumber, remove_repeated_margin_lines
+from documents import (
+    extract_document_metadata,
+    infer_title,
+    read_docx,
+    read_pdf_with_pdfplumber,
+    read_ppt,
+    read_pptx,
+    remove_repeated_margin_lines,
+)
 from errors import AppError
 from rag_errors import RagError
 from repositories import ChatRepository, DocumentRepository, document_library_item, postgrest_quoted_ilike
@@ -71,6 +82,12 @@ def test_upload_helpers_normalize_names_and_extensions(monkeypatch):
 
     assert safe_filename("../Forest Rules?.pdf") == "Forest Rules_.pdf"
     assert allowed_upload_extensions() == {"pdf", "txt", "docx"}
+
+
+def test_default_upload_extensions_include_powerpoint(monkeypatch):
+    monkeypatch.delenv("ALLOWED_UPLOAD_EXTENSIONS", raising=False)
+
+    assert allowed_upload_extensions() == {"pdf", "txt", "docx", "ppt", "pptx"}
 
 
 def test_document_library_item_exposes_only_frontend_metadata():
@@ -836,6 +853,72 @@ def test_read_docx_extracts_tables_as_structured_blocks(tmp_path):
     assert pages[0]["blocks"][1]["type"] == "table"
     assert pages[0]["blocks"][1]["headers"] == ["Species", "Unit", "Fee"]
     assert pages[0]["blocks"][1]["rows"][0] == ["Teak", "Cubic meter", "1200"]
+
+
+def test_read_pptx_extracts_each_slide_and_tables(tmp_path):
+    path = tmp_path / "fees.pptx"
+    presentation = Presentation()
+    slide = presentation.slides.add_slide(presentation.slide_layouts[5])
+    slide.shapes.title.text = "Schedule of transit fees"
+    table = slide.shapes.add_table(2, 3, Inches(1), Inches(2), Inches(8), Inches(1.5)).table
+    for column, value in enumerate(["Species", "Unit", "Fee"]):
+        table.cell(0, column).text = value
+    for column, value in enumerate(["Teak", "Cubic meter", "1200"]):
+        table.cell(1, column).text = value
+    presentation.save(path)
+
+    pages = read_pptx(path)
+
+    assert pages[0]["page"] == 1
+    assert pages[0]["blocks"][0] == {"type": "text", "text": "Schedule of transit fees"}
+    assert pages[0]["blocks"][1]["type"] == "table"
+    assert pages[0]["blocks"][1]["headers"] == ["Species", "Unit", "Fee"]
+    assert pages[0]["blocks"][1]["rows"] == [["Teak", "Cubic meter", "1200"]]
+
+
+def test_read_legacy_ppt_extracts_text_atoms_by_slide(monkeypatch, tmp_path):
+    def record(record_type, payload=b"", version=0):
+        return struct.pack("<HHI", version, record_type, len(payload)) + payload
+
+    slide_list = b"".join(
+        [
+            record(1011),
+            record(4000, "First slide\nPermit rules".encode("utf-16-le")),
+            record(1011),
+            record(4008, b"Second slide\nFee schedule"),
+        ]
+    )
+    payload = record(1000, record(4080, slide_list, version=0xF), version=0xF)
+
+    class LegacyPresentation:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def exists(self, stream_name):
+            return stream_name == "PowerPoint Document"
+
+        def openstream(self, _stream_name):
+            return BytesIO(payload)
+
+    monkeypatch.setattr("documents.olefile.OleFileIO", lambda _path: LegacyPresentation())
+
+    pages = read_ppt(tmp_path / "rules.ppt")
+
+    assert pages == [
+        {
+            "page": 1,
+            "text": "First slide\nPermit rules",
+            "blocks": [{"type": "text", "text": "First slide\nPermit rules"}],
+        },
+        {
+            "page": 2,
+            "text": "Second slide\nFee schedule",
+            "blocks": [{"type": "text", "text": "Second slide\nFee schedule"}],
+        },
+    ]
 
 
 def test_read_pdf_extracts_tables_as_structured_blocks(monkeypatch, tmp_path):

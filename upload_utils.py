@@ -22,7 +22,7 @@ def upload_batch_max_bytes() -> int:
 
 
 def allowed_upload_extensions() -> set[str]:
-    raw = os.getenv("ALLOWED_UPLOAD_EXTENSIONS", "pdf,txt,docx")
+    raw = os.getenv("ALLOWED_UPLOAD_EXTENSIONS", "pdf,txt,docx,ppt,pptx")
     return {ext.strip().lower().lstrip(".") for ext in raw.split(",") if ext.strip()}
 
 

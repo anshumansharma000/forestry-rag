@@ -38,7 +38,7 @@ router = APIRouter(tags=["documents"])
 @router.get("/documents", response_model=DocumentLibraryResponse)
 def list_documents(
     search: str | None = Query(default=None, min_length=1, max_length=200),
-    kind: Literal["pdf", "docx", "txt"] | None = None,
+    kind: Literal["pdf", "docx", "txt", "ppt", "pptx"] | None = None,
     document_type: str | None = Query(default=None, min_length=1, max_length=50),
     year: str | None = Query(default=None, pattern=r"^(?:19|20)\d{2}$"),
     sort_by: Literal["updated_at", "created_at", "title", "source", "page_count"] = "updated_at",

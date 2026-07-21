@@ -39,7 +39,7 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: ALLOWED_UPLOAD_EXTENSIONS
-        value: pdf,txt,docx
+        value: pdf,txt,docx,ppt,pptx
       - key: UPLOAD_MAX_BYTES
         value: 26214400
       - key: UPLOAD_BATCH_MAX_BYTES

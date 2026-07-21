@@ -1,11 +1,14 @@
 import re
+import struct
 from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
 
+import olefile
 from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
+from pptx import Presentation
 from pypdf import PdfReader
 
 from rag_errors import RagError
@@ -112,7 +115,7 @@ def enforce_pdf_page_limit(path: Path, page_count: int) -> None:
 def enforce_extracted_text_limit(path: Path, extracted_chars: int) -> None:
     max_chars = env_int("MAX_EXTRACTED_CHARS", 10_000_000)
     if extracted_chars > max_chars:
-        raise RagError(f"PDF {path.name} exceeds the extracted text limit of {max_chars} characters.")
+        raise RagError(f"Document {path.name} exceeds the extracted text limit of {max_chars} characters.")
 
 
 def iter_docx_blocks(document: Document):
@@ -176,6 +179,136 @@ def read_docx(path: Path) -> list[dict]:
     return [{"page": None, "text": text, "blocks": blocks}] if text else []
 
 
+def iter_pptx_shapes(shapes):
+    for shape in shapes:
+        if getattr(shape, "shape_type", None) == 6:  # MSO_SHAPE_TYPE.GROUP
+            yield from iter_pptx_shapes(shape.shapes)
+        else:
+            yield shape
+
+
+def read_pptx(path: Path) -> list[dict]:
+    try:
+        presentation = Presentation(str(path))
+    except Exception as exc:
+        raise RagError(f"Could not read PPTX {path.name}: {exc}") from exc
+
+    pages = []
+    table_index = 0
+    extracted_chars = 0
+    for slide_number, slide in enumerate(presentation.slides, start=1):
+        blocks = []
+        for shape in iter_pptx_shapes(slide.shapes):
+            if getattr(shape, "has_text_frame", False):
+                text = normalize_text(shape.text_frame.text)
+                if text:
+                    blocks.append({"type": "text", "text": text})
+            if getattr(shape, "has_table", False):
+                table_block = table_block_from_rows(
+                    [[cell.text for cell in row.cells] for row in shape.table.rows],
+                    table_index,
+                )
+                table_index += 1
+                if table_block:
+                    blocks.append(table_block)
+
+        text = normalize_text("\n\n".join(block["text"] for block in blocks))
+        if text:
+            extracted_chars += len(text)
+            enforce_extracted_text_limit(path, extracted_chars)
+            pages.append({"page": slide_number, "text": text, "blocks": blocks})
+    return pages
+
+
+def iter_ppt_records(data: bytes):
+    offset = 0
+    while offset + 8 <= len(data):
+        options, record_type, length = struct.unpack_from("<HHI", data, offset)
+        offset += 8
+        end = offset + length
+        if end > len(data):
+            break
+        yield options & 0xF, options >> 4, record_type, data[offset:end]
+        offset = end
+
+
+def legacy_ppt_text(payload: bytes) -> list[str]:
+    texts = []
+    for record_version, _record_instance, record_type, record_payload in iter_ppt_records(payload):
+        if record_type == 4000:  # TextCharsAtom (UTF-16LE)
+            text = record_payload.decode("utf-16-le", errors="replace")
+            text = normalize_text(text.replace("\x00", ""))
+            if text:
+                texts.append(text)
+        elif record_type == 4008:  # TextBytesAtom (compressed single-byte text)
+            text = normalize_text(record_payload.decode("cp1252", errors="replace").replace("\x00", ""))
+            if text:
+                texts.append(text)
+        elif record_version == 0xF:
+            texts.extend(legacy_ppt_text(record_payload))
+    return texts
+
+
+def legacy_ppt_slide_lists(payload: bytes) -> list[list[str]]:
+    slide_texts = []
+    for record_version, record_instance, record_type, record_payload in iter_ppt_records(payload):
+        if record_type == 4080 and record_version == 0xF and record_instance == 0:  # Slides (not masters or notes)
+            current = None
+            for child_version, child_instance, child_type, child_payload in iter_ppt_records(record_payload):
+                if child_type == 1011:  # SlidePersistAtom
+                    if current:
+                        slide_texts.append(current)
+                    current = []
+                elif current is not None:
+                    if child_type in {4000, 4008}:
+                        child_options = child_version | (child_instance << 4)
+                        current.extend(legacy_ppt_text(struct.pack("<HHI", child_options, child_type, len(child_payload)) + child_payload))
+                    elif child_version == 0xF:
+                        current.extend(legacy_ppt_text(child_payload))
+            if current:
+                slide_texts.append(current)
+        elif record_version == 0xF:
+            slide_texts.extend(legacy_ppt_slide_lists(record_payload))
+    return slide_texts
+
+
+def legacy_ppt_slide_containers(payload: bytes) -> list[list[str]]:
+    slide_texts = []
+    for record_version, _record_instance, record_type, record_payload in iter_ppt_records(payload):
+        if record_type == 1006 and record_version == 0xF:  # SlideContainer
+            texts = legacy_ppt_text(record_payload)
+            if texts:
+                slide_texts.append(texts)
+        elif record_version == 0xF:
+            slide_texts.extend(legacy_ppt_slide_containers(record_payload))
+    return slide_texts
+
+
+def read_ppt(path: Path) -> list[dict]:
+    try:
+        with olefile.OleFileIO(str(path)) as presentation:
+            if not presentation.exists("PowerPoint Document"):
+                raise ValueError("PowerPoint Document stream is missing")
+            payload = presentation.openstream("PowerPoint Document").read()
+    except Exception as exc:
+        raise RagError(f"Could not read PPT {path.name}: {exc}") from exc
+
+    slide_texts = legacy_ppt_slide_lists(payload) or legacy_ppt_slide_containers(payload)
+    if not slide_texts:
+        all_text = legacy_ppt_text(payload)
+        slide_texts = [all_text] if all_text else []
+
+    pages = []
+    extracted_chars = 0
+    for slide_number, texts in enumerate(slide_texts, start=1):
+        text = normalize_text("\n\n".join(texts))
+        if text:
+            extracted_chars += len(text)
+            enforce_extracted_text_limit(path, extracted_chars)
+            pages.append({"page": slide_number, "text": text, "blocks": [{"type": "text", "text": text}]})
+    return pages
+
+
 def iter_documents(source: str | None = None) -> Iterator[dict]:
     with document_storage().document_files(source=source) as files:
         for document_file in files:
@@ -193,10 +326,15 @@ def read_document(document_file) -> dict | None:
     if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
         return None
 
-    if path.suffix.lower() == ".pdf":
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
         pages = read_pdf(path)
-    elif path.suffix.lower() == ".docx":
+    elif suffix == ".docx":
         pages = read_docx(path)
+    elif suffix == ".pptx":
+        pages = read_pptx(path)
+    elif suffix == ".ppt":
+        pages = read_ppt(path)
     else:
         pages = read_txt(path)
 

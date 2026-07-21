@@ -1,6 +1,6 @@
 # Forest Department Pilot RAG
 
-This is a pilot-ready RAG API foundation for forest department source documents. It stores source files locally for now, extracts text from `.pdf`, `.docx`, and `.txt` files, chunks the text, creates embeddings with the Gemini API, stores chunks in Supabase Postgres + pgvector, and answers questions with citations.
+This is a pilot-ready RAG API foundation for forest department source documents. It stores source files locally for now, extracts text from `.pdf`, `.docx`, `.txt`, `.ppt`, and `.pptx` files, chunks the text, creates embeddings with the Gemini API, stores chunks in Supabase Postgres + pgvector, and answers questions with citations.
 
 Phase 1 hardening adds bearer-token auth, roles, user-scoped chat sessions, upload restrictions, audit events, structured errors, runtime config validation, migrations, and Docker deployment files. The current codebase also separates routes, repositories, document loading, chunking, retrieval, prompt construction, chat, and ingestion into focused modules.
 
@@ -164,9 +164,11 @@ Supported formats:
 - `.pdf`
 - `.docx`
 - `.txt`
+- `.ppt`
+- `.pptx`
 
 PDF extraction works for PDFs that contain selectable text. Scanned image-only PDFs need OCR, which is intentionally outside this toy app for now.
-Legacy `.doc` files are not supported yet; save or convert them as `.docx` first.
+Legacy `.doc` files are not supported yet; save or convert them as `.docx` first. PowerPoint slide text is extracted from both legacy binary `.ppt` and modern `.pptx` files; `.pptx` tables are preserved as structured blocks.
 
 You can also upload files from Postman:
 
@@ -174,7 +176,7 @@ You can also upload files from Postman:
 POST http://127.0.0.1:8000/documents/upload
 Content-Type: multipart/form-data
 
-file=<your PDF, DOCX, or TXT file>
+file=<your PDF, DOCX, TXT, PPT, or PPTX file>
 ```
 
 For multiple files, send repeated `files` fields to `POST /documents/uploads`.
@@ -231,7 +233,7 @@ Logs are emitted as JSON lines. Set `LOG_LEVEL` to control verbosity, for exampl
 
 ## Postman / curl
 
-Upload a PDF, DOCX, or TXT file:
+Upload a PDF, DOCX, TXT, PPT, or PPTX file:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/documents/upload \
@@ -406,7 +408,7 @@ python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py docu
 
 ## Files
 
-- `data/docs/*.pdf`, `data/docs/*.docx`, and `data/docs/*.txt`: local source documents when `DOCUMENT_STORAGE_BACKEND=local`
+- `data/docs/*.pdf`, `data/docs/*.docx`, `data/docs/*.txt`, `data/docs/*.ppt`, and `data/docs/*.pptx`: local source documents when `DOCUMENT_STORAGE_BACKEND=local`
 - `supabase_schema.sql`: fresh database schema, pgvector/full-text indexes, and hybrid-search RPC
 - `migrations/*.sql`: incremental database changes for existing deployments
 - `app.py`: FastAPI app factory, middleware, router registration, and exception handler wiring
@@ -428,7 +430,7 @@ python -m compileall app.py auth.py auth_repository.py rag.py rag_errors.py docu
 
 The app uses a structure-aware chunking strategy designed for rules, circulars, amendments, FAQs, long procedures, and government orders:
 
-- Extract text per PDF page, DOCX paragraph/table content, or TXT file.
+- Extract text per PDF page, presentation slide, DOCX paragraph/table content, or TXT file.
 - Classify each document as regular section content, FAQ content, or procedure/process/workflow content.
 - Detect likely headings such as `Chapter`, `Part`, `Section`, `Rule`, `Schedule`, `Annexure`, numbered headings, and all-caps headings.
 - Detect likely clause starts such as `1.`, `1.1`, `(a)`, `(1)`, and roman numerals.

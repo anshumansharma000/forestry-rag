@@ -4,7 +4,7 @@ Compact integration brief for the Forest Department Pilot RAG frontend.
 
 ## App Purpose
 
-Forest Department Pilot RAG is a FastAPI backend for querying forest department source documents. It accepts `.pdf`, `.docx`, and `.txt` files, chunks them, embeds them with Gemini, stores searchable chunks in Supabase pgvector, and answers questions with cited source excerpts.
+Forest Department Pilot RAG is a FastAPI backend for querying forest department source documents. It accepts `.pdf`, `.docx`, `.txt`, `.ppt`, and `.pptx` files, chunks them, embeds them with Gemini, stores searchable chunks in Supabase pgvector, and answers questions with cited source excerpts.
 
 Frontend clients should treat this backend as the only API surface. Do not call Gemini or Supabase directly from the browser. The Supabase service role key must stay server-side.
 
@@ -130,7 +130,7 @@ Request:
 
 - `Content-Type: multipart/form-data`
 - Field: `file`
-- Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`
+- Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`, `.ppt`, `.pptx`
 - Requires `knowledge_manager` or `admin`
 
 Response:
@@ -145,7 +145,7 @@ type UploadDocumentResponse = {
 
 Frontend use:
 
-- Accept only PDF/DOCX/TXT files in the file picker.
+- Accept only PDF/DOCX/TXT/PPT/PPTX files in the file picker.
 - After upload, queue only the returned filename with `POST /ingest` and `{ "source": filename }`.
 - `path` is a backend storage path for diagnostics only; do not expose it as a user-facing document link.
 
@@ -158,7 +158,7 @@ Request:
 - `Content-Type: multipart/form-data`
 - Field: `files`
 - Send one `files` part per selected file
-- Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`
+- Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`, `.ppt`, `.pptx`
 - Requires `knowledge_manager` or `admin`
 
 Response:
@@ -248,7 +248,7 @@ Query parameters:
 ```ts
 type DocumentLibraryQuery = {
   search?: string; // Searches filename and inferred title; maximum 200 characters
-  kind?: "pdf" | "docx" | "txt";
+  kind?: "pdf" | "docx" | "txt" | "ppt" | "pptx";
   document_type?: string; // Examples: rules, act, guidelines, circular
   year?: string; // Four-digit year from 1900 through 2099
   sort_by?: "updated_at" | "created_at" | "title" | "source" | "page_count";
@@ -785,7 +785,7 @@ Build a production-quality frontend for the Forest Department Pilot RAG FastAPI 
 
 API base URL: http://127.0.0.1:8000. Keep this configurable through an environment variable, with the local URL as the default. The browser must only call the FastAPI backend; never expose Gemini keys, Supabase service role keys, JWT signing secrets, password hashes, bootstrap tokens, or refresh-token hashes. Store the backend access token and refresh token in frontend auth state. Include Authorization: Bearer <access_token> on every endpoint except /health, /config/status, /auth/login, and /auth/refresh.
 
-The app is a forest department RAG assistant. It should provide a chat-first interface for asking questions over indexed PDF/DOCX/TXT source documents, with citations and source excerpts. It should also include a compact admin/setup area for backend health, configuration status, document upload, index ingest, and chunk preview.
+The app is a forest department RAG assistant. It should provide a chat-first interface for asking questions over indexed PDF/DOCX/TXT/PPT/PPTX source documents, with citations and source excerpts. It should also include a compact admin/setup area for backend health, configuration status, document upload, index ingest, and chunk preview.
 
 Implement these API calls:
 - GET /health -> { status: "ok" }
@@ -845,7 +845,7 @@ Admin/setup behavior:
 - Show backend/config status without exposing secrets.
 - Admins can create users with email, initial password, role, full name, metadata, and must_change_password.
 - Admins can list users, update email/full name/role/active status/metadata, and reset passwords. Never display existing passwords.
-- Use the presign -> direct R2 PUT -> complete flow for PDF/DOCX/TXT uploads. Do not send large file bytes through the FastAPI multipart endpoints.
+- Use the presign -> direct R2 PUT -> complete flow for PDF/DOCX/TXT/PPT/PPTX uploads. Do not send large file bytes through the FastAPI multipart endpoints.
 - Track upload progress separately from processing progress. The direct R2 PUT does not include the API Authorization header and must use exactly the Content-Type returned by /presign.
 - After /complete succeeds, call /ingest once per returned filename with { source: filename }. Never call the empty-body corpus-wide ingest operation after a routine upload.
 - Track and poll every returned job id through /ingest/jobs/{job_id}; show queued, processing, succeeded, and failed states per file, including job.error and added chunk counts.

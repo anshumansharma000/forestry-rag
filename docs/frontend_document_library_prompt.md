@@ -17,7 +17,7 @@ GET /documents
 Supported query parameters:
 
 - `search`: searches filename and inferred title
-- `kind`: `pdf`, `docx`, or `txt`
+- `kind`: `pdf`, `docx`, `txt`, `ppt`, or `pptx`
 - `document_type`: for example `rules`, `act`, `guidelines`, `circular`, `notification`, `order`, `procedure`, `faq`, or `document`
 - `year`: a four-digit year
 - `sort_by`: `updated_at`, `created_at`, `title`, `source`, or `page_count`

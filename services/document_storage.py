@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from errors import AppError, ErrorCode
 from settings import DOCS_DIR, document_storage_backend, r2_settings
 
-SUPPORTED_STORAGE_EXTENSIONS = {".txt", ".pdf", ".docx"}
+SUPPORTED_STORAGE_EXTENSIONS = {".txt", ".pdf", ".docx", ".ppt", ".pptx"}
 
 
 @dataclass(frozen=True)
