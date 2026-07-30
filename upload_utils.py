@@ -14,11 +14,15 @@ def safe_filename(filename: str) -> str:
 
 
 def upload_max_bytes() -> int:
-    return int(os.getenv("UPLOAD_MAX_BYTES", str(25 * 1024 * 1024)))
+    return int(os.getenv("UPLOAD_MAX_BYTES", str(150 * 1024 * 1024)))
 
 
 def upload_batch_max_bytes() -> int:
-    return int(os.getenv("UPLOAD_BATCH_MAX_BYTES", str(25 * 1024 * 1024)))
+    return int(os.getenv("UPLOAD_BATCH_MAX_BYTES", str(150 * 1024 * 1024)))
+
+
+def upload_batch_max_files() -> int:
+    return int(os.getenv("UPLOAD_BATCH_MAX_FILES", "50"))
 
 
 def allowed_upload_extensions() -> set[str]:

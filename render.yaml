@@ -41,9 +41,11 @@ services:
       - key: ALLOWED_UPLOAD_EXTENSIONS
         value: pdf,txt,docx,ppt,pptx
       - key: UPLOAD_MAX_BYTES
-        value: 26214400
+        value: 157286400
       - key: UPLOAD_BATCH_MAX_BYTES
-        value: 26214400
+        value: 157286400
+      - key: UPLOAD_BATCH_MAX_FILES
+        value: 50
       - key: ALLOW_DOCUMENT_REPLACE
         value: false
       - key: DOCUMENT_STORAGE_BACKEND
@@ -79,11 +81,11 @@ services:
       - key: PDF_EXTRACT_TABLES
         value: false
       - key: MAX_PDF_PAGES
-        value: 300
+        value: 500
       - key: MAX_EXTRACTED_CHARS
-        value: 10000000
+        value: 15000000
       - key: MAX_DOCUMENT_CHUNKS
-        value: 2000
+        value: 3000
       - key: INGEST_BATCH_SIZE
         value: 24
       - key: CELERY_BROKER_URL

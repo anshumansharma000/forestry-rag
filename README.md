@@ -183,13 +183,15 @@ For multiple files, send repeated `files` fields to `POST /documents/uploads`.
 For browser-to-R2 uploads, call `POST /documents/uploads/presign`, upload each file with the returned `PUT` URL and headers, then call `POST /documents/uploads/complete`.
 After completion, queue one job per returned filename with `POST /ingest` and `{"source":"<filename>"}`. The empty-body form remains available for deliberate corpus-wide maintenance but should not be used after routine uploads.
 
+Uploads are limited to 150 MiB per file and 50 files per batch. The direct-to-R2 flow applies the per-file and file-count limits without buffering the whole batch in the API process. The legacy multipart flow additionally limits the aggregate request body to 150 MiB to protect the 512 MB web container.
+
 Large-PDF ingestion is memory bounded by closing each parsed PDF page, yielding chunks incrementally, and inserting embedding rows in small batches. These settings control the limits:
 
 ```env
 PDF_EXTRACT_TABLES=false
-MAX_PDF_PAGES=300
-MAX_EXTRACTED_CHARS=10000000
-MAX_DOCUMENT_CHUNKS=2000
+MAX_PDF_PAGES=500
+MAX_EXTRACTED_CHARS=15000000
+MAX_DOCUMENT_CHUNKS=3000
 INGEST_BATCH_SIZE=24
 ```
 

@@ -30,7 +30,14 @@ from task_queue import (
 from task_queue import (
     ingest_worker_status as get_ingest_worker_status,
 )
-from upload_utils import allowed_upload_extensions, read_upload_limited, safe_filename, upload_batch_max_bytes, upload_max_bytes
+from upload_utils import (
+    allowed_upload_extensions,
+    read_upload_limited,
+    safe_filename,
+    upload_batch_max_bytes,
+    upload_batch_max_files,
+    upload_max_bytes,
+)
 
 router = APIRouter(tags=["documents"])
 
@@ -170,6 +177,11 @@ def complete_presigned_document_uploads(
 def prepare_uploads(files: list[UploadFile]) -> list[PendingUpload]:
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
+    if len(files) > upload_batch_max_files():
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Upload batch exceeds limit of {upload_batch_max_files()} files",
+        )
 
     allowed_extensions = allowed_upload_extensions()
     max_bytes = upload_max_bytes()

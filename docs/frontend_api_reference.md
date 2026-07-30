@@ -131,6 +131,7 @@ Request:
 - `Content-Type: multipart/form-data`
 - Field: `file`
 - Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`, `.ppt`, `.pptx`
+- Maximum file size: 150 MiB
 - Requires `knowledge_manager` or `admin`
 
 Response:
@@ -159,6 +160,9 @@ Request:
 - Field: `files`
 - Send one `files` part per selected file
 - Supported extensions: configured by the backend; default `.pdf`, `.txt`, `.docx`, `.ppt`, `.pptx`
+- Maximum file size: 150 MiB
+- Maximum files per batch: 50
+- Maximum aggregate multipart request size: 150 MiB
 - Requires `knowledge_manager` or `admin`
 
 Response:
@@ -211,7 +215,7 @@ type PresignedUploadsResponse = {
 
 Frontend use:
 
-- Send one entry per selected file before uploading bytes.
+- Send one entry per selected file before uploading bytes, with at most 50 files per batch and 150 MiB per file.
 - Use each returned `upload_url` with `fetch(upload_url, { method: "PUT", headers, body: file })`.
 - The `Content-Type` header must exactly match the returned `headers["Content-Type"]`.
 - Do not call `POST /ingest` yet; direct uploads are staged until completed.

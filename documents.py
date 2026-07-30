@@ -107,13 +107,13 @@ def read_pdf_with_pdfplumber(path: Path, *, extract_tables: bool = True) -> list
 
 
 def enforce_pdf_page_limit(path: Path, page_count: int) -> None:
-    max_pages = env_int("MAX_PDF_PAGES", 300)
+    max_pages = env_int("MAX_PDF_PAGES", 500)
     if page_count > max_pages:
         raise RagError(f"PDF {path.name} has {page_count} pages; the configured limit is {max_pages}.")
 
 
 def enforce_extracted_text_limit(path: Path, extracted_chars: int) -> None:
-    max_chars = env_int("MAX_EXTRACTED_CHARS", 10_000_000)
+    max_chars = env_int("MAX_EXTRACTED_CHARS", 15_000_000)
     if extracted_chars > max_chars:
         raise RagError(f"Document {path.name} exceeds the extracted text limit of {max_chars} characters.")
 

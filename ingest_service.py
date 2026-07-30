@@ -69,7 +69,7 @@ def build_index(repository: DocumentRepository | None = None, *, source: str | N
 
 def persist_document_chunks(repository: DocumentRepository, document_id: str, doc: dict) -> int:
     batch_size = positive_env_int("INGEST_BATCH_SIZE", 24)
-    max_chunks = positive_env_int("MAX_DOCUMENT_CHUNKS", 2000)
+    max_chunks = positive_env_int("MAX_DOCUMENT_CHUNKS", 3000)
     source = doc["source"]
     repository.delete_chunks(source)
     batch = []

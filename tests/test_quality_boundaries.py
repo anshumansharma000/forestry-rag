@@ -247,6 +247,22 @@ def test_prepare_uploads_rejects_aggregate_batch_over_memory_limit(monkeypatch):
     assert exc.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
 
 
+def test_prepare_uploads_rejects_too_many_files(monkeypatch):
+    monkeypatch.setenv("UPLOAD_BATCH_MAX_FILES", "2")
+
+    with pytest.raises(HTTPException) as exc:
+        routers.documents.prepare_uploads(
+            [
+                upload_file("one.txt"),
+                upload_file("two.txt"),
+                upload_file("three.txt"),
+            ]
+        )
+
+    assert exc.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+    assert exc.value.detail == "Upload batch exceeds limit of 2 files"
+
+
 def test_batch_save_checks_conflicts_before_writing(monkeypatch):
     saved = []
 
