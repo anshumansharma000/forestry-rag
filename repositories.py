@@ -119,7 +119,7 @@ class DocumentRepository:
 
 
 def index_version() -> str:
-    return os.getenv("RAG_INDEX_VERSION", "2").strip() or "2"
+    return os.getenv("RAG_INDEX_VERSION", "3").strip() or "3"
 
 
 def postgrest_quoted_ilike(value: str) -> str:

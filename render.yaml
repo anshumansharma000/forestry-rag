@@ -80,6 +80,28 @@ services:
         value: 260
       - key: PDF_EXTRACT_TABLES
         value: false
+      - key: DOCUMENT_AI_OCR_ENABLED
+        value: true
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/document-ai-credentials.json
+      - key: GOOGLE_CLOUD_PROJECT
+        value: gen-lang-client-0687293421
+      - key: DOCUMENT_AI_LOCATION
+        value: asia-south1
+      - key: DOCUMENT_AI_PROCESSOR_ID
+        value: ed7664de7f2567dc
+      - key: DOCUMENT_AI_OCR_LANGUAGE_HINTS
+        value: en,hi
+      - key: DOCUMENT_AI_OCR_MIN_TEXT_CHARS
+        value: 40
+      - key: DOCUMENT_AI_OCR_MAX_PAGES
+        value: 200
+      - key: DOCUMENT_AI_OCR_TIMEOUT_SECONDS
+        value: 60
+      - key: DOCUMENT_AI_OCR_RETRY_ATTEMPTS
+        value: 3
+      - key: DOCUMENT_AI_OCR_MAX_REQUEST_BYTES
+        value: 40000000
       - key: MAX_PDF_PAGES
         value: 500
       - key: MAX_EXTRACTED_CHARS
@@ -88,6 +110,8 @@ services:
         value: 3000
       - key: INGEST_BATCH_SIZE
         value: 24
+      - key: RAG_INDEX_VERSION
+        value: 3
       - key: CELERY_BROKER_URL
         sync: false
       - key: CELERY_VISIBILITY_TIMEOUT_SECONDS

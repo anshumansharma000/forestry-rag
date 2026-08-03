@@ -2,6 +2,7 @@ import re
 import struct
 from collections import Counter
 from collections.abc import Iterator
+from io import BytesIO
 from pathlib import Path
 
 import olefile
@@ -9,9 +10,10 @@ from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 from pptx import Presentation
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
 
 from rag_errors import RagError
+from services.document_ai import document_ai_client
 from services.document_storage import SUPPORTED_STORAGE_EXTENSIONS, document_storage
 from settings import DOCS_DIR as _DOCS_DIR
 from settings import env_bool, env_int
@@ -42,16 +44,78 @@ def read_txt(path: Path) -> list[dict]:
 
 def read_pdf(path: Path) -> list[dict]:
     if not env_bool("PDF_EXTRACT_TABLES", True):
-        return remove_repeated_margin_lines(read_pdf_with_pypdf(path))
+        pages = read_pdf_with_pypdf(path)
+    else:
+        try:
+            pages = read_pdf_with_pdfplumber(path)
+            if not pages:
+                pages = read_pdf_with_pypdf(path)
+        except Exception:
+            pages = read_pdf_with_pypdf(path)
 
+    pages = mark_native_pdf_pages(pages)
+    if env_bool("DOCUMENT_AI_OCR_ENABLED"):
+        pages = apply_pdf_ocr_fallback(path, pages)
+    enforce_extracted_text_limit(path, sum(len(page["text"]) for page in pages))
+    return remove_repeated_margin_lines(pages)
+
+
+def mark_native_pdf_pages(pages: list[dict]) -> list[dict]:
+    return [{**page, "extraction_method": page.get("extraction_method", "native_pdf_text")} for page in pages]
+
+
+def useful_text_char_count(text: str) -> int:
+    return sum(character.isalnum() for character in text)
+
+
+def apply_pdf_ocr_fallback(path: Path, native_pages: list[dict], *, ocr_client=None) -> list[dict]:
+    ocr_client = ocr_client or document_ai_client
     try:
-        pages = read_pdf_with_pdfplumber(path)
-        if pages:
-            return remove_repeated_margin_lines(pages)
-    except Exception:
-        pass
+        reader = PdfReader(str(path))
+    except Exception as exc:
+        raise RagError(f"Could not read PDF {path.name}: {exc}") from exc
 
-    return remove_repeated_margin_lines(read_pdf_with_pypdf(path))
+    enforce_pdf_page_limit(path, len(reader.pages))
+    min_text_chars = env_int("DOCUMENT_AI_OCR_MIN_TEXT_CHARS", 40)
+    max_ocr_pages = env_int("DOCUMENT_AI_OCR_MAX_PAGES", 200)
+    pages_by_number = {page["page"]: dict(page) for page in native_pages}
+    ocr_page_numbers = [
+        page_number
+        for page_number in range(1, len(reader.pages) + 1)
+        if useful_text_char_count((pages_by_number.get(page_number) or {}).get("text", "")) < min_text_chars
+    ]
+    if len(ocr_page_numbers) > max_ocr_pages:
+        raise RagError(
+            f"PDF {path.name} requires OCR for {len(ocr_page_numbers)} pages; the configured limit is {max_ocr_pages}.",
+            details={"source": path.name, "ocr_pages": len(ocr_page_numbers), "max_ocr_pages": max_ocr_pages},
+        )
+
+    for page_number in ocr_page_numbers:
+        pdf_content = single_page_pdf_bytes(reader, page_number)
+        ocr_text = normalize_text(ocr_client.ocr_pdf_page(pdf_content, source=path.name, page_number=page_number))
+        if ocr_text:
+            pages_by_number[page_number] = {
+                "page": page_number,
+                "text": ocr_text,
+                "blocks": [{"type": "text", "text": ocr_text}],
+                "extraction_method": "google_document_ai_ocr",
+            }
+
+    pages = [
+        pages_by_number[page_number]
+        for page_number in sorted(pages_by_number)
+        if pages_by_number[page_number].get("text")
+    ]
+    enforce_extracted_text_limit(path, sum(len(page["text"]) for page in pages))
+    return pages
+
+
+def single_page_pdf_bytes(reader: PdfReader, page_number: int) -> bytes:
+    output = BytesIO()
+    writer = PdfWriter()
+    writer.add_page(reader.pages[page_number - 1])
+    writer.write(output)
+    return output.getvalue()
 
 
 def read_pdf_with_pypdf(path: Path) -> list[dict]:
@@ -342,12 +406,22 @@ def read_document(document_file) -> dict | None:
         return None
 
     title = infer_title(document_file.name, pages)
+    metadata = extract_document_metadata(document_file.name, title, pages)
+    if suffix == ".pdf":
+        extraction_methods = Counter(page.get("extraction_method", "native_pdf_text") for page in pages)
+        metadata.update(
+            {
+                "native_text_page_count": extraction_methods["native_pdf_text"],
+                "ocr_page_count": extraction_methods["google_document_ai_ocr"],
+                "ocr_provider": "google_document_ai" if extraction_methods["google_document_ai_ocr"] else None,
+            }
+        )
     return {
         "source": document_file.name,
         "kind": path.suffix.lower().lstrip("."),
         "title": title,
         "page_count": len([p for p in pages if p["page"] is not None]) or None,
-        "metadata": extract_document_metadata(document_file.name, title, pages),
+        "metadata": metadata,
         "pages": pages,
     }
 

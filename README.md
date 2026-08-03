@@ -167,7 +167,7 @@ Supported formats:
 - `.ppt`
 - `.pptx`
 
-PDF extraction works for PDFs that contain selectable text. Scanned image-only PDFs need OCR, which is intentionally outside this toy app for now.
+PDF extraction uses selectable text where available and can send only deficient pages to Google Document AI Enterprise OCR. OCR output keeps the original PDF page number before entering the normal chunking and embedding pipeline.
 Legacy `.doc` files are not supported yet; save or convert them as `.docx` first. PowerPoint slide text is extracted from both legacy binary `.ppt` and modern `.pptx` files; `.pptx` tables are preserved as structured blocks.
 
 You can also upload files from Postman:
@@ -189,6 +189,17 @@ Large-PDF ingestion is memory bounded by closing each parsed PDF page, yielding 
 
 ```env
 PDF_EXTRACT_TABLES=false
+DOCUMENT_AI_OCR_ENABLED=true
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/document-ai-credentials.json
+GOOGLE_CLOUD_PROJECT=<google-cloud-project-id>
+DOCUMENT_AI_LOCATION=asia-south1
+DOCUMENT_AI_PROCESSOR_ID=<enterprise-ocr-processor-id>
+DOCUMENT_AI_OCR_LANGUAGE_HINTS=en,hi
+DOCUMENT_AI_OCR_MIN_TEXT_CHARS=40
+DOCUMENT_AI_OCR_MAX_PAGES=200
+DOCUMENT_AI_OCR_TIMEOUT_SECONDS=60
+DOCUMENT_AI_OCR_RETRY_ATTEMPTS=3
+DOCUMENT_AI_OCR_MAX_REQUEST_BYTES=40000000
 MAX_PDF_PAGES=500
 MAX_EXTRACTED_CHARS=15000000
 MAX_DOCUMENT_CHUNKS=3000
@@ -196,6 +207,8 @@ INGEST_BATCH_SIZE=24
 ```
 
 `pdfplumber` table extraction is comparatively expensive. Keep `PDF_EXTRACT_TABLES=false` on a 512 MB worker unless table-aware retrieval is required and the worker has been load tested.
+
+OCR is disabled unless `DOCUMENT_AI_OCR_ENABLED=true`. Native extraction runs first; pages below `DOCUMENT_AI_OCR_MIN_TEXT_CHARS` useful alphanumeric characters are copied into bounded one-page PDFs and sent to Document AI. `DOCUMENT_AI_OCR_MAX_PAGES` prevents unexpectedly large OCR jobs. For Render, upload the service-account JSON as the Secret File `document-ai-credentials.json`; Docker services receive it at `/etc/secrets/document-ai-credentials.json`. Never commit that JSON.
 
 Ingestion runs through Celery. Set `CELERY_BROKER_URL` to the Redis Cloud connection URL in both the API and worker environments. Use the `rediss://...` URL when TLS is enabled in Redis Cloud. Celery requires `ssl_cert_reqs` for `rediss://` URLs; the app defaults it to `required` when omitted.
 
@@ -468,7 +481,7 @@ RETRIEVAL_DUPLICATE_THRESHOLD=0.82
 RETRIEVAL_EXPAND_NEIGHBORS=true
 RETRIEVAL_MIN_CONTEXT_SCORE=0.0
 RETRIEVAL_CONFIDENCE_THRESHOLD=0.01
-RAG_INDEX_VERSION=2
+RAG_INDEX_VERSION=3
 ```
 
 For this use case, the regular section chunk size is intentionally moderate. Rules and circulars often need enough context to include exceptions, amendments, and conditions, but very large chunks reduce retrieval precision. FAQ chunks are allowed a little more room because question text is repeated for context. Procedure chunks are larger and have more overlap because a complete answer often depends on neighboring steps. `MAX_UNIT_TOKENS`, `FAQ_UNIT_TOKENS`, and `PROCEDURE_UNIT_TOKENS` keep individual sentence/clause/step units manageable before they are packed into retrieval chunks. The defaults are a practical starting point, not a final production setting.

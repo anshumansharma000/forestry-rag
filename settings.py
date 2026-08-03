@@ -86,6 +86,41 @@ def embedding_dimensions() -> int:
     return env_int("EMBEDDING_DIMENSIONS", 768)
 
 
+def document_ai_ocr_settings() -> dict[str, str | int | list[str]]:
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()
+    location = os.getenv("DOCUMENT_AI_LOCATION", "").strip()
+    processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID", "").strip()
+    language_hints = [
+        language.strip()
+        for language in os.getenv("DOCUMENT_AI_OCR_LANGUAGE_HINTS", "en,hi").split(",")
+        if language.strip()
+    ]
+    missing = [
+        name
+        for name, value in {
+            "GOOGLE_CLOUD_PROJECT": project_id,
+            "DOCUMENT_AI_LOCATION": location,
+            "DOCUMENT_AI_PROCESSOR_ID": processor_id,
+        }.items()
+        if not value
+    ]
+    if missing:
+        raise AppError(
+            "Document AI OCR is not configured.",
+            code=ErrorCode.CONFIG_ERROR,
+            details={"missing": missing},
+        )
+    return {
+        "project_id": project_id,
+        "location": location,
+        "processor_id": processor_id,
+        "language_hints": language_hints,
+        "timeout_seconds": env_int("DOCUMENT_AI_OCR_TIMEOUT_SECONDS", 60),
+        "retry_attempts": env_int("DOCUMENT_AI_OCR_RETRY_ATTEMPTS", 3),
+        "max_request_bytes": env_int("DOCUMENT_AI_OCR_MAX_REQUEST_BYTES", 40_000_000),
+    }
+
+
 def validate_supabase_settings() -> tuple[str, str]:
     url = os.getenv("SUPABASE_URL", "").strip()
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -130,11 +165,16 @@ def config_status() -> dict:
         "celery_broker_configured": bool((os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL") or "").strip()),
         "celery_require_worker_online": env_bool("CELERY_REQUIRE_WORKER_ONLINE", True),
         "pdf_extract_tables": env_bool("PDF_EXTRACT_TABLES", True),
+        "document_ai_ocr_enabled": env_bool("DOCUMENT_AI_OCR_ENABLED"),
+        "document_ai_project_configured": bool(os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()),
+        "document_ai_location_configured": bool(os.getenv("DOCUMENT_AI_LOCATION", "").strip()),
+        "document_ai_processor_configured": bool(os.getenv("DOCUMENT_AI_PROCESSOR_ID", "").strip()),
+        "google_credentials_file_configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "").strip()),
         "max_pdf_pages": env_int("MAX_PDF_PAGES", 500),
         "max_extracted_chars": env_int("MAX_EXTRACTED_CHARS", 15_000_000),
         "max_document_chunks": env_int("MAX_DOCUMENT_CHUNKS", 3000),
         "ingest_batch_size": env_int("INGEST_BATCH_SIZE", 24),
-        "rag_index_version": os.getenv("RAG_INDEX_VERSION", "2").strip() or "2",
+        "rag_index_version": os.getenv("RAG_INDEX_VERSION", "3").strip() or "3",
         "retrieval_candidates": env_int("RETRIEVAL_CANDIDATES", 40),
         "retrieval_top_k": env_int("TOP_K", 3),
     }
@@ -167,6 +207,14 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
             r2_settings()
         except AppError as exc:
             missing.extend(exc.details.get("missing", ["valid R2 document storage settings"]))
+    if status["document_ai_ocr_enabled"]:
+        try:
+            document_ai_ocr_settings()
+        except AppError as exc:
+            missing.extend(exc.details.get("missing", ["valid Document AI OCR settings"]))
+        credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+        if credentials_path and not Path(credentials_path).is_file():
+            invalid.append("GOOGLE_APPLICATION_CREDENTIALS")
     for name in (
         "JWT_EXPIRES_MINUTES",
         "REFRESH_TOKEN_EXPIRES_DAYS",
@@ -184,6 +232,11 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "MAX_EXTRACTED_CHARS",
         "MAX_DOCUMENT_CHUNKS",
         "INGEST_BATCH_SIZE",
+        "DOCUMENT_AI_OCR_MIN_TEXT_CHARS",
+        "DOCUMENT_AI_OCR_MAX_PAGES",
+        "DOCUMENT_AI_OCR_TIMEOUT_SECONDS",
+        "DOCUMENT_AI_OCR_RETRY_ATTEMPTS",
+        "DOCUMENT_AI_OCR_MAX_REQUEST_BYTES",
     ):
         raw = os.getenv(name)
         if raw is None or not raw.strip():

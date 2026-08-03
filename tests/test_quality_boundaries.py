@@ -20,6 +20,7 @@ import task_queue
 from auth import validate_password
 from chunking import chunk_document
 from documents import (
+    apply_pdf_ocr_fallback,
     extract_document_metadata,
     infer_title,
     read_docx,
@@ -31,6 +32,7 @@ from documents import (
 from errors import AppError
 from rag_errors import RagError
 from repositories import ChatRepository, DocumentRepository, document_library_item, postgrest_quoted_ilike
+from services.document_ai import DocumentAIClient
 from services.document_storage import R2DocumentStorage
 from services.gemini import GeminiClient
 from settings import validate_runtime_config
@@ -965,6 +967,120 @@ def test_read_pdf_extracts_tables_as_structured_blocks(monkeypatch, tmp_path):
     assert pages[0]["blocks"][1]["headers"] == ["Species", "Unit", "Fee"]
     assert pages[0]["blocks"][1]["rows"] == [["Teak", "Cubic meter", "1200"]]
     assert closed == [True]
+
+
+def test_pdf_ocr_fallback_processes_only_deficient_pages(monkeypatch, tmp_path):
+    from pypdf import PdfWriter
+
+    path = tmp_path / "mixed.pdf"
+    writer = PdfWriter()
+    for _ in range(3):
+        writer.add_blank_page(width=612, height=792)
+    writer.write(path)
+
+    calls = []
+
+    class OCRClient:
+        def ocr_pdf_page(self, content, *, source, page_number):
+            calls.append((content, source, page_number))
+            return {2: "Scanned permit conditions", 3: ""}[page_number]
+
+    monkeypatch.setenv("DOCUMENT_AI_OCR_MIN_TEXT_CHARS", "10")
+    monkeypatch.setenv("DOCUMENT_AI_OCR_MAX_PAGES", "5")
+    pages = apply_pdf_ocr_fallback(
+        path,
+        [
+            {"page": 1, "text": "Native selectable text", "extraction_method": "native_pdf_text"},
+            {"page": 2, "text": "Header", "extraction_method": "native_pdf_text"},
+        ],
+        ocr_client=OCRClient(),
+    )
+
+    assert [(page["page"], page["text"], page["extraction_method"]) for page in pages] == [
+        (1, "Native selectable text", "native_pdf_text"),
+        (2, "Scanned permit conditions", "google_document_ai_ocr"),
+    ]
+    assert [(source, page_number) for _content, source, page_number in calls] == [("mixed.pdf", 2), ("mixed.pdf", 3)]
+    assert all(content.startswith(b"%PDF") for content, _source, _page_number in calls)
+
+
+def test_pdf_ocr_fallback_enforces_page_limit_before_requests(monkeypatch, tmp_path):
+    from pypdf import PdfWriter
+
+    path = tmp_path / "scanned.pdf"
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    writer.add_blank_page(width=612, height=792)
+    writer.write(path)
+
+    monkeypatch.setenv("DOCUMENT_AI_OCR_MIN_TEXT_CHARS", "10")
+    monkeypatch.setenv("DOCUMENT_AI_OCR_MAX_PAGES", "1")
+
+    with pytest.raises(RagError) as exc:
+        apply_pdf_ocr_fallback(path, [], ocr_client=SimpleNamespace())
+
+    assert exc.value.details == {"source": "scanned.pdf", "ocr_pages": 2, "max_ocr_pages": 1}
+
+
+def test_document_ai_client_builds_ocr_request_and_retries(monkeypatch):
+    class OcrConfig:
+        class Hints:
+            def __init__(self, language_hints):
+                self.language_hints = language_hints
+
+        def __init__(self, enable_native_pdf_parsing, hints):
+            self.enable_native_pdf_parsing = enable_native_pdf_parsing
+            self.hints = hints
+
+    class Value:
+        def __init__(self, **values):
+            self.__dict__.update(values)
+
+    documentai = SimpleNamespace(
+        OcrConfig=OcrConfig,
+        RawDocument=Value,
+        ProcessOptions=Value,
+        ProcessRequest=Value,
+    )
+
+    class ServiceUnavailable(Exception):
+        pass
+
+    class Client:
+        requests = []
+
+        def processor_path(self, project, location, processor):
+            return f"projects/{project}/locations/{location}/processors/{processor}"
+
+        def process_document(self, *, request, timeout):
+            self.requests.append((request, timeout))
+            if len(self.requests) == 1:
+                raise ServiceUnavailable("temporary")
+            return SimpleNamespace(document=SimpleNamespace(text="  OCR text  "))
+
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "project-1")
+    monkeypatch.setenv("DOCUMENT_AI_LOCATION", "asia-south1")
+    monkeypatch.setenv("DOCUMENT_AI_PROCESSOR_ID", "processor-1")
+    monkeypatch.setenv("DOCUMENT_AI_OCR_LANGUAGE_HINTS", "en,hi")
+    monkeypatch.setenv("DOCUMENT_AI_OCR_TIMEOUT_SECONDS", "15")
+    monkeypatch.setenv("DOCUMENT_AI_OCR_RETRY_ATTEMPTS", "2")
+    sleeps = []
+    client = Client()
+
+    text = DocumentAIClient(client=client, documentai_module=documentai, sleep=sleeps.append).ocr_pdf_page(
+        b"%PDF test",
+        source="rules.pdf",
+        page_number=4,
+    )
+
+    assert text == "OCR text"
+    assert sleeps == [1]
+    request, timeout = client.requests[-1]
+    assert timeout == 15
+    assert request.name == "projects/project-1/locations/asia-south1/processors/processor-1"
+    assert request.raw_document.mime_type == "application/pdf"
+    assert request.process_options.ocr_config.enable_native_pdf_parsing is True
+    assert request.process_options.ocr_config.hints.language_hints == ["en", "hi"]
 
 
 def test_chunk_document_preserves_table_header_context():
