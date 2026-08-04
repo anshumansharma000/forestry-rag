@@ -44,6 +44,7 @@ router = APIRouter(tags=["documents"])
 
 @router.get("/documents", response_model=DocumentLibraryResponse)
 def list_documents(
+    status_filter: Literal["indexed", "failed"] = Query(default="indexed", alias="status"),
     search: str | None = Query(default=None, min_length=1, max_length=200),
     kind: Literal["pdf", "docx", "txt", "ppt", "pptx"] | None = None,
     document_type: str | None = Query(default=None, min_length=1, max_length=50),
@@ -54,7 +55,8 @@ def list_documents(
     limit: int = Query(default=25, ge=1, le=100),
     _user: CurrentUser = Depends(require_roles("viewer")),
 ):
-    return DocumentRepository().list_indexed_documents(
+    return DocumentRepository().list_documents(
+        ingest_status=status_filter,
         search=search.strip() if search else None,
         kind=kind,
         document_type=document_type.strip().lower() if document_type else None,

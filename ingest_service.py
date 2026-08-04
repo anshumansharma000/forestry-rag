@@ -38,12 +38,14 @@ def build_index(repository: DocumentRepository | None = None, *, source: str | N
             document_chunks = persist_document_chunks(repository, document_id, doc)
             chunks_added += document_chunks
             repository.mark_document_status(doc["source"], "indexed", {**index_metadata, "chunks": document_chunks})
-        except Exception:
+        except Exception as exc:
             try:
                 repository.delete_chunks(doc["source"])
             except Exception:
                 pass
-            repository.mark_document_status(doc["source"], "failed", index_metadata)
+            repository.mark_document_status(
+                doc["source"], "failed", {**index_metadata, "ingest_error": str(exc)}
+            )
             raise
 
         documents_added += 1
@@ -249,14 +251,26 @@ def mark_ingest_job_enqueue_failed(
     repository.update(job_id, status="failed", error=error, metadata={"queue": queue})
 
 
-def run_ingest_job(job_id: str, repository: IngestJobRepository | None = None, *, raise_on_failure: bool = False) -> None:
+def run_ingest_job(
+    job_id: str,
+    repository: IngestJobRepository | None = None,
+    *,
+    document_repository: DocumentRepository | None = None,
+    raise_on_failure: bool = False,
+) -> None:
     repository = repository or IngestJobRepository()
+    document_repository = document_repository or DocumentRepository()
     job = repository.get(job_id)
     source = ((job or {}).get("metadata") or {}).get("source")
     repository.update(job_id, status="running")
     try:
-        result = build_index(source=source)
+        result = build_index(repository=document_repository, source=source)
     except Exception as exc:
+        if source:
+            try:
+                document_repository.record_ingest_failure(source, str(exc))
+            except Exception:
+                pass
         repository.update(job_id, status="failed", error=str(exc))
         if raise_on_failure:
             raise

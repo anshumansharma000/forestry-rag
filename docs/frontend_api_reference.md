@@ -245,12 +245,13 @@ Frontend use:
 
 ### `GET /documents`
 
-Returns only successfully indexed documents for the document-library view. All authenticated roles may use this endpoint. Search, filtering, sorting, counting, and pagination happen on the server; the frontend must not fetch the entire corpus.
+Returns indexed documents by default, or failed ingestion files when `status=failed`. All authenticated roles may use this endpoint. Search, filtering, sorting, counting, and pagination happen on the server; the frontend must not fetch the entire corpus.
 
 Query parameters:
 
 ```ts
 type DocumentLibraryQuery = {
+  status?: "indexed" | "failed"; // Defaults to indexed
   search?: string; // Searches filename and inferred title; maximum 200 characters
   kind?: "pdf" | "docx" | "txt" | "ppt" | "pptx";
   document_type?: string; // Examples: rules, act, guidelines, circular
@@ -276,7 +277,9 @@ type DocumentLibraryResponse = {
     authority: string | null;
     years: string[];
     chunk_count: number;
-    status: "indexed";
+    status: "indexed" | "failed";
+    ingest_error: string | null;
+    retryable: boolean;
     ingested_at: string | null;
     created_at: string | null;
     updated_at: string | null;
@@ -299,6 +302,8 @@ Authorization: Bearer <access_token>
 
 Frontend use:
 
+- Provide Indexed and Failed status filters. Failed rows should show `ingest_error` and a **Retry processing** action when `retryable` is true.
+- Retry by calling `POST /ingest` with `{ "source": filename }`; do not upload the file again.
 - Debounce search by approximately 300 milliseconds.
 - Reset `offset` to `0` whenever search, filters, or sorting changes.
 - Use `pagination.total` for the page count and `pagination.has_more` for the next-page state.

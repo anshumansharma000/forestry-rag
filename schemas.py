@@ -148,6 +148,8 @@ class DocumentLibraryItemResponse(BaseModel):
     years: list[str] = Field(default_factory=list)
     chunk_count: int
     status: str
+    ingest_error: str | None = None
+    retryable: bool = False
     ingested_at: str | None = None
     created_at: str | None = None
     updated_at: str | None = None

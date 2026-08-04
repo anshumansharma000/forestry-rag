@@ -4,7 +4,7 @@ Implement a production-quality **Documents** view in the existing frontend for t
 
 ## Purpose
 
-The page gives authenticated users a quick, scalable view of documents that have already been uploaded and successfully ingested. It must work well with a few documents and with thousands. This version does not include summaries, uploads, deletion, downloads, re-indexing, or document preview.
+The page gives authenticated users a quick, scalable view of indexed documents and files whose ingestion failed. It must work well with a few documents and with thousands. This version does not include summaries, uploads, deletion, downloads, or document preview.
 
 ## API
 
@@ -17,6 +17,7 @@ GET /documents
 Supported query parameters:
 
 - `search`: searches filename and inferred title
+- `status`: `indexed` or `failed`; defaults to `indexed`
 - `kind`: `pdf`, `docx`, `txt`, `ppt`, or `pptx`
 - `document_type`: for example `rules`, `act`, `guidelines`, `circular`, `notification`, `order`, `procedure`, `faq`, or `document`
 - `year`: a four-digit year
@@ -39,7 +40,9 @@ type DocumentLibraryResponse = {
     authority: string | null;
     years: string[];
     chunk_count: number;
-    status: "indexed";
+    status: "indexed" | "failed";
+    ingest_error: string | null;
+    retryable: boolean;
     ingested_at: string | null;
     created_at: string | null;
     updated_at: string | null;
@@ -69,10 +72,10 @@ type ApiError = {
 
 Create a document-library page, not a generic analytics dashboard.
 
-- Header: “Documents” with the total indexed-document count beneath or beside it.
+- Header: “Documents” with the total count for the active status filter beneath or beside it.
 - Primary control: a prominent search field with the placeholder “Search by title or filename”.
-- Filters: file type, document type, and year. Include a clear-all action when any filter is active.
-- Sorting: newest indexed, oldest indexed, title A–Z, and title Z–A.
+- Filters: ingestion status, file type, document type, and year. Default the status filter to Indexed and include a Failed option with a clear-all action when any optional filter is active.
+- Sorting: newest, oldest, title A–Z, and title Z–A.
 - Main content: a compact, readable table on desktop and stacked rows/cards on narrow screens.
 
 Desktop columns:
@@ -81,9 +84,10 @@ Desktop columns:
 2. **Type** — file extension badge plus human-readable document category.
 3. **Authority / year** — show the authority when available and compact year values.
 4. **Size** — page count when available and indexed chunk count. Label chunks clearly; do not present them as pages.
-5. **Indexed** — formatted `ingested_at` date.
+5. **Indexed / error** — formatted `ingested_at` date for indexed files; the last ingestion error for failed files.
+6. **Actions** — show **Retry processing** only when `retryable` is true. It calls `POST /ingest` with `{ "source": filename }` and then polls the returned job.
 
-Do not add a summary column. Do not show a status column because every returned item is already indexed.
+Do not add a summary column. Show a compact Failed badge on failed rows; the active status filter already identifies indexed rows.
 
 ## Data behavior
 
@@ -91,6 +95,7 @@ Do not add a summary column. Do not show a status column because every returned 
 - Default to `limit=25`, `offset=0`, `sort_by=updated_at`, and `sort_order=desc`.
 - Debounce search by about 300 ms.
 - Reset offset to zero whenever search, filters, or sorting changes.
+- After Retry processing is clicked, disable the row action, show its queued/processing state, and poll `GET /ingest/jobs/{job_id}`. Refresh the current list when the job succeeds or fails.
 - Keep search, filters, sorting, offset, and limit in URL query parameters so the view survives refresh and can be shared.
 - Cancel or ignore stale requests when users change search or filters quickly.
 - Use `pagination.total` to display the count and calculate page controls.
@@ -100,7 +105,8 @@ Do not add a summary column. Do not show a status column because every returned 
 ## States and accessibility
 
 - Initial loading: table-shaped skeletons.
-- Empty corpus: “No indexed documents yet.” Do not suggest uploading unless the existing user role and product already support it.
+- Empty indexed filter: “No indexed documents yet.” Do not suggest uploading unless the existing user role and product already support it.
+- Empty failed filter: “No failed ingestions.”
 - No search results: “No documents match your search and filters” with a clear-filters action.
 - API failure: show `error.message` and a Retry action.
 - Missing title: fall back to `filename`.
@@ -110,7 +116,8 @@ Do not add a summary column. Do not show a status column because every returned 
 
 ## Acceptance criteria
 
-- Only successfully indexed documents are shown.
+- The status filter shows indexed or failed documents from the server; it never mixes statuses client-side.
+- Failed rows show the backend error and can be retried without uploading the file again.
 - Search, filters, sorting, and pagination call the server with the documented parameters.
 - The page remains usable with thousands of records.
 - URL state, loading, empty, failure, and responsive states are implemented.

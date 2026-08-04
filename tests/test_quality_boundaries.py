@@ -124,6 +124,8 @@ def test_document_library_item_exposes_only_frontend_metadata():
         "years": ["2022"],
         "chunk_count": 42,
         "status": "indexed",
+        "ingest_error": None,
+        "retryable": False,
         "ingested_at": "2026-07-18T10:00:00Z",
         "created_at": "2026-07-18T09:00:00Z",
         "updated_at": "2026-07-18T10:00:00Z",
@@ -132,6 +134,30 @@ def test_document_library_item_exposes_only_frontend_metadata():
 
 def test_document_library_search_quotes_postgrest_reserved_characters():
     assert postgrest_quoted_ilike('rules, 2022 (final) "copy"') == '"*rules, 2022 (final) \\"copy\\"*"'
+
+
+def test_failed_document_library_item_exposes_retry_state():
+    item = document_library_item(
+        {
+            "id": "document-2",
+            "source": "broken.pdf",
+            "kind": "pdf",
+            "title": "broken.pdf",
+            "page_count": None,
+            "metadata": {
+                "ingest_status": "failed",
+                "ingest_error": "Could not extract text",
+                "ingest_updated_at": "2026-08-04T10:00:00Z",
+            },
+            "created_at": "2026-08-04T09:00:00Z",
+            "updated_at": "2026-08-04T10:00:00Z",
+        }
+    )
+
+    assert item["status"] == "failed"
+    assert item["ingest_error"] == "Could not extract text"
+    assert item["retryable"] is True
+    assert item["ingested_at"] is None
 
 
 def test_document_library_query_is_filtered_and_paginated():
@@ -185,7 +211,8 @@ def test_document_library_query_is_filtered_and_paginated():
             calls.append(("table", name))
             return Query()
 
-    response = DocumentRepository(Client()).list_indexed_documents(
+    response = DocumentRepository(Client()).list_documents(
+        ingest_status="failed",
         search="forest",
         kind="pdf",
         document_type="rules",
@@ -194,7 +221,7 @@ def test_document_library_query_is_filtered_and_paginated():
         limit=1,
     )
 
-    assert ("eq", "metadata->>ingest_status", "indexed") in calls
+    assert ("eq", "metadata->>ingest_status", "failed") in calls
     assert ("eq", "kind", "pdf") in calls
     assert ("eq", "metadata->>document_type", "rules") in calls
     assert ("contains", "metadata", {"years": ["2022"]}) in calls
@@ -1282,16 +1309,53 @@ def test_ingest_job_processes_only_source_stored_in_job_metadata(monkeypatch):
         def update(self, job_id, **values):
             updates.append((job_id, values))
 
+    document_repository = SimpleNamespace()
     monkeypatch.setattr(
         ingest_service,
         "build_index",
-        lambda *, source=None: calls.append(source) or {"source": source, "chunks_added": 3},
+        lambda *, repository=None, source=None: calls.append((repository, source))
+        or {"source": source, "chunks_added": 3},
     )
 
-    ingest_service.run_ingest_job("job-1", repository=JobRepository(), raise_on_failure=True)
+    ingest_service.run_ingest_job(
+        "job-1",
+        repository=JobRepository(),
+        document_repository=document_repository,
+        raise_on_failure=True,
+    )
 
-    assert calls == ["rules.pdf"]
+    assert calls == [(document_repository, "rules.pdf")]
     assert [values["status"] for _job_id, values in updates] == ["running", "succeeded"]
+
+
+def test_ingest_job_records_extraction_failure_for_document_filter(monkeypatch):
+    updates = []
+    failures = []
+
+    class JobRepository:
+        def get(self, _job_id):
+            return {"id": "job-1", "metadata": {"source": "broken.pdf", "scope": "document"}}
+
+        def update(self, job_id, **values):
+            updates.append((job_id, values))
+
+    class DocumentRepository:
+        def record_ingest_failure(self, source, error):
+            failures.append((source, error))
+
+    def fail_build_index(**_kwargs):
+        raise RuntimeError("Could not extract text")
+
+    monkeypatch.setattr(ingest_service, "build_index", fail_build_index)
+
+    ingest_service.run_ingest_job(
+        "job-1",
+        repository=JobRepository(),
+        document_repository=DocumentRepository(),
+    )
+
+    assert failures == [("broken.pdf", "Could not extract text")]
+    assert [values["status"] for _job_id, values in updates] == ["running", "failed"]
 
 
 def test_preview_chunks_returns_bounded_page_and_omits_content_by_default(monkeypatch):

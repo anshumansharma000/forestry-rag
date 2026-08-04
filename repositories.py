@@ -23,9 +23,10 @@ class DocumentRepository:
             and (row.get("metadata") or {}).get("ingest_status") == "indexed"
         }
 
-    def list_indexed_documents(
+    def list_documents(
         self,
         *,
+        ingest_status: str = "indexed",
         search: str | None = None,
         kind: str | None = None,
         document_type: str | None = None,
@@ -36,7 +37,9 @@ class DocumentRepository:
         limit: int = 25,
     ) -> dict[str, Any]:
         fields = "id,source,kind,title,page_count,metadata,created_at,updated_at"
-        query = self.client.table("documents").select(fields, count="exact").eq("metadata->>ingest_status", "indexed")
+        query = self.client.table("documents").select(fields, count="exact").eq(
+            "metadata->>ingest_status", ingest_status
+        )
 
         if search:
             value = postgrest_quoted_ilike(search)
@@ -86,6 +89,38 @@ class DocumentRepository:
             {"metadata": metadata, "updated_at": datetime.now(UTC).isoformat()}
         ).eq("source", source).execute()
 
+    def record_ingest_failure(self, source: str, error: str) -> None:
+        """Ensure failures before document extraction are visible in the library."""
+        result = self.client.table("documents").select("id,metadata").eq("source", source).limit(1).execute()
+        now = datetime.now(UTC).isoformat()
+        if result.data:
+            metadata = {
+                **(result.data[0].get("metadata") or {}),
+                "ingest_status": "failed",
+                "ingest_error": error,
+                "ingest_updated_at": now,
+            }
+            self.client.table("documents").update({"metadata": metadata, "updated_at": now}).eq(
+                "source", source
+            ).execute()
+            return
+
+        suffix = source.rsplit(".", 1)[-1].lower() if "." in source else "document"
+        self.client.table("documents").insert(
+            {
+                "source": source,
+                "kind": suffix,
+                "title": source,
+                "page_count": None,
+                "metadata": {
+                    "ingest_status": "failed",
+                    "ingest_error": error,
+                    "ingest_updated_at": now,
+                    "index_version": index_version(),
+                },
+            }
+        ).execute()
+
     def replace_chunks(self, source: str, rows: list[dict]) -> int:
         self.delete_chunks(source)
         return self.insert_chunk_batch(rows)
@@ -130,6 +165,7 @@ def postgrest_quoted_ilike(value: str) -> str:
 def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
     metadata = row.get("metadata") or {}
     source = row.get("source") or ""
+    ingest_status = metadata.get("ingest_status") or "indexed"
     return {
         "id": row["id"],
         "filename": source,
@@ -140,8 +176,12 @@ def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
         "authority": metadata.get("authority"),
         "years": metadata.get("years") or [],
         "chunk_count": int(metadata.get("chunks") or 0),
-        "status": "indexed",
-        "ingested_at": metadata.get("ingest_updated_at") or row.get("updated_at"),
+        "status": ingest_status,
+        "ingest_error": metadata.get("ingest_error"),
+        "retryable": ingest_status == "failed",
+        "ingested_at": (metadata.get("ingest_updated_at") or row.get("updated_at"))
+        if ingest_status == "indexed"
+        else None,
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }

@@ -66,6 +66,10 @@ create table if not exists document_chunks (
   unique (source, chunk_index)
 );
 
+create index if not exists documents_failed_updated_at_idx
+on documents (updated_at desc, id)
+where metadata->>'ingest_status' = 'failed';
+
 create index if not exists document_chunks_embedding_hnsw
 on document_chunks
 using hnsw (embedding extensions.vector_cosine_ops);
