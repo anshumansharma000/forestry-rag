@@ -75,7 +75,7 @@ Roles are ordered by permission:
 
 - `viewer`: ask questions and manage own chat sessions
 - `officer`: reserved for officer-specific pilot workflows
-- `knowledge_manager`: upload documents, preview chunks, and run ingestion
+- `knowledge_manager`: view and upload documents, preview chunks, and run ingestion
 - `admin`: create users, read audit events, and validate runtime config
 
 Set `BOOTSTRAP_ADMIN_TOKEN` in `.env` to create the first real admin with an initial password:

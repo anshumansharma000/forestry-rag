@@ -1,6 +1,9 @@
+import pytest
 from fastapi.testclient import TestClient
 
+from auth import CurrentUser, get_current_user
 from app import app
+import routers.documents as documents_router
 
 client = TestClient(app)
 
@@ -33,3 +36,45 @@ def test_auth_errors_use_standard_error_envelope():
             "details": {},
         }
     }
+
+
+@pytest.mark.parametrize("role", ["viewer", "officer"])
+def test_document_library_rejects_roles_below_knowledge_manager(role):
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id=f"{role}-1",
+        email=f"{role}@example.com",
+        role=role,
+    )
+    try:
+        response = client.get("/documents")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    assert response.json()["error"]["message"] == "Insufficient role permissions"
+
+
+@pytest.mark.parametrize("role", ["knowledge_manager", "admin"])
+def test_document_library_allows_knowledge_managers_and_admins(monkeypatch, role):
+    expected = {
+        "items": [],
+        "pagination": {"offset": 0, "limit": 25, "total": 0, "has_more": False},
+    }
+
+    class Repository:
+        def list_documents(self, **_kwargs):
+            return expected
+
+    monkeypatch.setattr(documents_router, "DocumentRepository", Repository)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id=f"{role}-1",
+        email=f"{role}@example.com",
+        role=role,
+    )
+    try:
+        response = client.get("/documents")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == expected

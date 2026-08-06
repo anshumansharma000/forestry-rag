@@ -245,7 +245,7 @@ Frontend use:
 
 ### `GET /documents`
 
-Returns indexed documents by default, or failed ingestion files when `status=failed`. All authenticated roles may use this endpoint. Search, filtering, sorting, counting, and pagination happen on the server; the frontend must not fetch the entire corpus.
+Returns indexed documents by default, or failed ingestion files when `status=failed`. Requires `knowledge_manager` or `admin`. Search, filtering, sorting, counting, and pagination happen on the server; the frontend must not fetch the entire corpus.
 
 Query parameters:
 

@@ -53,7 +53,7 @@ def list_documents(
     sort_order: Literal["asc", "desc"] = "desc",
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=100),
-    _user: CurrentUser = Depends(require_roles("viewer")),
+    _user: CurrentUser = Depends(require_roles("knowledge_manager")),
 ):
     return DocumentRepository().list_documents(
         ingest_status=status_filter,

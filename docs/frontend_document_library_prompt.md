@@ -4,7 +4,7 @@ Implement a production-quality **Documents** view in the existing frontend for t
 
 ## Purpose
 
-The page gives authenticated users a quick, scalable view of indexed documents and files whose ingestion failed. It must work well with a few documents and with thousands. This version does not include summaries, uploads, deletion, downloads, or document preview.
+The page gives knowledge managers and admins a quick, scalable view of indexed documents and files whose ingestion failed. It must work well with a few documents and with thousands. This version does not include summaries, uploads, deletion, downloads, or document preview. Do not render or navigate to this view for viewers or officers; the API remains the authoritative authorization boundary.
 
 ## API
 
