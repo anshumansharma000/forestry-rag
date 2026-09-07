@@ -2,10 +2,12 @@ import math
 import os
 import re
 from collections import Counter
+from datetime import date
 
 from documents import extract_legal_identifiers
 from repositories import DocumentRepository
 from services.gemini import gemini_client
+from temporal import applicable_date, historical_question, temporal_metadata
 
 STOP_WORDS = {
     "a",
@@ -91,6 +93,14 @@ def retrieve(
     candidate_count = max(k, int(options.get("candidate_count", os.getenv("RETRIEVAL_CANDIDATES", "40"))))
     query_embedding = embed_query(question)
     rows = repository.match_chunks(query_embedding, question, candidate_count)
+    # An amendment may use the rule identifier rather than the user's wording.
+    # Search for updates as well before truncating to the final context window.
+    identifiers = extract_legal_identifiers(question)
+    if identifiers and not historical_question(question):
+        update_query = f"{question} {' '.join(identifiers[:5])} amendment supersession latest update"
+        update_rows = repository.match_chunks(embed_query(update_query), update_query, candidate_count)
+        seen = {row['id'] for row in rows}
+        rows = [*rows, *(row for row in update_rows if row['id'] not in seen)]
     candidates = rerank_candidates(question, [context_from_row(row, rank) for rank, row in enumerate(rows)])
     minimum_score = float(options.get("min_context_score", min_context_score()))
     candidates = [candidate for candidate in candidates if candidate_strength(candidate) >= minimum_score]
@@ -133,9 +143,11 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
     query_identifiers = identifier_keys(extract_legal_identifiers(question))
     query_years = set(re.findall(r"\b(?:19|20)\d{2}\b", question))
     intent = query_intent(question)
+    today = date.today()
+    use_recency = not historical_question(question)
 
     for candidate in candidates:
-        metadata = candidate.get("metadata") or {}
+        metadata = temporal_metadata(candidate)
         searchable = " ".join(
             [
                 candidate.get("source") or "",
@@ -162,6 +174,13 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
         candidate_years = set(metadata.get("years") or re.findall(r"\b(?:19|20)\d{2}\b", searchable))
         year_match = len(query_years & candidate_years) / len(query_years) if query_years else 0.0
         intent_match = 1.0 if intent and candidate.get("chunk_type") == intent else 0.0
+        document_date = applicable_date(metadata, today)
+        # A bounded preference among relevant evidence, not a replacement for
+        # semantic relevance or proof that a provision has been superseded.
+        recency_boost = 0.0
+        if use_recency and document_date and (lexical > 0 or identifier_match > 0):
+            age_years = (today - document_date).days / 365.25
+            recency_boost = 0.03 / (1.0 + age_years / 5.0)
         base_score = max(0.0, min(1.0, candidate["base_score"]))
         noise_penalty = 0.12 if looks_like_noise(candidate.get("text") or "") else 0.0
         boost = (
@@ -170,6 +189,7 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
             + (0.03 * field_overlap)
             + (0.02 * year_match)
             + (0.01 * intent_match)
+            + recency_boost
         )
         rerank_score = base_score + boost - min(noise_penalty, 0.08)
         candidate["score"] = max(0.0, min(1.0, rerank_score))
@@ -181,6 +201,8 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
                 "identifier_match": round(identifier_match, 6),
                 "field_overlap": round(field_overlap, 6),
                 "year_match": round(year_match, 6),
+                "recency_boost": round(recency_boost, 6),
+                "applicable_date": document_date.isoformat() if document_date else None,
                 "boost": round(boost, 6),
                 "noise_penalty": noise_penalty,
             },
@@ -351,6 +373,7 @@ def format_source(record: dict) -> str:
 def source_payload(contexts: list[dict]) -> list[dict]:
     return [
         {
+            "document_id": str(ctx["document_id"]),
             "source": ctx["source"],
             "display_source": format_source(ctx),
             "page_start": ctx.get("page_start"),

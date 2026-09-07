@@ -132,6 +132,7 @@ class AuthTokenResponse(BaseModel):
 
 
 class SourceResponse(BaseModel):
+    document_id: str
     source: str
     display_source: str
     page_start: int | None = None
@@ -261,6 +262,22 @@ class ChatMessageResponse(BaseModel):
     session_id: UUID | str
     role: str
     content: str
-    sources: list[dict[str, Any]] = Field(default_factory=list)
+    sources: list[SourceResponse | dict[str, Any]] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: str | None = None
+
+
+class ChatAskResponse(BaseModel):
+    session_id: UUID | str
+    user_message: ChatMessageResponse
+    assistant_message: ChatMessageResponse
+    search_query: str
+    answer: str
+    sources: list[SourceResponse]
+    confidence: float | None = None
+    abstained: bool = False
+
+
+class ChatMessagesResponse(BaseModel):
+    session_id: UUID | str
+    messages: list[ChatMessageResponse]

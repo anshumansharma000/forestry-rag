@@ -13,6 +13,7 @@ from pptx import Presentation
 from pypdf import PdfReader, PdfWriter
 
 from rag_errors import RagError
+from temporal import extract_temporal_metadata
 from services.document_ai import document_ai_client
 from services.document_storage import SUPPORTED_STORAGE_EXTENSIONS, document_storage
 from settings import DOCS_DIR as _DOCS_DIR
@@ -501,6 +502,7 @@ def extract_document_metadata(source: str, title: str, pages: list[dict]) -> dic
         "identifiers": extract_legal_identifiers(haystack),
         "years": sorted(set(re.findall(r"\b(?:19|20)\d{2}\b", haystack))),
         "authority": infer_authority(sample),
+        **extract_temporal_metadata(sample),
     }
 
 

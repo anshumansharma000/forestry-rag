@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +16,31 @@ class StoredDocumentFile:
     path: Path
 
 
+@dataclass(frozen=True)
+class DocumentDownload:
+    filename: str
+    content_type: str
+    content_length: int | None
+    chunks: Iterable[bytes]
+
+
+def _local_download_path(filename: str) -> Path | None:
+    """Resolve a DB-owned filename while keeping it strictly inside DOCS_DIR."""
+    if not filename or Path(filename).name != filename:
+        return None
+    root = DOCS_DIR.resolve()
+    candidate = (root / filename).resolve()
+    if candidate.parent != root or not candidate.is_file():
+        return None
+    return candidate
+
+
+def _file_chunks(path: Path, chunk_size: int = 1024 * 1024) -> Iterator[bytes]:
+    with path.open("rb") as handle:
+        while chunk := handle.read(chunk_size):
+            yield chunk
+
+
 class LocalDocumentStorage:
     backend = "local"
 
@@ -27,6 +52,17 @@ class LocalDocumentStorage:
         destination = DOCS_DIR / filename
         destination.write_bytes(content)
         return str(destination)
+
+    def open_download(self, filename: str, content_type: str) -> DocumentDownload | None:
+        path = _local_download_path(filename)
+        if path is None:
+            return None
+        return DocumentDownload(
+            filename=filename,
+            content_type=content_type,
+            content_length=path.stat().st_size,
+            chunks=_file_chunks(path),
+        )
 
     @contextmanager
     def document_files(self, source: str | None = None) -> Iterator[list[StoredDocumentFile]]:
@@ -86,6 +122,36 @@ class R2DocumentStorage:
         except Exception as exc:
             raise AppError("Could not upload document to R2.", code=ErrorCode.STORAGE_ERROR) from exc
         return f"r2://{self.bucket}/{key}"
+
+    def open_download(self, filename: str, content_type: str) -> DocumentDownload | None:
+        # Document sources are filenames, never arbitrary object keys.
+        if not filename or Path(filename).name != filename:
+            return None
+        try:
+            response = self.client.get_object(Bucket=self.bucket, Key=self.key_for(filename))
+        except Exception as exc:
+            response_metadata = getattr(exc, "response", {})
+            code = str(response_metadata.get("Error", {}).get("Code", ""))
+            status_code = response_metadata.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if code in {"404", "NoSuchKey", "NotFound"} or status_code == 404:
+                return None
+            raise AppError("Could not access document storage.", code=ErrorCode.STORAGE_ERROR) from exc
+
+        body = response["Body"]
+
+        def chunks() -> Iterator[bytes]:
+            try:
+                yield from body.iter_chunks(chunk_size=1024 * 1024)
+            finally:
+                body.close()
+
+        length = response.get("ContentLength")
+        return DocumentDownload(
+            filename=filename,
+            content_type=content_type,
+            content_length=int(length) if length is not None else None,
+            chunks=chunks(),
+        )
 
     def presigned_put_url(self, key: str, content_type: str, expires_in_seconds: int) -> str:
         try:

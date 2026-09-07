@@ -23,6 +23,22 @@ class DocumentRepository:
             and (row.get("metadata") or {}).get("ingest_status") == "indexed"
         }
 
+    def get_document(self, document_id: str) -> dict[str, Any] | None:
+        result = (
+            self.client.table("documents")
+            .select("id,source,kind,title,metadata")
+            .eq("id", document_id)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    def document_ids_by_sources(self, sources: set[str]) -> dict[str, str]:
+        if not sources:
+            return {}
+        result = self.client.table("documents").select("id,source").in_("source", sorted(sources)).execute()
+        return {row["source"]: str(row["id"]) for row in result.data or [] if row.get("source") and row.get("id")}
+
     def list_documents(
         self,
         *,

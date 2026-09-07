@@ -1,11 +1,18 @@
+import mimetypes
 import os
+import re
+import unicodedata
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import StreamingResponse
 
-from auth import CurrentUser, audit_event, require_roles
+from auth import CurrentUser, audit_event, require_exact_admin, require_roles
 from errors import AppError, ErrorCode
 from ingest_service import create_ingest_job, get_ingest_job, mark_ingest_job_enqueue_failed, mark_ingest_job_enqueued, preview_chunks
 from repositories import DocumentRepository
@@ -41,6 +48,14 @@ from upload_utils import (
 
 router = APIRouter(tags=["documents"])
 
+DOWNLOAD_CONTENT_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain; charset=utf-8",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
+
 
 @router.get("/documents", response_model=DocumentLibraryResponse)
 def list_documents(
@@ -66,6 +81,94 @@ def list_documents(
         offset=offset,
         limit=limit,
     )
+
+
+@router.get(
+    "/documents/{document_id}/download",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "The original document file.",
+            "content": {"application/octet-stream": {}},
+        },
+        401: {"description": "Missing or invalid authentication."},
+        403: {"description": "The authenticated user is not an admin."},
+        404: {"description": "The document or original file is unavailable."},
+    },
+)
+def download_document(
+    document_id: str,
+    request: Request,
+    user: CurrentUser = Depends(require_exact_admin),
+):
+    # The current role comes from the server-side user row in get_current_user;
+    # no role claim or frontend state is trusted for this authorization decision.
+    document = DocumentRepository().get_document(document_id)
+    if not document:
+        raise document_download_not_found()
+
+    original_filename = document.get("source") or ""
+    suffix = Path(original_filename).suffix.lower()
+    content_type = DOWNLOAD_CONTENT_TYPES.get(suffix) or mimetypes.guess_type(original_filename)[0]
+    if not content_type:
+        content_type = "application/octet-stream"
+    download = document_storage().open_download(original_filename, content_type)
+    if download is None:
+        raise document_download_not_found()
+
+    safe_name = safe_download_filename(download.filename)
+    headers = {"Content-Disposition": content_disposition(safe_name)}
+    if download.content_length is not None:
+        headers["Content-Length"] = str(download.content_length)
+
+    def audited_chunks():
+        for chunk in download.chunks:
+            if chunk:
+                yield chunk
+        audit_event(
+            request,
+            user,
+            "documents.download",
+            "document",
+            str(document["id"]),
+            {
+                "document_id": str(document["id"]),
+                "downloaded_at": datetime.now(UTC).isoformat(),
+            },
+        )
+
+    return StreamingResponse(audited_chunks(), media_type=download.content_type, headers=headers)
+
+
+def document_download_not_found() -> AppError:
+    return AppError(
+        "Document or original file not found.",
+        code=ErrorCode.NOT_FOUND,
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
+
+
+def safe_download_filename(filename: str) -> str:
+    """Produce a header-safe basename while retaining an allowed extension."""
+    basename = Path(filename.replace("\\", "/")).name
+    basename = re.sub(r"[\x00-\x1f\x7f]", "", basename).strip()
+    suffix = Path(basename).suffix.lower()
+    preserved_suffix = suffix if suffix in DOWNLOAD_CONTENT_TYPES else ""
+    stem = basename[: -len(suffix)] if suffix else basename
+    stem = stem.replace('"', "").replace(";", "").strip(" .")
+    if not stem:
+        stem = "document"
+    return f"{stem}{preserved_suffix}"
+
+
+def content_disposition(filename: str) -> str:
+    extension = Path(filename).suffix
+    stem = filename[: -len(extension)] if extension else filename
+    normalized = unicodedata.normalize("NFKD", stem)
+    ascii_stem = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_stem = re.sub(r"[^A-Za-z0-9._ -]", "_", ascii_stem).strip(" .") or "document"
+    ascii_name = f"{ascii_stem}{extension}"
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename, safe='')}"
 
 
 @dataclass(frozen=True)

@@ -311,6 +311,14 @@ Frontend use:
 - `page_count` may be `null` for DOCX and TXT documents.
 - Do not display a summary placeholder; summaries are intentionally not part of this contract.
 
+### `GET /documents/{document_id}/download`
+
+Streams the current original file owned by the document record. This endpoint requires a bearer token and the user's current server-side role must be exactly `admin`; `viewer`, `officer`, and `knowledge_manager` receive `403` even if the UI calls it directly. Missing/invalid authentication returns `401`, while both unknown documents and unavailable original files return the same path-free `404` response.
+
+The response includes the file's media type, `Content-Length` when storage reports it, and an attachment `Content-Disposition` with safe ASCII and RFC 5987 Unicode filenames. The backend resolves storage only from the document record; clients submit an ID, never a path or storage key.
+
+This system uses stable document IDs and current-original revision semantics: when replacement is enabled, old and new citations for the same document ID download the currently stored original. Exact historical revision downloads are not supported by the present document schema.
+
 ### `POST /ingest`
 
 Queues a background ingest job. The normal upload flow must set `source` so the worker downloads, extracts, chunks, and indexes only that document. Omitting the body retains the legacy corpus-wide maintenance operation; do not use the corpus-wide form after each upload.
@@ -597,6 +605,7 @@ Frontend use:
 
 ```ts
 type Source = {
+  document_id: string;
   source: string;
   display_source: string;
   page_start: number | null;
@@ -817,6 +826,7 @@ Implement these API calls:
 - GET /ingest/worker/status -> { status, broker_configured, broker_reachable, workers_online }
 - GET /ingest/jobs/{job_id} -> { job }
 - GET /chunks/preview -> { documents, chunks }
+- GET /documents/{document_id}/download -> streamed original file, admin only
 - POST /ask with { question, top_k? } -> { answer, sources }
 - POST /chat/sessions with optional { title } -> ChatSession
 - GET /chat/sessions -> { sessions }
@@ -824,7 +834,7 @@ Implement these API calls:
 - POST /chat/sessions/{session_id}/ask with { message, top_k? } -> { session_id, user_message, assistant_message, search_query, answer, sources }
 
 Use these TypeScript types:
-type Source = { source: string; display_source: string; page_start: number | null; page_end: number | null; chunk_index: number; section_heading: string | null; score: number; evidence_role: "matched" | "neighbor"; text: string };
+type Source = { document_id: string; source: string; display_source: string; page_start: number | null; page_end: number | null; chunk_index: number; section_heading: string | null; score: number; evidence_role: "matched" | "neighbor"; text: string };
 type ChatMessage = { id: string; session_id: string; role: "user" | "assistant"; content: string; sources: Source[]; metadata: Record<string, unknown>; created_at: string };
 type ChatSession = { id: string; title: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string };
 type IngestJob = { id: string; kind: string; status: "queued" | "running" | "succeeded" | "failed"; actor_user_id: string | null; result: Record<string, unknown> | null; error: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string; started_at: string | null; finished_at: string | null };
@@ -848,6 +858,7 @@ Chat behavior:
 - Send chat messages to /chat/sessions/{session_id}/ask, not /ask, for normal conversation.
 - Optimistically show the user's message while waiting, then reconcile with returned user_message and assistant_message.
 - Render assistant citations from assistant_message.sources or response.sources. Use display_source for citation labels. Show the source text in an expandable side panel/drawer with file name, page range, chunk index, and retrieval score.
+- For admins, download a citation through `/documents/${source.document_id}/download` with the bearer token. Do not derive a URL from `source` or `display_source`. A legacy history citation may omit `document_id` only when its old source can no longer be resolved; keep its download control disabled.
 - Show search_query only in a debug/details view.
 
 Admin/setup behavior:

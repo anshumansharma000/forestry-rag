@@ -10,16 +10,6 @@ from retrieval import chunk_row
 def build_index(repository: DocumentRepository | None = None, *, source: str | None = None) -> dict:
     repository = repository or DocumentRepository()
     existing_sources = repository.indexed_sources()
-    if source and source in existing_sources:
-        return {
-            "documents": 1,
-            "documents_added": 0,
-            "documents_skipped": 1,
-            "chunks": 0,
-            "chunks_added": 0,
-            "source": source,
-            "storage": "supabase_pgvector",
-        }
 
     documents_seen = 0
     documents_added = 0
@@ -28,7 +18,9 @@ def build_index(repository: DocumentRepository | None = None, *, source: str | N
 
     for doc in iter_documents(source=source):
         documents_seen += 1
-        if doc["source"] in existing_sources:
+        # An explicit source is a requested refresh (including file replacement),
+        # so rebuild its chunks while preserving the upserted document ID.
+        if doc["source"] in existing_sources and source is None:
             documents_skipped += 1
             continue
 

@@ -9,7 +9,13 @@ from rag import (
     get_chat_messages,
     list_chat_sessions,
 )
-from schemas import ChatAskRequest, ChatSessionResponse, CreateChatSessionRequest
+from schemas import (
+    ChatAskRequest,
+    ChatAskResponse,
+    ChatMessagesResponse,
+    ChatSessionResponse,
+    CreateChatSessionRequest,
+)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -27,7 +33,7 @@ def sessions(user: CurrentUser = Depends(require_roles("viewer"))):
     return {"sessions": list_chat_sessions(user.id)}
 
 
-@router.get("/sessions/{session_id}/messages")
+@router.get("/sessions/{session_id}/messages", response_model=ChatMessagesResponse)
 def session_messages(session_id: str, user: CurrentUser = Depends(require_roles("viewer"))):
     return {"session_id": session_id, "messages": get_chat_messages(session_id, user.id)}
 
@@ -55,7 +61,7 @@ def remove_message(
     return result
 
 
-@router.post("/sessions/{session_id}/ask")
+@router.post("/sessions/{session_id}/ask", response_model=ChatAskResponse)
 def ask_in_session(
     session_id: str,
     request_body: ChatAskRequest,

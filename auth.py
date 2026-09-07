@@ -86,7 +86,9 @@ def _auth_disabled() -> bool:
 
 def _user_from_row(row: dict) -> CurrentUser:
     if not row.get("is_active"):
-        raise AuthError("User is inactive", status.HTTP_403_FORBIDDEN)
+        # A disabled account is no longer valid authentication, even if its JWT
+        # has not expired yet.
+        raise AuthError("User is inactive", status.HTTP_401_UNAUTHORIZED)
 
     return CurrentUser(
         id=row["id"],
@@ -195,6 +197,14 @@ def get_current_user(
             is_bootstrap=True,
         )
 
+    return get_authenticated_user(credentials)
+
+
+def get_authenticated_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
+) -> CurrentUser:
+    """Authenticate a bearer token without honoring the local auth bypass."""
+
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise AuthError("Bearer token is required")
 
@@ -202,6 +212,16 @@ def get_current_user(
     if not token:
         raise AuthError("Bearer token is required")
     return _user_from_token(token)
+
+
+def require_exact_admin(
+    user: Annotated[CurrentUser, Depends(get_authenticated_user)],
+) -> CurrentUser:
+    if user.role != "admin":
+        raise AuthError("Insufficient role permissions", status.HTTP_403_FORBIDDEN)
+    if user.must_change_password:
+        raise AuthError("Password change is required before using this endpoint", status.HTTP_403_FORBIDDEN)
+    return user
 
 
 def require_roles(*roles: str):

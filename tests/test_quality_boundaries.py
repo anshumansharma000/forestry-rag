@@ -563,7 +563,12 @@ def test_retrieve_passes_query_text_for_hybrid_search(monkeypatch):
             "query_embedding": [0.1, 0.2, 0.3],
             "query_text": "Rule 12 transit permits",
             "match_count": 40,
-        }
+        },
+        {
+            "query_embedding": [0.1, 0.2, 0.3],
+            "query_text": "Rule 12 transit permits Rule 12 amendment supersession latest update",
+            "match_count": 40,
+        },
     ]
     assert contexts[0]["base_score"] == 0.82
     assert contexts[0]["score"] > 0.5
@@ -1382,6 +1387,49 @@ def test_ingest_persists_embedding_rows_in_bounded_batches(monkeypatch):
     assert [len(batch) for batch in repository.batches] == [2, 2, 1]
     assert result["chunks_added"] == 5
     assert result["source"] == "a.txt"
+
+
+def test_explicit_ingest_rebuilds_replaced_source_under_stable_document_id(monkeypatch):
+    class Repository:
+        def __init__(self):
+            self.upserts = []
+            self.batches = []
+
+        def indexed_sources(self):
+            return {"a.txt"}
+
+        def upsert_document(self, doc, status="indexing"):
+            self.upserts.append((doc["source"], status))
+            return "stable-document-id"
+
+        def delete_chunks(self, _source):
+            pass
+
+        def insert_chunk_batch(self, rows):
+            self.batches.extend(rows)
+            return len(rows)
+
+        def mark_document_status(self, _source, _status, _details=None):
+            pass
+
+    repository = Repository()
+    monkeypatch.setattr(
+        ingest_service,
+        "iter_documents",
+        lambda source=None: iter([{"source": source, "kind": "txt", "title": "A", "page_count": None, "pages": []}]),
+    )
+    monkeypatch.setattr(ingest_service, "iter_document_chunks", lambda _doc: iter([{"source": "a.txt", "content": "new"}]))
+    monkeypatch.setattr(
+        ingest_service,
+        "chunk_row",
+        lambda document_id, chunk: {"document_id": document_id, "source": chunk["source"], "content": chunk["content"]},
+    )
+
+    result = ingest_service.build_index(repository, source="a.txt")
+
+    assert repository.upserts == [("a.txt", "indexing")]
+    assert repository.batches == [{"document_id": "stable-document-id", "source": "a.txt", "content": "new"}]
+    assert result["documents_added"] == 1
 
 
 def test_ingest_job_processes_only_source_stored_in_job_metadata(monkeypatch):

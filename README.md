@@ -327,6 +327,8 @@ curl -X POST http://127.0.0.1:8000/ask \
   -d '{"question":"Do village forest committees need a transit permit for bamboo?"}'
 ```
 
+Every returned citation includes the stable owning `document_id`. Admins can stream its current original file with `GET /documents/{document_id}/download`; the endpoint always requires a bearer token and re-checks the user's current server-side role. Replacing a file keeps the document ID and uses current-original semantics rather than retaining downloadable historical revisions.
+
 ## Chat API
 
 The stateless `/ask` endpoint is still useful for testing. For a real chat flow, create a session and then ask inside that session.
@@ -509,3 +511,13 @@ Retrieval is a multi-stage hybrid pipeline:
 Embeddings include document title, document type, authority, section heading, legal identifiers, and chunk content. `RAG_INDEX_VERSION` controls automatic reindexing when this representation changes. After deploying a new index version, run `POST /ingest`; documents indexed with an older version will be rebuilt.
 
 `score` in source responses is the final reranked score, not raw cosine similarity. `evidence_role` is `matched` for directly retrieved chunks and `neighbor` for adjacent context.
+
+### Latest applicable information
+
+Ingestion stores unambiguous, explicitly labelled `issued_date` and `effective_date` values plus amendment-reference lines in the existing JSON metadata. Supported dates include ISO, day/month/year, and day month-name year. Mentioned years and upload timestamps are never treated as issue dates. Ambiguous or unrecognized dates remain unknown; amendment-reference lines are evidence for interpretation, not verified supersession links.
+
+Current questions receive a bounded recency boost (at most 0.03) for dated, relevant candidates. Future-dated or future-effective material receives no current recency boost. Questions naming legal identifiers also run an additional hybrid amendment search before context selection, adding one embedding request and one database search. Historical questions disable the current recency preference and amendment search; a year in a rule title alone does not disable them. Date selection and precedence are still resolved by the answer model from the supplied evidence.
+
+The answer prompt receives issue/effective dates and instructs the model to prioritize the latest applicable provision, preserve unchanged older provisions, respect historical dates, and disclose unresolved conflicts. This is a relevance-based retrieval improvement, not an exhaustive amendment registry: updates can still be missed, and newer dates alone do not prove supersession.
+
+Existing chunks immediately benefit from the prompt and can recover explicitly labelled dates from their own text. To propagate document-level dates to every chunk, refresh each existing document with `POST /ingest` and `{"source":"<filename>"}`. No database migration is needed. An ordinary corpus ingestion may skip already-indexed documents; the explicit source refresh rebuilds them. The changes do not automatically re-ingest stored documents.

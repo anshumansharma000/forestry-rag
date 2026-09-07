@@ -1,9 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from auth import CurrentUser, get_current_user
-from app import app
 import routers.documents as documents_router
+from app import app
+from auth import CurrentUser, get_current_user
 
 client = TestClient(app)
 

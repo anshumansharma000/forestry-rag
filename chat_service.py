@@ -1,6 +1,6 @@
 from prompts import answer_is_abstention, answer_with_gemini, rewrite_question_for_retrieval
 from rag_errors import RagError
-from repositories import ChatRepository
+from repositories import ChatRepository, DocumentRepository
 from retrieval import retrieval_confidence, retrieve, source_payload
 
 
@@ -14,9 +14,54 @@ def list_chat_sessions(user_id: str, limit: int = 20, repository: ChatRepository
     return repository.list_sessions(user_id, limit)
 
 
-def get_chat_messages(session_id: str, user_id: str, limit: int | None = None, repository: ChatRepository | None = None) -> list[dict]:
+def get_chat_messages(
+    session_id: str,
+    user_id: str,
+    limit: int | None = None,
+    repository: ChatRepository | None = None,
+    document_repository: DocumentRepository | None = None,
+) -> list[dict]:
     repository = repository or ChatRepository()
-    return repository.get_messages(session_id, user_id, limit)
+    messages = repository.get_messages(session_id, user_id, limit)
+    return enrich_legacy_citations(messages, document_repository=document_repository)
+
+
+def enrich_legacy_citations(
+    messages: list[dict], document_repository: DocumentRepository | None = None
+) -> list[dict]:
+    """Add trusted document IDs to resolvable citations written by older releases."""
+    unresolved_sources = {
+        source.get("source")
+        for message in messages
+        if message.get("role") == "assistant"
+        for source in (message.get("sources") or [])
+        if isinstance(source, dict) and not source.get("document_id") and source.get("source")
+    }
+    if not unresolved_sources:
+        return messages
+
+    try:
+        ids_by_source = (document_repository or DocumentRepository()).document_ids_by_sources(unresolved_sources)
+    except Exception:
+        # Legacy rows that can no longer be resolved remain non-downloadable.
+        return messages
+
+    enriched = []
+    for message in messages:
+        copied = {**message}
+        copied_sources = []
+        for source in message.get("sources") or []:
+            if not isinstance(source, dict):
+                copied_sources.append(source)
+                continue
+            copied_source = {**source}
+            resolved_id = ids_by_source.get(source.get("source"))
+            if not copied_source.get("document_id") and resolved_id:
+                copied_source["document_id"] = resolved_id
+            copied_sources.append(copied_source)
+        copied["sources"] = copied_sources
+        enriched.append(copied)
+    return enriched
 
 
 def save_chat_message(
