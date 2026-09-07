@@ -31,7 +31,11 @@ migrations/004_ingest_jobs.sql
 migrations/005_hybrid_retrieval.sql
 migrations/006_fix_match_document_chunks_ambiguous_id.sql
 migrations/007_document_library.sql
+migrations/008_failed_documents_library.sql
+migrations/009_rag_lab.sql
 ```
+
+New installations should run `migrations/009_rag_lab.sql` after `supabase_schema.sql` to enable the admin RAG Lab.
 
 If you already created the wrong vector dimension while experimenting, run:
 
@@ -237,6 +241,12 @@ There is no separate paid Render background-worker service. Redis Cloud remains 
 ```bash
 uvicorn app:app --reload
 ```
+
+## Admin RAG Lab
+
+Admins can upload files into an isolated experiment, build immutable chunk/embedding revisions with per-revision settings, inspect chunks, save sandbox query trials, and publish an approved revision into the regular chat corpus. Draft lab chunks are stored separately and cannot appear in `/ask` or chat retrieval. Build and publish operations use the existing Celery worker.
+
+Apply `migrations/009_rag_lab.sql`, then follow the endpoint workflow in [docs/rag_lab_api.md](docs/rag_lab_api.md). The frontend implementation handoff is in [docs/frontend_rag_lab_prompt.md](docs/frontend_rag_lab_prompt.md).
 
 The API runs at:
 

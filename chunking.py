@@ -531,8 +531,11 @@ def iter_document_chunks(
     max_tokens: int | None = None,
     overlap_tokens: int | None = None,
     max_chunks: int | None = None,
+    profile: str | None = None,
 ):
-    profile = document_profile(doc)
+    profile = document_profile(doc) if not profile or profile == "auto" else profile
+    if profile not in {FAQ_PROFILE, PROCEDURE_PROFILE, SECTION_PROFILE}:
+        raise ValueError(f"Unsupported chunk profile: {profile}")
     max_tokens, overlap_tokens = chunk_settings(profile, max_tokens, overlap_tokens)
 
     chunk_index = 0
@@ -573,6 +576,7 @@ def chunk_document(
     max_tokens: int | None = None,
     overlap_tokens: int | None = None,
     max_chunks: int | None = None,
+    profile: str | None = None,
 ) -> list[dict]:
     return list(
         iter_document_chunks(
@@ -580,5 +584,6 @@ def chunk_document(
             max_tokens=max_tokens,
             overlap_tokens=overlap_tokens,
             max_chunks=max_chunks,
+            profile=profile,
         )
     )

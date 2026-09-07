@@ -272,9 +272,16 @@ class IngestJobRepository:
     def __init__(self, client: Client | None = None):
         self.client = client or supabase_client()
 
-    def create(self, actor_user_id: str | None = None, *, source: str | None = None) -> dict:
-        metadata = {"source": source, "scope": "document"} if source else {"scope": "corpus"}
-        row = {"kind": "documents.ingest", "status": "queued", "actor_user_id": actor_user_id, "metadata": metadata}
+    def create(
+        self,
+        actor_user_id: str | None = None,
+        *,
+        source: str | None = None,
+        kind: str = "documents.ingest",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict:
+        job_metadata = metadata or ({"source": source, "scope": "document"} if source else {"scope": "corpus"})
+        row = {"kind": kind, "status": "queued", "actor_user_id": actor_user_id, "metadata": job_metadata}
         result = self.client.table("ingest_jobs").insert(row).execute()
         return result.data[0]
 

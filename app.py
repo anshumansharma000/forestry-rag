@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from errors import AppError, app_error_handler, http_error_handler, unhandled_error_handler, validation_error_handler
-from routers import admin, auth_routes, chat, documents, qa, system
+from routers import admin, auth_routes, chat, documents, qa, rag_lab, system
 from settings import validate_runtime_config
 from structured_logging import configure_logging
 
@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(qa.router)
     app.include_router(chat.router)
     app.include_router(admin.router)
+    app.include_router(rag_lab.router)
     return app
 
 

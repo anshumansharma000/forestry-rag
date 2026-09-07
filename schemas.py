@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints
@@ -20,6 +20,52 @@ class CreateChatSessionRequest(BaseModel):
 class ChatAskRequest(BaseModel):
     message: NonEmptyStr
     top_k: int | None = Field(default=None, ge=1, le=20)
+
+
+class RagLabChunkingConfig(BaseModel):
+    strategy: Literal["structure_aware_v1"] = "structure_aware_v1"
+    profile: Literal["auto", "section", "faq", "procedure"] = "auto"
+    max_tokens: int = Field(default=600, ge=100, le=2000)
+    overlap_tokens: int = Field(default=100, ge=0, le=500)
+
+    def model_post_init(self, _context: Any) -> None:
+        if self.overlap_tokens >= self.max_tokens:
+            raise ValueError("overlap_tokens must be smaller than max_tokens")
+
+
+class RagLabRetrievalConfig(BaseModel):
+    top_k: int = Field(default=5, ge=1, le=20)
+    candidate_count: int = Field(default=40, ge=1, le=200)
+    max_per_source: int = Field(default=0, ge=0, le=20)
+    duplicate_threshold: float = Field(default=0.82, ge=0, le=1)
+    min_context_score: float = Field(default=0, ge=0, le=1)
+    expand_neighbors: bool = True
+
+
+class RagLabConfig(BaseModel):
+    chunking: RagLabChunkingConfig = Field(default_factory=RagLabChunkingConfig)
+    retrieval: RagLabRetrievalConfig = Field(default_factory=RagLabRetrievalConfig)
+
+
+class CreateRagLabExperimentRequest(BaseModel):
+    name: ShortText
+    description: str | None = Field(default=None, max_length=2000)
+    config: RagLabConfig = Field(default_factory=RagLabConfig)
+
+
+class UpdateRagLabExperimentRequest(BaseModel):
+    name: ShortText | None = None
+    description: str | None = Field(default=None, max_length=2000)
+    config: RagLabConfig | None = None
+
+
+class CreateRagLabRevisionRequest(BaseModel):
+    config: RagLabConfig | None = None
+
+
+class RagLabQueryRequest(BaseModel):
+    question: NonEmptyStr
+    retrieval: RagLabRetrievalConfig | None = None
 
 
 class CreateUserRequest(BaseModel):

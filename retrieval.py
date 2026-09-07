@@ -51,6 +51,10 @@ def embed_text(text: str) -> list[float]:
     return normalize_embedding(gemini_client.embed(text, "RETRIEVAL_DOCUMENT"))
 
 
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    return [normalize_embedding(values) for values in gemini_client.embed_many(texts, "RETRIEVAL_DOCUMENT")]
+
+
 def embed_query(text: str) -> list[float]:
     return normalize_embedding(gemini_client.embed(text, "RETRIEVAL_QUERY"))
 
@@ -75,16 +79,34 @@ def embedding_text(chunk: dict) -> str:
     return "\n".join(lines)
 
 
-def retrieve(question: str, top_k: int | None = None, repository: DocumentRepository | None = None) -> list[dict]:
+def retrieve(
+    question: str,
+    top_k: int | None = None,
+    repository: DocumentRepository | None = None,
+    options: dict | None = None,
+) -> list[dict]:
     repository = repository or DocumentRepository()
-    k = top_k or int(os.getenv("TOP_K", "3"))
-    candidate_count = max(k, int(os.getenv("RETRIEVAL_CANDIDATES", "40")))
+    options = options or {}
+    k = top_k or int(options.get("top_k") or os.getenv("TOP_K", "3"))
+    candidate_count = max(k, int(options.get("candidate_count", os.getenv("RETRIEVAL_CANDIDATES", "40"))))
     query_embedding = embed_query(question)
     rows = repository.match_chunks(query_embedding, question, candidate_count)
     candidates = rerank_candidates(question, [context_from_row(row, rank) for rank, row in enumerate(rows)])
-    candidates = [candidate for candidate in candidates if candidate_strength(candidate) >= min_context_score()]
-    anchors = diversify_contexts(candidates, k)
-    return expand_neighbors(anchors, candidates, repository, k)
+    minimum_score = float(options.get("min_context_score", min_context_score()))
+    candidates = [candidate for candidate in candidates if candidate_strength(candidate) >= minimum_score]
+    anchors = diversify_contexts(
+        candidates,
+        k,
+        max_per_source=int(options.get("max_per_source", os.getenv("RETRIEVAL_MAX_PER_SOURCE", "0"))),
+        duplicate_threshold=float(options.get("duplicate_threshold", os.getenv("RETRIEVAL_DUPLICATE_THRESHOLD", "0.82"))),
+    )
+    return expand_neighbors(
+        anchors,
+        candidates,
+        repository,
+        k,
+        enabled=bool(options.get("expand_neighbors", env_bool("RETRIEVAL_EXPAND_NEIGHBORS", True))),
+    )
 
 
 def context_from_row(row: dict, rank: int | None = None) -> dict:
@@ -175,11 +197,20 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
     )
 
 
-def diversify_contexts(candidates: list[dict], limit: int) -> list[dict]:
+def diversify_contexts(
+    candidates: list[dict],
+    limit: int,
+    max_per_source: int | None = None,
+    duplicate_threshold: float | None = None,
+) -> list[dict]:
     selected = []
     source_counts: Counter[str] = Counter()
-    max_per_source = int(os.getenv("RETRIEVAL_MAX_PER_SOURCE", "0"))
-    duplicate_threshold = float(os.getenv("RETRIEVAL_DUPLICATE_THRESHOLD", "0.82"))
+    max_per_source = int(os.getenv("RETRIEVAL_MAX_PER_SOURCE", "0")) if max_per_source is None else max_per_source
+    duplicate_threshold = (
+        float(os.getenv("RETRIEVAL_DUPLICATE_THRESHOLD", "0.82"))
+        if duplicate_threshold is None
+        else duplicate_threshold
+    )
     deferred = []
 
     for candidate in candidates:
@@ -202,8 +233,15 @@ def diversify_contexts(candidates: list[dict], limit: int) -> list[dict]:
     return selected
 
 
-def expand_neighbors(anchors: list[dict], candidates: list[dict], repository: DocumentRepository, limit: int) -> list[dict]:
-    if not anchors or not env_bool("RETRIEVAL_EXPAND_NEIGHBORS", True) or not hasattr(repository, "neighbor_chunks"):
+def expand_neighbors(
+    anchors: list[dict],
+    candidates: list[dict],
+    repository: DocumentRepository,
+    limit: int,
+    enabled: bool | None = None,
+) -> list[dict]:
+    enabled = env_bool("RETRIEVAL_EXPAND_NEIGHBORS", True) if enabled is None else enabled
+    if not anchors or not enabled or not hasattr(repository, "neighbor_chunks"):
         return anchors[:limit]
     if len(anchors) >= limit:
         return anchors[:limit]
@@ -300,13 +338,14 @@ def env_bool(name: str, default: bool = False) -> bool:
 
 
 def format_source(record: dict) -> str:
+    source = (record.get("metadata") or {}).get("display_source") or record["source"]
     page_start = record.get("page_start")
     page_end = record.get("page_end")
     if page_start is None:
-        return record["source"]
+        return source
     if page_start == page_end:
-        return f"{record['source']}, page {page_start}"
-    return f"{record['source']}, pages {page_start}-{page_end}"
+        return f"{source}, page {page_start}"
+    return f"{source}, pages {page_start}-{page_end}"
 
 
 def source_payload(contexts: list[dict]) -> list[dict]:

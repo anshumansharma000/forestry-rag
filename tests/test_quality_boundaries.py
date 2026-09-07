@@ -1162,6 +1162,92 @@ def test_gemini_client_redacts_upstream_error_body(monkeypatch):
     assert "secret upstream diagnostics" not in exc.value.message
 
 
+def test_gemini_client_retries_quota_error(monkeypatch):
+    class Response:
+        def __init__(self, status_code, data, headers=None):
+            self.status_code = status_code
+            self._data = data
+            self.headers = headers or {}
+            self.text = "upstream response"
+
+        def json(self):
+            return self._data
+
+    responses = iter(
+        [
+            Response(429, {}, {"Retry-After": "3"}),
+            Response(200, {"candidates": [{"content": {"parts": [{"text": "answer"}]}}]}),
+        ]
+    )
+    sleeps = []
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_API_MAX_RETRIES", "2")
+    monkeypatch.setattr("services.gemini.requests.post", lambda *args, **kwargs: next(responses))
+    monkeypatch.setattr("services.gemini.time.sleep", sleeps.append)
+
+    assert GeminiClient().generate("hello") == "answer"
+    assert 3.0 in sleeps
+
+
+def test_gemini_client_batches_embeddings(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_DIMENSIONS", "2")
+    client = GeminiClient()
+    captured = {}
+
+    def post(model, action, payload, timeout=None, max_retries=None):
+        captured.update(
+            {"model": model, "action": action, "payload": payload, "timeout": timeout, "max_retries": max_retries}
+        )
+        return {"embeddings": [{"values": [1.0, 0.0]}, {"values": [0.0, 1.0]}]}
+
+    monkeypatch.setattr(client, "_post", post)
+
+    result = client.embed_many(["first", "second"], "RETRIEVAL_DOCUMENT")
+
+    assert result == [[1.0, 0.0], [0.0, 1.0]]
+    assert captured["action"] == "batchEmbedContents"
+    assert len(captured["payload"]["requests"]) == 2
+
+
+def test_gemini_client_splits_rejected_embedding_batch(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_DIMENSIONS", "2")
+    client = GeminiClient()
+    attempted_sizes = []
+
+    def post(_model, _action, payload, timeout=None, max_retries=None):
+        size = len(payload["requests"])
+        attempted_sizes.append(size)
+        if size > 2:
+            raise AppError(
+                "Gemini API quota is exhausted.",
+                code="upstream_error",
+                status_code=502,
+                details={"status_code": 429},
+            )
+        return {"embeddings": [{"values": [1.0, 0.0]} for _ in range(size)]}
+
+    monkeypatch.setattr(client, "_post", post)
+
+    result = client.embed_many(["one", "two", "three", "four"], "RETRIEVAL_DOCUMENT")
+
+    assert result == [[1.0, 0.0]] * 4
+    assert attempted_sizes == [4, 2, 2]
+
+
+def test_gemini_client_singleton_batch_uses_retrying_single_endpoint(monkeypatch):
+    client = GeminiClient()
+    calls = []
+
+    def embed(text, task_type):
+        calls.append((text, task_type))
+        return [1.0, 0.0]
+
+    monkeypatch.setattr(client, "embed", embed)
+
+    assert client.embed_many(["one"], "RETRIEVAL_DOCUMENT") == [[1.0, 0.0]]
+    assert calls == [("one", "RETRIEVAL_DOCUMENT")]
+
+
 def test_runtime_config_allows_zero_retrieval_max_per_source(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("SUPABASE_URL", "https://project-ref.supabase.co")

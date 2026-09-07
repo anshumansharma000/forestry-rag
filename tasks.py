@@ -3,6 +3,7 @@ import logging
 from celery import Celery, signals
 
 from ingest_service import run_ingest_job
+from rag_lab_service import run_rag_lab_job
 from repositories import IngestJobRepository
 from structured_logging import configure_logging
 from task_queue import (
@@ -84,3 +85,21 @@ def run_ingest_job_task(self, job_id: str) -> None:
         "ingest_task_succeeded",
         extra={"job_id": job_id, "celery_task_id": self.request.id, "retry": self.request.retries},
     )
+
+
+@celery_app.task(
+    bind=True,
+    name="rag_lab.run_job",
+    max_retries=celery_task_max_retries(),
+)
+def run_rag_lab_job_task(self, job_id: str) -> None:
+    logger.info("rag_lab_task_started", extra={"job_id": job_id, "celery_task_id": self.request.id})
+    try:
+        run_rag_lab_job(job_id, raise_on_failure=True)
+    except Exception as exc:
+        logger.exception("rag_lab_task_failed", extra={"job_id": job_id, "celery_task_id": self.request.id})
+        if self.request.retries >= self.max_retries:
+            raise
+        countdown = celery_task_retry_base_seconds() * (2 ** self.request.retries)
+        raise self.retry(exc=exc, countdown=countdown) from exc
+    logger.info("rag_lab_task_succeeded", extra={"job_id": job_id, "celery_task_id": self.request.id})

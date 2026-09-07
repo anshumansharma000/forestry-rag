@@ -124,3 +124,22 @@ def enqueue_ingest_job(job_id: str, *, on_enqueued=None) -> str:
             details={"queue": "celery"},
         ) from exc
     return result.id
+
+
+def enqueue_rag_lab_job(job_id: str, *, on_enqueued=None) -> str:
+    ensure_queue_configured()
+    from tasks import run_rag_lab_job_task
+
+    task_id = str(uuid4())
+    if on_enqueued:
+        on_enqueued(task_id)
+    try:
+        result = run_rag_lab_job_task.apply_async(args=[str(job_id)], task_id=task_id)
+    except (CeleryError, OperationalError, OSError) as exc:
+        raise AppError(
+            "Could not enqueue RAG Lab job.",
+            code=ErrorCode.STORAGE_ERROR,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            details={"queue": "celery"},
+        ) from exc
+    return result.id
