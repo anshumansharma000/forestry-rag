@@ -480,6 +480,7 @@ Response:
 type AskResponse = {
   answer: string;
   sources: Source[];
+  cited_sources: Source[];
   confidence: number;
   abstained: boolean;
 };
@@ -589,6 +590,7 @@ type ChatAskResponse = {
   search_query: string;
   answer: string;
   sources: Source[];
+  cited_sources: Source[];
   confidence: number;
   abstained: boolean;
 };
@@ -598,13 +600,15 @@ Frontend use:
 
 - Optimistically render the user's message, then reconcile with `user_message`.
 - Render the assistant answer from `assistant_message.content` or `answer`.
-- Use `sources` or `assistant_message.sources` for citations.
+- Use `cited_sources` for the source drawer associated with the current answer. `sources` and
+  `assistant_message.sources` retain the complete retrieved context set for compatibility and diagnostics.
 - `search_query` is useful for debug/admin UI; it is the standalone query generated for retrieval.
 
 ## Shared Data Types
 
 ```ts
 type Source = {
+  citation_number: number | null;
   document_id: string;
   source: string;
   display_source: string;
@@ -716,6 +720,7 @@ Notes:
 - All IDs are UUID strings.
 - Timestamps are ISO strings from Supabase/Postgres.
 - `score` is the rounded post-reranking retrieval score; higher means more relevant.
+- `citation_number` is the stable numeric marker used by inline answer citations.
 - `evidence_role` distinguishes directly matched chunks from neighboring context.
 - `confidence` summarizes evidence strength. When `abstained` is true, the backend intentionally declined to answer because evidence or citations were insufficient.
 - `display_source` already includes page labels, such as `file.pdf, page 4`.
@@ -788,7 +793,8 @@ Important constraints:
 
 - Main screen: chat-first interface with a session sidebar, message timeline, source drawer, and small setup/indexing status area.
 - Admin/setup screen: config status, document upload, ingest button, chunk preview.
-- For answers, parse citations like `[1]`, `[2]` only for display affordances; the authoritative source list is the returned `sources` array in order.
+- For answers, parse citations such as `[1]` and `[1, 3]` for display affordances. Match them through
+  `citation_number`; prefer `cited_sources` for the visible answer source drawer.
 - Show citation chips using `display_source`; open a side panel with `text`, page range, file name, and retrieval score.
 - Keep upload/indexing controls separate from end-user chat if the app is meant for non-admin users.
 - Disable ask/send when config is incomplete or while a request is in flight.
@@ -831,10 +837,11 @@ Implement these API calls:
 - POST /chat/sessions with optional { title } -> ChatSession
 - GET /chat/sessions -> { sessions }
 - GET /chat/sessions/{session_id}/messages -> { session_id, messages }
-- POST /chat/sessions/{session_id}/ask with { message, top_k? } -> { session_id, user_message, assistant_message, search_query, answer, sources }
+- POST /chat/sessions/{session_id}/ask with { message, top_k? } ->
+  { session_id, user_message, assistant_message, search_query, answer, sources, cited_sources }
 
 Use these TypeScript types:
-type Source = { document_id: string; source: string; display_source: string; page_start: number | null; page_end: number | null; chunk_index: number; section_heading: string | null; score: number; evidence_role: "matched" | "neighbor"; text: string };
+type Source = { citation_number: number | null; document_id: string; source: string; display_source: string; page_start: number | null; page_end: number | null; chunk_index: number; section_heading: string | null; score: number; evidence_role: "matched" | "neighbor"; text: string };
 type ChatMessage = { id: string; session_id: string; role: "user" | "assistant"; content: string; sources: Source[]; metadata: Record<string, unknown>; created_at: string };
 type ChatSession = { id: string; title: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string };
 type IngestJob = { id: string; kind: string; status: "queued" | "running" | "succeeded" | "failed"; actor_user_id: string | null; result: Record<string, unknown> | null; error: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string; started_at: string | null; finished_at: string | null };
@@ -857,7 +864,9 @@ Chat behavior:
 - If there is no active session, create one when the user sends the first message.
 - Send chat messages to /chat/sessions/{session_id}/ask, not /ask, for normal conversation.
 - Optimistically show the user's message while waiting, then reconcile with returned user_message and assistant_message.
-- Render assistant citations from assistant_message.sources or response.sources. Use display_source for citation labels. Show the source text in an expandable side panel/drawer with file name, page range, chunk index, and retrieval score.
+- Render inline citation markers by matching `citation_number`. Prefer `response.cited_sources` for the current answer drawer;
+  retain `assistant_message.sources` or `response.sources` as the complete retrieval evidence set. Use `display_source` for
+  citation labels and show the excerpt, file name, page range, chunk index, and retrieval score in the source panel.
 - For admins, download a citation through `/documents/${source.document_id}/download` with the bearer token. Do not derive a URL from `source` or `display_source`. A legacy history citation may omit `document_id` only when its old source can no longer be resolved; keep its download control disabled.
 - Show search_query only in a debug/details view.
 

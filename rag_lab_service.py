@@ -8,9 +8,10 @@ from errors import AppError, ErrorCode
 from prompts import answer_is_abstention, answer_with_gemini
 from rag_lab_repository import RagLabRepository
 from repositories import IngestJobRepository
-from retrieval import embed_texts, embedding_text, retrieval_confidence, retrieve, source_payload
+from retrieval import cited_source_payload, embed_texts, embedding_text, retrieval_confidence, retrieve, source_payload
 from services.rag_lab_storage import RagLabStorage, rag_lab_storage
 from settings import env_int
+from token_usage import track_query_usage
 
 
 def upload_files(experiment_id: str, uploads: list, repository=None, storage=None) -> list[dict]:
@@ -160,6 +161,7 @@ def extracted_document(file: dict, storage: RagLabStorage, repository: RagLabRep
     return doc
 
 
+@track_query_usage
 def query_revision(revision_id: str, question: str, actor_user_id: str, retrieval_config: dict | None = None, repository=None) -> dict:
     repository = repository or RagLabRepository()
     revision = repository.get_revision(revision_id)
@@ -175,6 +177,7 @@ def query_revision(revision_id: str, question: str, actor_user_id: str, retrieva
     )
     answer = answer_with_gemini(question, contexts)
     sources = source_payload(contexts)
+    cited_sources = cited_source_payload(answer, contexts)
     confidence = retrieval_confidence(contexts)
     latency_ms = round((time.perf_counter() - started) * 1000, 2)
     trial = repository.save_trial(
@@ -190,7 +193,14 @@ def query_revision(revision_id: str, question: str, actor_user_id: str, retrieva
             "latency_ms": latency_ms,
         }
     )
-    return {"trial": trial, "answer": answer, "sources": sources, "confidence": confidence, "latency_ms": latency_ms}
+    return {
+        "trial": trial,
+        "answer": answer,
+        "sources": sources,
+        "cited_sources": cited_sources,
+        "confidence": confidence,
+        "latency_ms": latency_ms,
+    }
 
 
 def create_publish_job(revision_id: str, actor_user_id: str, repository=None) -> dict:

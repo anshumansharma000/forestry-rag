@@ -12,12 +12,106 @@ services:
         sync: false
       - key: GEMINI_EMBEDDING_MODEL
         value: gemini-embedding-2
-      - key: GEMINI_CHAT_MODEL
-        value: gemini-3.1-flash-lite
+      - key: RAG_COST_OPTIMIZATIONS
+        value: "true"
+      - key: RAG_SELECTIVE_PLANNING
+        value: "true"
+      - key: RAG_SELECTIVE_HISTORY
+        value: "true"
+      - key: RAG_SELECTIVE_EVIDENCE
+        value: "true"
+      - key: RAG_SELECTIVE_REASONING
+        value: "true"
+      - key: RAG_SELECTIVE_VERIFICATION
+        value: "true"
+      - key: RAG_HISTORY_SELECTION_TOKENS
+        value: "1500"
+      - key: GEMINI_CONTEXT_REWRITE_MAX_OUTPUT_TOKENS
+        value: "600"
+      - key: COST_USD_TO_INR
+        value: "90"
+      - key: COST_QUERY_MAX_INR
+        value: "1.5"
+      - key: GEMINI_DIRECT_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_COMPLEX_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_UTILITY_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_VERIFICATION_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_DIRECT_THINKING_LEVEL
+        value: minimal
+      - key: GEMINI_COMPLEX_THINKING_LEVEL
+        value: medium
+      - key: GEMINI_COMPLEX_HIGH_THINKING_LEVEL
+        value: high
+      - key: GEMINI_DIRECT_MAX_OUTPUT_TOKENS
+        value: 1800
+      - key: GEMINI_COMPLEX_MAX_OUTPUT_TOKENS
+        value: 4000
+      - key: GEMINI_EMBEDDING_REQUEST_INTERVAL_MS
+        value: 250
+      - key: GEMINI_GENERATION_REQUEST_INTERVAL_MS
+        value: 0
+      - key: GEMINI_EMBEDDING_MAX_RETRIES
+        value: 7
+      - key: GEMINI_EMBEDDING_RETRY_BASE_SECONDS
+        value: 2
+      - key: GEMINI_EMBEDDING_RETRY_MAX_SECONDS
+        value: 60
+      - key: GEMINI_EMBEDDING_DEADLINE_SECONDS
+        value: 300
+      - key: GEMINI_GENERATION_MAX_RETRIES
+        value: 3
+      - key: GEMINI_GENERATION_RETRY_BASE_SECONDS
+        value: 1
+      - key: GEMINI_GENERATION_RETRY_MAX_SECONDS
+        value: 15
+      - key: GEMINI_GENERATION_DEADLINE_SECONDS
+        value: 150
       - key: EMBEDDING_DIMENSIONS
         value: 768
-      - key: TOP_K
-        value: 3
+      - key: RAG_DIRECT_CANDIDATES
+        value: 50
+      - key: RAG_DIRECT_ANCHORS
+        value: 4
+      - key: RAG_DIRECT_CONTEXTS
+        value: 5
+      - key: RAG_DIRECT_CONTEXT_TOKENS
+        value: 3000
+      - key: RAG_PROCEDURE_CANDIDATES
+        value: 80
+      - key: RAG_PROCEDURE_ANCHORS
+        value: 6
+      - key: RAG_PROCEDURE_CONTEXTS
+        value: 8
+      - key: RAG_PROCEDURE_CONTEXT_TOKENS
+        value: 5000
+      - key: RAG_COMPARISON_CANDIDATES
+        value: 100
+      - key: RAG_COMPARISON_ANCHORS
+        value: 8
+      - key: RAG_COMPARISON_CONTEXTS
+        value: 10
+      - key: RAG_COMPARISON_CONTEXT_TOKENS
+        value: 7000
+      - key: RAG_OVERVIEW_CANDIDATES
+        value: 120
+      - key: RAG_OVERVIEW_ANCHORS
+        value: 8
+      - key: RAG_OVERVIEW_CONTEXTS
+        value: 12
+      - key: RAG_OVERVIEW_CONTEXT_TOKENS
+        value: 8000
+      - key: RAG_TEMPORAL_CANDIDATES
+        value: 120
+      - key: RAG_TEMPORAL_ANCHORS
+        value: 8
+      - key: RAG_TEMPORAL_CONTEXTS
+        value: 12
+      - key: RAG_TEMPORAL_CONTEXT_TOKENS
+        value: 8000
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -111,7 +205,7 @@ services:
       - key: INGEST_BATCH_SIZE
         value: 24
       - key: RAG_INDEX_VERSION
-        value: 3
+        value: 4
       - key: CELERY_BROKER_URL
         sync: false
       - key: CELERY_VISIBILITY_TIMEOUT_SECONDS

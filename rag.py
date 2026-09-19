@@ -61,6 +61,7 @@ from prompts import answer_is_abstention, answer_with_gemini, format_history, re
 from rag_errors import RagError
 from repositories import DocumentRepository
 from retrieval import (
+    cited_source_payload,
     chunk_row,
     embed_query,
     embed_text,

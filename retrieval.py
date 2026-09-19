@@ -2,8 +2,10 @@ import math
 import os
 import re
 from collections import Counter
+from dataclasses import dataclass
 from datetime import date
 
+from chunking import count_tokens
 from documents import extract_legal_identifiers
 from repositories import DocumentRepository
 from services.gemini import gemini_client
@@ -42,6 +44,36 @@ STOP_WORDS = {
 }
 
 
+@dataclass(frozen=True)
+class RetrievalPlan:
+    """Bound retrieval breadth separately from the final prompt size."""
+
+    shape: str
+    candidate_count: int
+    anchor_count: int
+    context_count: int
+    context_token_budget: int
+
+
+RETRIEVAL_DEFAULTS: dict[str, tuple[int, int, int, int]] = {
+    "direct": (50, 4, 5, 3_000),
+    "procedure": (80, 6, 8, 5_000),
+    "comparison": (100, 8, 10, 7_000),
+    "overview": (120, 8, 12, 8_000),
+    "temporal": (120, 8, 12, 8_000),
+}
+
+
+def uses_embedding_2() -> bool:
+    return os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2") == "gemini-embedding-2"
+
+
+def embedding_query_text(text: str) -> str:
+    if not uses_embedding_2():
+        return text
+    return f"task: question answering | query: {text.strip()}"
+
+
 def normalize_embedding(values: list[float]) -> list[float]:
     magnitude = sum(value * value for value in values) ** 0.5
     if magnitude == 0:
@@ -58,15 +90,18 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 
 
 def embed_query(text: str) -> list[float]:
-    return normalize_embedding(gemini_client.embed(text, "RETRIEVAL_QUERY"))
+    return normalize_embedding(gemini_client.embed(embedding_query_text(text), "RETRIEVAL_QUERY"))
+
+
+def embed_queries(texts: list[str]) -> list[list[float]]:
+    prepared = [embedding_query_text(text) for text in texts]
+    return [normalize_embedding(values) for values in gemini_client.embed_many(prepared, "RETRIEVAL_QUERY")]
 
 
 def embedding_text(chunk: dict) -> str:
     metadata = chunk.get("metadata") or {}
-    lines = [
-        f"Document: {metadata.get('title') or chunk.get('source', '')}",
-        f"Document type: {metadata.get('document_type', 'document')}",
-    ]
+    title = metadata.get("title") or chunk.get("source", "")
+    lines = [f"Document type: {metadata.get('document_type', 'document')}"]
     if metadata.get("authority"):
         lines.append(f"Authority: {metadata['authority']}")
     if chunk.get("section_heading"):
@@ -76,9 +111,47 @@ def embedding_text(chunk: dict) -> str:
     )
     if identifiers:
         lines.append(f"Legal identifiers: {', '.join(identifiers[:20])}")
-    lines.append("")
     lines.append(chunk["content"])
-    return "\n".join(lines)
+    body = "\n".join(lines)
+    if uses_embedding_2():
+        return f"title: {title} | text: {body}"
+    return f"Document: {title}\n{body}"
+
+
+def retrieval_plan(question: str, options: dict | None = None, top_k: int | None = None) -> RetrievalPlan:
+    options = options or {}
+    shape = retrieval_shape(question)
+    candidates, anchors, contexts, token_budget = RETRIEVAL_DEFAULTS[shape]
+    prefix = shape.upper()
+    candidates = int(os.getenv(f"RAG_{prefix}_CANDIDATES", str(candidates)))
+    anchors = int(os.getenv(f"RAG_{prefix}_ANCHORS", str(anchors)))
+    contexts = int(os.getenv(f"RAG_{prefix}_CONTEXTS", str(contexts)))
+    token_budget = int(os.getenv(f"RAG_{prefix}_CONTEXT_TOKENS", str(token_budget)))
+
+    explicit_k = top_k if top_k is not None else options.get("top_k")
+    if explicit_k is not None:
+        anchors = int(explicit_k)
+        contexts = int(explicit_k)
+    candidates = int(options.get("candidate_count", candidates))
+    contexts = int(options.get("context_count", contexts))
+    token_budget = int(options.get("context_token_budget", token_budget))
+    return RetrievalPlan(
+        shape=shape,
+        candidate_count=max(anchors, candidates),
+        anchor_count=max(1, anchors),
+        context_count=max(anchors, contexts),
+        context_token_budget=max(256, token_budget),
+    )
+
+
+def retrieval_shape(question: str) -> str:
+    normalized = " ".join(question.lower().split())
+    if historical_question(question) or re.search(
+        r"\b(?:amend(?:ed|ment)?|supersed(?:e|ed|ing)|repeal(?:ed)?|latest|current(?:ly)?|as of|in force)\b",
+        normalized,
+    ):
+        return "temporal"
+    return classify_question_shape(question)
 
 
 def retrieve(
@@ -89,37 +162,131 @@ def retrieve(
 ) -> list[dict]:
     repository = repository or DocumentRepository()
     options = options or {}
-    k = top_k or int(options.get("top_k") or os.getenv("TOP_K", "3"))
-    candidate_count = max(k, int(options.get("candidate_count", os.getenv("RETRIEVAL_CANDIDATES", "40"))))
-    query_embedding = embed_query(question)
-    rows = repository.match_chunks(query_embedding, question, candidate_count)
+    plan = retrieval_plan(question, options, top_k)
+    queries = retrieval_queries(
+        question,
+        enabled=bool(options.get("multi_query", env_bool("RAG_MULTI_QUERY", True))),
+    )
+    rows_by_id: dict[str, dict] = {}
+    fusion_by_id: dict[str, dict] = {}
+    query_embeddings = embed_queries(queries) if len(queries) > 1 else [embed_query(queries[0])]
+    for query, query_embedding in zip(queries, query_embeddings, strict=True):
+        query_rows = repository.match_chunks(query_embedding, query, plan.candidate_count)
+        for query_rank, row in enumerate(query_rows):
+            merge_retrieval_row(rows_by_id, fusion_by_id, row, query_rank)
     # An amendment may use the rule identifier rather than the user's wording.
     # Search for updates as well before truncating to the final context window.
     identifiers = extract_legal_identifiers(question)
     if identifiers and not historical_question(question):
         update_query = f"{question} {' '.join(identifiers[:5])} amendment supersession latest update"
-        update_rows = repository.match_chunks(embed_query(update_query), update_query, candidate_count)
-        seen = {row['id'] for row in rows}
-        rows = [*rows, *(row for row in update_rows if row['id'] not in seen)]
-    candidates = rerank_candidates(question, [context_from_row(row, rank) for rank, row in enumerate(rows)])
+        update_rows = repository.match_chunks(embed_query(update_query), update_query, plan.candidate_count)
+        for update_rank, row in enumerate(update_rows):
+            merge_retrieval_row(rows_by_id, fusion_by_id, row, update_rank)
+    candidates = rerank_candidates(
+        question,
+        [
+            context_from_row(row, fusion_by_id[row_id]["best_rank"], fusion_by_id[row_id])
+            for row_id, row in rows_by_id.items()
+        ],
+    )
     minimum_score = float(options.get("min_context_score", min_context_score()))
     candidates = [candidate for candidate in candidates if candidate_strength(candidate) >= minimum_score]
     anchors = diversify_contexts(
         candidates,
-        k,
+        plan.anchor_count,
         max_per_source=int(options.get("max_per_source", os.getenv("RETRIEVAL_MAX_PER_SOURCE", "0"))),
         duplicate_threshold=float(options.get("duplicate_threshold", os.getenv("RETRIEVAL_DUPLICATE_THRESHOLD", "0.82"))),
     )
-    return expand_neighbors(
+    expanded = expand_neighbors(
         anchors,
         candidates,
         repository,
-        k,
+        plan.context_count,
         enabled=bool(options.get("expand_neighbors", env_bool("RETRIEVAL_EXPAND_NEIGHBORS", True))),
     )
+    return pack_contexts(expanded, plan.context_count, plan.context_token_budget)
 
 
-def context_from_row(row: dict, rank: int | None = None) -> dict:
+def merge_retrieval_row(
+    rows_by_id: dict[str, dict],
+    fusion_by_id: dict[str, dict],
+    row: dict,
+    rank: int,
+) -> None:
+    row_id = row["id"]
+    state = fusion_by_id.setdefault(row_id, {"best_rank": rank, "query_hits": 0, "rrf_score": 0.0})
+    state["best_rank"] = min(state["best_rank"], rank)
+    state["query_hits"] += 1
+    state["rrf_score"] += 1.0 / (60 + rank + 1)
+    current = rows_by_id.get(row_id)
+    if current is None or float(row.get("similarity") or 0) > float(current.get("similarity") or 0):
+        rows_by_id[row_id] = row
+
+
+def classify_question_shape(question: str) -> str:
+    """Classify only the answer depth needed; legal/temporal intent is handled elsewhere."""
+    normalized = " ".join(question.lower().split())
+    # Comparison takes precedence even when the wording also contains "how" or "procedure".
+    if re.search(r"\b(?:compare|difference|versus|vs\.?|distinguish)\b", normalized):
+        return "comparison"
+    overview_patterns = (
+        r"\bwhat are (?:all )?(?:the )?(?:application )?(?:provisions|rules|requirements|guidelines|conditions)\b",
+        r"\b(?:give|provide|explain|summari[sz]e) (?:me )?(?:an? )?(?:overview|complete overview)\b",
+        r"\b(?:overview|framework) (?:of|for|on)\b",
+        r"\bhow does .+ work\b",
+    )
+    if any(re.search(pattern, normalized) for pattern in overview_patterns):
+        return "overview"
+    if re.search(r"\b(?:procedure|process|steps?|checklist)\b", normalized):
+        return "procedure"
+    if re.search(r"^(?:please )?(?:help me |i (?:want|need) to )?apply\b|\b(?:walk me through|guide me|applying for)\b", normalized):
+        return "procedure"
+    # "How much is the application fee?" is a lookup, not a workflow.
+    # Preserve workflow classification for "How do I apply?" and mixed questions.
+    if re.search(r"\bhow\b(?!\s+(?:much|many|long|often|old|far|soon)\b)", normalized):
+        return "procedure"
+    return "direct"
+
+
+def is_narrow_lookup(question: str) -> bool:
+    """Only clear factual lookups can avoid count-based model escalation."""
+    normalized = " ".join(question.lower().split())
+    if classify_question_shape(question) != "direct":
+        return False
+    if re.search(r"\b(?:and|why|explain|analy[sz]e|relationship|implications?|detail(?:ed)?|all)\b", normalized):
+        return False
+    return bool(re.match(
+        r"(?:how (?:much|many|long|often|old|far|soon)\b|who\b|when\b|where\b|"
+        r"what (?:is|are) (?:the )?(?:application )?(?:fee|fees|rate|amount|deadline|duration|"
+        r"validity|date|authority|form|definition|meaning)\b|define\b)",
+        normalized,
+    ))
+
+
+def retrieval_queries(question: str, *, enabled: bool = True) -> list[str]:
+    """Expand broad questions into bounded evidence facets without introducing answer facts."""
+    if not enabled or classify_question_shape(question) != "overview":
+        return [question]
+    facets = (
+        "governing rule scope definitions prior approval",
+        "requirements procedure application authority consent",
+        "conditions consequences levies fees exceptions special cases limitations violations penalties",
+    )
+    max_queries = max(1, int(os.getenv("RAG_MULTI_QUERY_MAX", "4")))
+    return [question, *(f"{question} {facet}" for facet in facets[: max_queries - 1])]
+
+
+def context_from_row(row: dict, rank: int | None = None, fusion: dict | None = None) -> dict:
+    metadata = row.get("metadata") or {}
+    if fusion:
+        metadata = {
+            **metadata,
+            "retrieval_fusion": {
+                "query_hits": fusion["query_hits"],
+                "best_rank": fusion["best_rank"],
+                "rrf_score": round(fusion["rrf_score"], 6),
+            },
+        }
     return {
         "id": row["id"],
         "document_id": row["document_id"],
@@ -130,7 +297,8 @@ def context_from_row(row: dict, rank: int | None = None) -> dict:
         "page_start": row["page_start"],
         "page_end": row["page_end"],
         "text": row["content"],
-        "metadata": row.get("metadata") or {},
+        "token_estimate": row.get("token_estimate"),
+        "metadata": metadata,
         "base_score": float(row.get("similarity") or 0),
         "score": float(row.get("similarity") or 0),
         "hybrid_rank": rank,
@@ -182,6 +350,8 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
             age_years = (today - document_date).days / 365.25
             recency_boost = 0.03 / (1.0 + age_years / 5.0)
         base_score = max(0.0, min(1.0, candidate["base_score"]))
+        fusion = metadata.get("retrieval_fusion") or {}
+        fusion_boost = min(0.03, max(0, int(fusion.get("query_hits") or 1) - 1) * 0.01)
         noise_penalty = 0.12 if looks_like_noise(candidate.get("text") or "") else 0.0
         boost = (
             (0.04 * lexical)
@@ -190,6 +360,7 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
             + (0.02 * year_match)
             + (0.01 * intent_match)
             + recency_boost
+            + fusion_boost
         )
         rerank_score = base_score + boost - min(noise_penalty, 0.08)
         candidate["score"] = max(0.0, min(1.0, rerank_score))
@@ -202,6 +373,7 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
                 "field_overlap": round(field_overlap, 6),
                 "year_match": round(year_match, 6),
                 "recency_boost": round(recency_boost, 6),
+                "fusion_boost": round(fusion_boost, 6),
                 "applicable_date": document_date.isoformat() if document_date else None,
                 "boost": round(boost, 6),
                 "noise_penalty": noise_penalty,
@@ -234,12 +406,15 @@ def diversify_contexts(
         else duplicate_threshold
     )
     deferred = []
+    selective = env_bool("RAG_COST_OPTIMIZATIONS", True) and env_bool("RAG_SELECTIVE_EVIDENCE", True)
 
     for candidate in candidates:
+        if selective and any(evidence_contains(item, candidate) for item in selected):
+            continue
         if max_per_source > 0 and source_counts[candidate["source"]] >= max_per_source:
             deferred.append(candidate)
             continue
-        if any(text_similarity(candidate["text"], item["text"]) >= duplicate_threshold for item in selected):
+        if not selective and any(text_similarity(candidate["text"], item["text"]) >= duplicate_threshold for item in selected):
             deferred.append(candidate)
             continue
         selected.append(candidate)
@@ -248,11 +423,33 @@ def diversify_contexts(
             return selected
 
     for candidate in deferred:
+        if selective and any(evidence_contains(item, candidate) for item in selected):
+            continue
         if candidate["id"] not in {item["id"] for item in selected}:
             selected.append(candidate)
         if len(selected) >= limit:
             break
     return selected
+
+
+def evidence_contains(existing: dict, candidate: dict) -> bool:
+    """Only remove verbatim redundancy within a known document and section.
+
+    Similar wording alone cannot establish equivalence of legal provisions.
+    Keep provenance/date variants, including identical rules in different documents.
+    """
+    if not existing.get("document_id") or not existing.get("section_heading"):
+        return False
+    fields = ("document_id", "source", "section_heading")
+    if any(existing.get(field) != candidate.get(field) for field in fields):
+        return False
+    left_meta, right_meta = temporal_metadata(existing), temporal_metadata(candidate)
+    if any(left_meta.get(field) != right_meta.get(field) for field in ("issued_date", "effective_date")):
+        return False
+    left = " ".join((existing.get("text") or "").split())
+    right = " ".join((candidate.get("text") or "").split())
+    # Preserve case, punctuation and boundaries; 100 must not match 1000.
+    return bool(right and re.search(r"(?<!\w)" + re.escape(right) + r"(?!\w)", left))
 
 
 def expand_neighbors(
@@ -265,11 +462,12 @@ def expand_neighbors(
     enabled = env_bool("RETRIEVAL_EXPAND_NEIGHBORS", True) if enabled is None else enabled
     if not anchors or not enabled or not hasattr(repository, "neighbor_chunks"):
         return anchors[:limit]
-    if len(anchors) >= limit:
-        return anchors[:limit]
 
     anchor_limit = max(1, min(len(anchors), math.ceil(limit * 0.6)))
     pool = list(anchors)
+    selective = env_bool("RAG_COST_OPTIMIZATIONS", True) and env_bool("RAG_SELECTIVE_EVIDENCE", True)
+    if selective and len(pool) >= limit:
+        return pool[:limit]
     seen_ids = {context["id"] for context in pool}
     for anchor in anchors[:anchor_limit]:
         for row in repository.neighbor_chunks(anchor["document_id"], anchor["chunk_index"], radius=1):
@@ -282,14 +480,41 @@ def expand_neighbors(
                 **neighbor["metadata"],
                 "retrieval": {"expanded_from_chunk": anchor["chunk_index"]},
             }
+            if selective and any(evidence_contains(item, neighbor) for item in pool):
+                continue
             pool.append(neighbor)
             seen_ids.add(neighbor["id"])
-            if len(pool) >= limit:
+            if not selective and len(pool) >= limit:
                 break
-        if len(pool) >= limit:
+        if not selective and len(pool) >= limit:
             break
 
+    if selective:
+        # All direct matches retain priority. Among adjacent passages, protect
+        # qualifications before spending the remaining slots on generic context.
+        neighbors = pool[len(anchors):]
+        neighbors.sort(key=lambda item: (
+            bool(re.search(r"\b(?:except|exception|unless|provided|notwithstanding|exempt|subject to|"
+                           r"amend(?:ed|ment)?|supersed(?:ed|es)?|repeal(?:ed)?)\b", item["text"], re.I)),
+            item["score"],
+        ), reverse=True)
+        pool = [*anchors, *neighbors]
     return pool[:limit]
+
+
+def pack_contexts(contexts: list[dict], limit: int, token_budget: int) -> list[dict]:
+    """Keep ranked evidence within a predictable prompt budget."""
+    selected: list[dict] = []
+    used_tokens = 0
+    for context in contexts:
+        token_estimate = int(context.get("token_estimate") or count_tokens(context.get("text") or ""))
+        if selected and used_tokens + token_estimate > token_budget:
+            continue
+        selected.append(context)
+        used_tokens += token_estimate
+        if len(selected) >= limit or used_tokens >= token_budget:
+            break
+    return selected
 
 
 def retrieval_confidence(contexts: list[dict]) -> float:
@@ -373,6 +598,7 @@ def format_source(record: dict) -> str:
 def source_payload(contexts: list[dict]) -> list[dict]:
     return [
         {
+            "citation_number": index,
             "document_id": str(ctx["document_id"]),
             "source": ctx["source"],
             "display_source": format_source(ctx),
@@ -384,8 +610,18 @@ def source_payload(contexts: list[dict]) -> list[dict]:
             "evidence_role": ctx.get("evidence_role", "matched"),
             "text": ctx["text"],
         }
-        for ctx in contexts
+        for index, ctx in enumerate(contexts, start=1)
     ]
+
+
+def cited_source_payload(answer: str, contexts: list[dict]) -> list[dict]:
+    cited_numbers = {
+        int(value)
+        for citation in re.findall(r"\[((?:\d+\s*,\s*)*\d+)\]", answer)
+        for value in re.findall(r"\d+", citation)
+        if 1 <= int(value) <= len(contexts)
+    }
+    return [source for source in source_payload(contexts) if source["citation_number"] in cited_numbers]
 
 
 def chunk_row(document_id: str, chunk: dict) -> dict:
@@ -404,5 +640,29 @@ def chunk_row(document_id: str, chunk: dict) -> dict:
     }
 
 
-def generate_with_gemini(prompt: str) -> str:
-    return gemini_client.generate(prompt)
+def generate_with_gemini(
+    prompt: str,
+    *,
+    operation: str = "answer_direct",
+    system_instruction: str | None = None,
+) -> str:
+    return gemini_client.generate(
+        prompt,
+        operation=operation,
+        system_instruction=system_instruction,
+    )
+
+
+def generate_structured_with_gemini(
+    prompt: str,
+    schema: dict,
+    *,
+    operation: str,
+    system_instruction: str | None = None,
+) -> dict:
+    return gemini_client.generate_structured(
+        prompt,
+        schema,
+        operation=operation,
+        system_instruction=system_instruction,
+    )

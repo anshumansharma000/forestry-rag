@@ -486,14 +486,43 @@ PROCEDURE_CHUNK_TOKENS=600
 PROCEDURE_CHUNK_OVERLAP_TOKENS=120
 PROCEDURE_UNIT_TOKENS=260
 
-TOP_K=3
-RETRIEVAL_CANDIDATES=40
+RAG_DIRECT_CANDIDATES=50
+RAG_DIRECT_ANCHORS=4
+RAG_DIRECT_CONTEXTS=5
+RAG_DIRECT_CONTEXT_TOKENS=3000
+RAG_PROCEDURE_CANDIDATES=80
+RAG_PROCEDURE_ANCHORS=6
+RAG_PROCEDURE_CONTEXTS=8
+RAG_PROCEDURE_CONTEXT_TOKENS=5000
+RAG_COMPARISON_CANDIDATES=100
+RAG_COMPARISON_ANCHORS=8
+RAG_COMPARISON_CONTEXTS=10
+RAG_COMPARISON_CONTEXT_TOKENS=7000
+RAG_OVERVIEW_CANDIDATES=120
+RAG_OVERVIEW_ANCHORS=8
+RAG_OVERVIEW_CONTEXTS=12
+RAG_OVERVIEW_CONTEXT_TOKENS=8000
+RAG_TEMPORAL_CANDIDATES=120
+RAG_TEMPORAL_ANCHORS=8
+RAG_TEMPORAL_CONTEXTS=12
+RAG_TEMPORAL_CONTEXT_TOKENS=8000
 RETRIEVAL_MAX_PER_SOURCE=0
 RETRIEVAL_DUPLICATE_THRESHOLD=0.82
 RETRIEVAL_EXPAND_NEIGHBORS=true
 RETRIEVAL_MIN_CONTEXT_SCORE=0.0
 RETRIEVAL_CONFIDENCE_THRESHOLD=0.01
-RAG_INDEX_VERSION=3
+RAG_MULTI_QUERY=true
+RAG_MULTI_QUERY_MAX=4
+RAG_EVIDENCE_PLANNING=true
+RAG_ANSWER_VERIFICATION=true
+GEMINI_DIRECT_MODEL=gemini-3.5-flash-lite
+GEMINI_COMPLEX_MODEL=gemini-3.8-flash
+GEMINI_UTILITY_MODEL=gemini-3.5-flash-lite
+GEMINI_VERIFICATION_MODEL=gemini-3.5-flash-lite
+GEMINI_DIRECT_THINKING_LEVEL=minimal
+GEMINI_COMPLEX_THINKING_LEVEL=medium
+GEMINI_COMPLEX_HIGH_THINKING_LEVEL=high
+RAG_INDEX_VERSION=4
 ```
 
 For this use case, the regular section chunk size is intentionally moderate. Rules and circulars often need enough context to include exceptions, amendments, and conditions, but very large chunks reduce retrieval precision. FAQ chunks are allowed a little more room because question text is repeated for context. Procedure chunks are larger and have more overlap because a complete answer often depends on neighboring steps. `MAX_UNIT_TOKENS`, `FAQ_UNIT_TOKENS`, and `PROCEDURE_UNIT_TOKENS` keep individual sentence/clause/step units manageable before they are packed into retrieval chunks. The defaults are a practical starting point, not a final production setting.
@@ -502,13 +531,29 @@ For this use case, the regular section chunk size is intentionally moderate. Rul
 
 Retrieval is a multi-stage hybrid pipeline:
 
-- The API embeds the user question or rewritten chat search query with Gemini.
+- The API embeds the user question or rewritten chat search query with Gemini. Broad overview questions are expanded into
+  bounded rule, procedure, consequence, exception, and enforcement facets and embedded in one batch.
 - Supabase returns a broad candidate set using pgvector similarity plus PostgreSQL English full-text search over `source`, `section_heading`, and `content`.
 - A conservative deterministic reranker keeps the database hybrid score as the dominant signal, then adds small boosts for lexical overlap, exact legal identifiers, years, document titles, section headings, and question intent while penalizing likely table-of-contents noise.
-- Results suppress near-duplicate chunks. Neighboring chunks are added only when there are open context slots, so nearby context does not displace stronger direct matches.
+- Adaptive profiles choose candidate, anchor, final-context, and token budgets based on question shape. Results suppress near-duplicate chunks, then add neighboring chunks without displacing stronger anchors.
 - Low-confidence evidence causes the answer layer to abstain. Generated answers must contain valid citations or they are rejected as unsupported.
 
-Embeddings include document title, document type, authority, section heading, legal identifiers, and chunk content. `RAG_INDEX_VERSION` controls automatic reindexing when this representation changes. After deploying a new index version, run `POST /ingest`; documents indexed with an older version will be rebuilt.
+Broad, procedural, and comparison questions receive an evidence-planning pass before final writing. The final compiler
+groups related excerpts, ranks core rules ahead of adjacent material, adapts the Markdown structure to the question, and
+uses short, spaced paragraphs and scannable lists instead of dense text blocks. It ends supported answers with a brief
+evidence-grounded follow-up direction. Direct factual questions use Gemini 3.5 Flash-Lite with minimal thinking; procedure,
+comparison, overview, amendment, conflict, and historical synthesis use Gemini 3.8 Flash with medium or high thinking.
+A structured verification pass checks the draft against its cited excerpts and corrects or rejects
+unsupported claims. Source responses include stable `citation_number` values; `cited_sources` contains the subset actually
+cited while `sources` retains the complete context set for compatibility and debugging.
+
+Token optimizations distinguish factual lookups (including application fees and permit durations) from procedures,
+keep those lookups on Flash-Lite, shorten repeated instructions, and give concise answers without truncating qualifications.
+First-message rewrites are skipped, exact repeated evidence is referenced once, and unchanged drafts receive compact
+verification approvals. Rejected Lite audits get one full-evidence recheck by the complex model before abstaining. See
+[token efficiency and quality validation](docs/token_efficiency.md) for usage logs, testing, and the verification rollback flag.
+
+Gemini Embedding 2 inputs use its retrieval convention: queries are prefixed with `task: question answering | query:` and chunks use `title: ... | text: ...`. The chunk text includes document type, authority, section heading, legal identifiers, and content. `RAG_INDEX_VERSION` controls automatic reindexing when this representation changes. After deploying a new index version, run `POST /ingest`; documents indexed with an older version will be rebuilt.
 
 `score` in source responses is the final reranked score, not raw cosine similarity. `evidence_role` is `matched` for directly retrieved chunks and `neighbor` for adjacent context.
 
@@ -521,3 +566,8 @@ Current questions receive a bounded recency boost (at most 0.03) for dated, rele
 The answer prompt receives issue/effective dates and instructs the model to prioritize the latest applicable provision, preserve unchanged older provisions, respect historical dates, and disclose unresolved conflicts. This is a relevance-based retrieval improvement, not an exhaustive amendment registry: updates can still be missed, and newer dates alone do not prove supersession.
 
 Existing chunks immediately benefit from the prompt and can recover explicitly labelled dates from their own text. To propagate document-level dates to every chunk, refresh each existing document with `POST /ingest` and `{"source":"<filename>"}`. No database migration is needed. An ordinary corpus ingestion may skip already-indexed documents; the explicit source refresh rebuilds them. The changes do not automatically re-ingest stored documents.
+
+### Cost policy
+
+See [cost policy and rollout](docs/cost_policy.md) for selective planning, verbatim history selection, per-stage USD/INR
+cost estimates, the advisory ₹1.50 threshold, live quality comparisons, deployment-version checks, and rollback flags.

@@ -1,0 +1,1067 @@
+{
+  "scope": "Synthetic fixed-evidence smoke test; one sample per mode, not production quality parity.",
+  "cases": [
+    {
+      "id": "small_procedure",
+      "question": "How do I apply for a timber transit permit?",
+      "contexts": [
+        {
+          "source": "synthetic-rules.txt",
+          "document_id": "synthetic-one",
+          "chunk_index": 0,
+          "text": "Synthetic Green State rules, effective 1 January 2024: A timber transit permit costs INR 1,000. Bamboo permits are fee-exempt but still require approval. To apply, submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transport. Permits are valid for 30 days and cannot be renewed.",
+          "score": 0.9,
+          "base_score": 0.9,
+          "evidence_role": "matched"
+        }
+      ],
+      "checks": [
+        "form a",
+        "ownership",
+        "district forest officer",
+        "1,000",
+        "approval"
+      ]
+    },
+    {
+      "id": "fee_exception",
+      "question": "How do I apply for a bamboo permit?",
+      "contexts": [
+        {
+          "source": "synthetic-rules.txt",
+          "document_id": "synthetic-one",
+          "chunk_index": 0,
+          "text": "Synthetic Green State rules, effective 1 January 2024: A timber transit permit costs INR 1,000. Bamboo permits are fee-exempt but still require approval. To apply, submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transport. Permits are valid for 30 days and cannot be renewed.",
+          "score": 0.9,
+          "base_score": 0.9,
+          "evidence_role": "matched"
+        }
+      ],
+      "checks": [
+        "form a",
+        "exempt",
+        "approval"
+      ]
+    },
+    {
+      "id": "overview",
+      "question": "What are the provisions for timber transit permits?",
+      "contexts": [
+        {
+          "source": "synthetic-rules.txt",
+          "document_id": "synthetic-one",
+          "chunk_index": 0,
+          "text": "Synthetic Green State rules, effective 1 January 2024: A timber transit permit costs INR 1,000. Bamboo permits are fee-exempt but still require approval. To apply, submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transport. Permits are valid for 30 days and cannot be renewed.",
+          "score": 0.9,
+          "base_score": 0.9,
+          "evidence_role": "matched"
+        }
+      ],
+      "checks": [
+        "form a",
+        "1,000",
+        "30",
+        "renew"
+      ]
+    },
+    {
+      "id": "long_chat",
+      "question": "How do I apply, and what exception affects the fee?",
+      "contexts": [
+        {
+          "source": "synthetic-rules.txt",
+          "document_id": "synthetic-one",
+          "chunk_index": 0,
+          "text": "Synthetic Green State rules, effective 1 January 2024: A timber transit permit costs INR 1,000. Bamboo permits are fee-exempt but still require approval. To apply, submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transport. Permits are valid for 30 days and cannot be renewed.",
+          "score": 0.9,
+          "base_score": 0.9,
+          "evidence_role": "matched"
+        }
+      ],
+      "history": [
+        {
+          "role": "user",
+          "content": "Use Green State rules as of 2024 for my timber transit permit. Answer in English."
+        },
+        {
+          "role": "assistant",
+          "content": "First condition: Submit Form A with proof of ownership. Second: Obtain approval before transport."
+        },
+        {
+          "role": "user",
+          "content": "Separately, tell me about nursery inspections."
+        },
+        {
+          "role": "assistant",
+          "content": "Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. "
+        },
+        {
+          "role": "user",
+          "content": "Now explain biodiversity surveys."
+        },
+        {
+          "role": "assistant",
+          "content": "Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. "
+        },
+        {
+          "role": "user",
+          "content": "Return to my timber transit permit under those earlier rules."
+        },
+        {
+          "role": "assistant",
+          "content": "Returning to your timber transit permit under Green State rules as of 2024."
+        }
+      ],
+      "checks": [
+        "form a",
+        "ownership",
+        "1,000",
+        "bamboo",
+        "exempt"
+      ]
+    },
+    {
+      "id": "earlier_quote",
+      "question": "Quote the first condition you listed earlier exactly.",
+      "contexts": [
+        {
+          "source": "synthetic-rules.txt",
+          "document_id": "synthetic-one",
+          "chunk_index": 0,
+          "text": "Synthetic Green State rules, effective 1 January 2024: A timber transit permit costs INR 1,000. Bamboo permits are fee-exempt but still require approval. To apply, submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transport. Permits are valid for 30 days and cannot be renewed.",
+          "score": 0.9,
+          "base_score": 0.9,
+          "evidence_role": "matched"
+        }
+      ],
+      "history": [
+        {
+          "role": "user",
+          "content": "Use Green State rules as of 2024 for my timber transit permit. Answer in English."
+        },
+        {
+          "role": "assistant",
+          "content": "First condition: Submit Form A with proof of ownership. Second: Obtain approval before transport."
+        },
+        {
+          "role": "user",
+          "content": "Separately, tell me about nursery inspections."
+        },
+        {
+          "role": "assistant",
+          "content": "Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. Nursery inspection notes are unrelated to transit permit applications. "
+        },
+        {
+          "role": "user",
+          "content": "Now explain biodiversity surveys."
+        },
+        {
+          "role": "assistant",
+          "content": "Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. Biodiversity surveys record species and habitats; this topic is separate from permits. "
+        },
+        {
+          "role": "user",
+          "content": "Return to my timber transit permit under those earlier rules."
+        },
+        {
+          "role": "assistant",
+          "content": "Returning to your timber transit permit under Green State rules as of 2024."
+        }
+      ],
+      "checks": [
+        "submit form a with proof of ownership"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "case": "small_procedure",
+      "mode": "baseline",
+      "answer": "To apply for a timber transit permit under the Synthetic Green State rules, an applicant must submit Form A, provide the required documentation, and secure official approval prior to transport [1]. A timber transit permit costs an applicable fee of INR 1,000 [1].\n\nThe application procedure requires the following steps:\n\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable fee of INR 1,000 [1].\n3. Obtain official approval before transporting the timber [1].\n\nPermits are valid for 30 days from issuance and cannot be renewed [1]. \n\nPlease verify that your planned transit can be completed within the non-renewable 30-day validity window [1].",
+      "resolved_query": "How do I apply for a timber transit permit?",
+      "selected_history_indices": [],
+      "checks": {
+        "form a": true,
+        "ownership": true,
+        "district forest officer": true,
+        "1,000": true,
+        "approval": true
+      },
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 226,
+            "candidatesTokenCount": 242,
+            "totalTokenCount": 468,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 226
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0006728,
+          "estimated_cost_inr": 0.060552,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 987,
+            "candidatesTokenCount": 159,
+            "totalTokenCount": 1591,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 987
+              }
+            ],
+            "thoughtsTokenCount": 445,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00300525,
+          "estimated_cost_inr": 0.2704725,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 539,
+            "candidatesTokenCount": 199,
+            "totalTokenCount": 738,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 539
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0006592000000000001,
+          "estimated_cost_inr": 0.059328000000000006,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1752,
+        "candidatesTokenCount": 600,
+        "thoughtsTokenCount": 445,
+        "totalTokenCount": 2797
+      },
+      "estimated_cost_inr": 0.3903525
+    },
+    {
+      "case": "small_procedure",
+      "mode": "optimized",
+      "answer": "To obtain a timber transit permit, an applicant must file the designated application materials, pay the mandatory fee, and secure formal approval prior to transporting timber [1].\n\nThe application procedure entails the following steps:\n\n1. **Submit documentation:** File Form A accompanied by proof of ownership with the District Forest Officer [1].\n2. **Pay the fee:** Pay the applicable permit fee of INR 1,000 [1].\n3. **Obtain approval:** Secure official approval before initiating transport [1].\n\nOnce granted, the timber transit permit remains valid for 30 days and cannot be renewed [1].\n\nPlease indicate if you need further clarification regarding permit validity periods or the approval requirements prior to transport.",
+      "resolved_query": "How do I apply for a timber transit permit?",
+      "selected_history_indices": [],
+      "checks": {
+        "form a": true,
+        "ownership": true,
+        "district forest officer": true,
+        "1,000": true,
+        "approval": true
+      },
+      "calls": [
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 798,
+            "candidatesTokenCount": 147,
+            "totalTokenCount": 1349,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 798
+              }
+            ],
+            "thoughtsTokenCount": 404,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00266475,
+          "estimated_cost_inr": 0.2398275,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 527,
+            "candidatesTokenCount": 187,
+            "totalTokenCount": 714,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 527
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0006256,
+          "estimated_cost_inr": 0.056304,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1325,
+        "candidatesTokenCount": 334,
+        "thoughtsTokenCount": 404,
+        "totalTokenCount": 2063
+      },
+      "estimated_cost_inr": 0.2961315
+    },
+    {
+      "case": "fee_exception",
+      "mode": "baseline",
+      "answer": "To apply for a bamboo permit, you must submit an application and obtain approval prior to transport, though bamboo permits are fee-exempt [1].\n\n**Governing Requirement**\nUnder the Synthetic Green State rules, bamboo permits require approval before any transport takes place, but they are fee-exempt [1]. Once granted, permits remain valid for 30 days and cannot be renewed [1].\n\n**Application Steps**\n1. **Submit documentation:** File Form A along with proof of ownership to the District Forest Officer [1].\n2. **Fee exemption:** As bamboo permits are fee-exempt, no payment is required [1].\n3. **Obtain approval:** Secure approval prior to transporting the bamboo [1].\n\nPlease ensure Form A and your proof of ownership are fully prepared for submission to the District Forest Officer before transport begins [1].",
+      "resolved_query": "How do I apply for a bamboo permit?",
+      "selected_history_indices": [],
+      "checks": {
+        "form a": true,
+        "exempt": true,
+        "approval": true
+      },
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 225,
+            "candidatesTokenCount": 198,
+            "totalTokenCount": 423,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 225
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0005625,
+          "estimated_cost_inr": 0.050624999999999996,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 988,
+            "candidatesTokenCount": 183,
+            "totalTokenCount": 1383,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 988
+              }
+            ],
+            "thoughtsTokenCount": 212,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00222225,
+          "estimated_cost_inr": 0.20000249999999997,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 562,
+            "candidatesTokenCount": 85,
+            "totalTokenCount": 647,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 562
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00038110000000000005,
+          "estimated_cost_inr": 0.034299,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 562,
+            "candidatesTokenCount": 272,
+            "totalTokenCount": 2413,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 562
+              }
+            ],
+            "thoughtsTokenCount": 1579,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00736275,
+          "estimated_cost_inr": 0.6626475000000001,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2337,
+        "candidatesTokenCount": 738,
+        "thoughtsTokenCount": 1791,
+        "totalTokenCount": 4866
+      },
+      "estimated_cost_inr": 0.947574
+    },
+    {
+      "case": "fee_exception",
+      "mode": "optimized",
+      "answer": "To obtain a bamboo permit, you must secure approval prior to transport, although the permit itself is fee-exempt [1].\n\nUnder the applicable rules, the application procedure involves the following steps:\n\n1. **Submit application materials**: Submit Form A accompanied by proof of ownership to the District Forest Officer [1].\n2. **Fee exemption**: While timber transit permits cost INR 1,000, bamboo permits are fee-exempt [1].\n3. **Receive approval**: Obtain approval before transport [1].\n\nOnce issued, permits are valid for 30 days and cannot be renewed [1].\n\nPlease indicate if you need further details regarding permit validity limits or the requirements for Form A.",
+      "resolved_query": "How do I apply for a bamboo permit?",
+      "selected_history_indices": [],
+      "checks": {
+        "form a": true,
+        "exempt": true,
+        "approval": true
+      },
+      "calls": [
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 797,
+            "candidatesTokenCount": 148,
+            "totalTokenCount": 1290,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 797
+              }
+            ],
+            "thoughtsTokenCount": 345,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0024465,
+          "estimated_cost_inr": 0.220185,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 527,
+            "candidatesTokenCount": 78,
+            "totalTokenCount": 605,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 527
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0003531,
+          "estimated_cost_inr": 0.031779,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 527,
+            "candidatesTokenCount": 246,
+            "totalTokenCount": 1938,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 527
+              }
+            ],
+            "thoughtsTokenCount": 1165,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0056865,
+          "estimated_cost_inr": 0.5117849999999999,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1851,
+        "candidatesTokenCount": 472,
+        "thoughtsTokenCount": 1510,
+        "totalTokenCount": 3833
+      },
+      "estimated_cost_inr": 0.7637489999999999
+    },
+    {
+      "case": "overview",
+      "mode": "baseline",
+      "answer": "Under the Synthetic Green State rules effective 1 January 2024, a timber transit permit requires an application to the District Forest Officer, payment of an INR 1,000 fee, and approval prior to transport, remaining valid for a non-renewable period of 30 days [1].\n\n### Application Requirements and Fees\n\nTo secure a timber transit permit, an applicant must adhere to the following procedural requirements:\n* Submit Form A alongside proof of ownership to the District Forest Officer [1].\n* Pay the mandatory permit fee of INR 1,000 [1].\n* Secure formal approval prior to undertaking any transport [1].\n\nBy contrast, bamboo transit permits are fee-exempt, although they still require administrative approval [1].\n\n### Validity and Renewal Limitations\n\n* **Validity Period**: Timber transit permits are valid for 30 days [1].\n* **Renewal Prohibitions**: Permits cannot be renewed once granted [1].\n\nPlease indicate if you need further clarification regarding the submission of Form A or fee exemptions for other forest produce.",
+      "resolved_query": "What are the provisions for timber transit permits?",
+      "selected_history_indices": [],
+      "checks": {
+        "form a": true,
+        "1,000": true,
+        "30": true,
+        "renew": true
+      },
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 225,
+            "candidatesTokenCount": 389,
+            "totalTokenCount": 614,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 225
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00104,
+          "estimated_cost_inr": 0.09359999999999999,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1096,
+            "candidatesTokenCount": 219,
+            "totalTokenCount": 2386,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1096
+              }
+            ],
+            "thoughtsTokenCount": 1071,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0056595,
+          "estimated_cost_inr": 0.509355,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 599,
+            "candidatesTokenCount": 269,
+            "totalTokenCount": 868,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 599
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0008522,
+          "estimated_cost_inr": 0.076698,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1920,
+        "candidatesTokenCount": 877,
+        "thoughtsTokenCount": 1071,
+        "totalTokenCount": 3868
+      },
+      "estimated_cost_inr": 0.679653
+    },
+    {
+      "case": "overview",
+      "mode": "optimized",
+      "answer": "Under the Green State rules, obtaining a timber transit permit requires submitting an application to the District Forest Officer, paying a fee, and securing approval prior to transport, with the resulting permit valid for a non-renewable period of 30 days [1].\n\n### Fees and Validity\n\nA timber transit permit costs INR 1,000 [1]. Permits remain valid for 30 days from issuance and cannot be renewed [1].\n\n### Application and Approval Procedure\n\nTransit approval must be obtained before transporting timber [1]. The required steps are:\n\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable INR 1,000 fee [1].\n3. Obtain official approval prior to transport [1].\n\nPlease indicate if you would like additional details regarding the Form A filing process or permit validity conditions under these rules.",
+      "resolved_query": "What are the provisions for timber transit permits?",
+      "selected_history_indices": [],
+      "checks": {
+        "form a": true,
+        "1,000": true,
+        "30": true,
+        "renew": true
+      },
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 225,
+            "candidatesTokenCount": 288,
+            "totalTokenCount": 513,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 225
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0007875,
+          "estimated_cost_inr": 0.070875,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1017,
+            "candidatesTokenCount": 183,
+            "totalTokenCount": 2335,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1017
+              }
+            ],
+            "thoughtsTokenCount": 1135,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00570525,
+          "estimated_cost_inr": 0.5134725,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 562,
+            "candidatesTokenCount": 229,
+            "totalTokenCount": 791,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 562
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0007411000000000001,
+          "estimated_cost_inr": 0.06669900000000001,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1804,
+        "candidatesTokenCount": 700,
+        "thoughtsTokenCount": 1135,
+        "totalTokenCount": 3639
+      },
+      "estimated_cost_inr": 0.6510465
+    },
+    {
+      "case": "long_chat",
+      "mode": "baseline",
+      "answer": "To obtain a transit permit, applicants must apply to the District Forest Officer, pay the applicable fee, and obtain approval before transport [1].\n\nUnder the Synthetic Green State rules effective 1 January 2024, the application procedure requires the following steps:\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable permit fee, which is INR 1,000 for a timber transit permit [1].\n3. Obtain approval before transport [1].\n\nA fee exception applies to bamboo transit permits, which are fee-exempt but remain subject to the approval requirement before transport [1].\n\nApproved permits remain valid for 30 days and cannot be renewed [1].",
+      "resolved_query": "Green State 2024 timber transit permit application procedure fee exceptions rules regulations",
+      "selected_history_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "checks": {
+        "form a": true,
+        "ownership": true,
+        "1,000": true,
+        "bamboo": true,
+        "exempt": true
+      },
+      "calls": [
+        {
+          "operation": "rewrite",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 3840,
+            "candidatesTokenCount": 16,
+            "totalTokenCount": 3856,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 3840
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.001192,
+          "estimated_cost_inr": 0.10727999999999999,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 228,
+            "candidatesTokenCount": 303,
+            "totalTokenCount": 531,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 228
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0008259,
+          "estimated_cost_inr": 0.074331,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 4732,
+            "candidatesTokenCount": 162,
+            "totalTokenCount": 5136,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4732
+              }
+            ],
+            "thoughtsTokenCount": 242,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.005064,
+          "estimated_cost_inr": 0.45576,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 544,
+            "candidatesTokenCount": 83,
+            "totalTokenCount": 627,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 544
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0003707,
+          "estimated_cost_inr": 0.033363000000000004,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 544,
+            "candidatesTokenCount": 254,
+            "totalTokenCount": 1655,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 544
+              }
+            ],
+            "thoughtsTokenCount": 857,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.00457425,
+          "estimated_cost_inr": 0.4116825,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 9888,
+        "candidatesTokenCount": 818,
+        "thoughtsTokenCount": 1099,
+        "totalTokenCount": 11805
+      },
+      "estimated_cost_inr": 1.0824165
+    },
+    {
+      "case": "long_chat",
+      "mode": "optimized",
+      "answer": "To obtain a transit permit under the Green State rules, you must complete the required submission process and secure approval from the District Forest Officer prior to transport [1].\n\nApplication Procedure:\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable permit fee [1].\n3. Obtain official approval before transporting the material [1].\n\nFee Exception:\nA standard timber transit permit costs INR 1,000, but bamboo permits are fee-exempt [1]. However, bamboo permits still require official approval before transport [1]. \n\nOnce granted, permits are valid for 30 days and cannot be renewed [1].\n\nPlease let me know if you would like more information on the permit's non-renewable 30-day validity period.",
+      "resolved_query": "How do I apply for a Green State timber transit permit under 2024 rules, and what exception affects the fee?",
+      "selected_history_indices": [
+        0,
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      "checks": {
+        "form a": true,
+        "ownership": true,
+        "1,000": true,
+        "bamboo": true,
+        "exempt": true
+      },
+      "calls": [
+        {
+          "operation": "rewrite_context",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 4050,
+            "candidatesTokenCount": 60,
+            "totalTokenCount": 4110,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4050
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.001365,
+          "estimated_cost_inr": 0.12284999999999999,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 895,
+            "candidatesTokenCount": 168,
+            "totalTokenCount": 2190,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 895
+              }
+            ],
+            "thoughtsTokenCount": 1127,
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0055275,
+          "estimated_cost_inr": 0.497475,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 550,
+            "candidatesTokenCount": 208,
+            "totalTokenCount": 758,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 550
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.000685,
+          "estimated_cost_inr": 0.061649999999999996,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 5495,
+        "candidatesTokenCount": 436,
+        "thoughtsTokenCount": 1127,
+        "totalTokenCount": 7058
+      },
+      "estimated_cost_inr": 0.681975
+    },
+    {
+      "case": "earlier_quote",
+      "mode": "baseline",
+      "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+      "resolved_query": "Green State 2024 timber transit permit rules Form A proof of ownership condition",
+      "selected_history_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "checks": {
+        "submit form a with proof of ownership": false
+      },
+      "calls": [
+        {
+          "operation": "rewrite",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 3837,
+            "candidatesTokenCount": 17,
+            "totalTokenCount": 3854,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 3837
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0011936,
+          "estimated_cost_inr": 0.10742399999999999,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_direct",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 4500,
+            "candidatesTokenCount": 39,
+            "totalTokenCount": 4539,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4500
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0014475,
+          "estimated_cost_inr": 0.130275,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 8337,
+        "candidatesTokenCount": 56,
+        "thoughtsTokenCount": 0,
+        "totalTokenCount": 8393
+      },
+      "estimated_cost_inr": 0.237699
+    },
+    {
+      "case": "earlier_quote",
+      "mode": "optimized",
+      "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+      "resolved_query": "Quote the first condition you listed earlier exactly for the timber transit permit under Green State rules as of 2024.",
+      "selected_history_indices": [
+        0,
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      "checks": {
+        "submit form a with proof of ownership": false
+      },
+      "calls": [
+        {
+          "operation": "rewrite_context",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 4047,
+            "candidatesTokenCount": 55,
+            "totalTokenCount": 4102,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4047
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0013516,
+          "estimated_cost_inr": 0.12164399999999999,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        },
+        {
+          "operation": "answer_direct",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 892,
+            "candidatesTokenCount": 64,
+            "totalTokenCount": 956,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 892
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_cost_usd": 0.0004276,
+          "estimated_cost_inr": 0.038484,
+          "cost_usd_to_inr": 90.0,
+          "pricing_version": "google-standard-2026-09-17",
+          "pricing_date": "2026-09-17"
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 4939,
+        "candidatesTokenCount": 119,
+        "thoughtsTokenCount": 0,
+        "totalTokenCount": 5058
+      },
+      "estimated_cost_inr": 0.160128
+    }
+  ]
+}

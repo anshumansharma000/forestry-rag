@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 from errors import AppError, ErrorCode
+from generation_cost import COST_POLICY_VERSION, positive_setting
 
 ROOT = Path(__file__).resolve().parent
 DOCS_DIR = ROOT / "data" / "docs"
@@ -157,6 +158,11 @@ def config_status() -> dict:
         "supabase_url_valid": False,
         "supabase_url_hint": None,
         "embedding_dimensions": embedding_dimensions(),
+        "gemini_embedding_model": os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
+        "gemini_direct_model": os.getenv("GEMINI_DIRECT_MODEL", "gemini-3.5-flash-lite"),
+        "gemini_complex_model": os.getenv("GEMINI_COMPLEX_MODEL", "gemini-3.8-flash"),
+        "gemini_utility_model": os.getenv("GEMINI_UTILITY_MODEL", "gemini-3.5-flash-lite"),
+        "gemini_verification_model": os.getenv("GEMINI_VERIFICATION_MODEL", "gemini-3.5-flash-lite"),
         "auth_disabled": env_bool("AUTH_DISABLED"),
         "bootstrap_admin_token_configured": bool(os.getenv("BOOTSTRAP_ADMIN_TOKEN", "").strip()),
         "jwt_secret_key_configured": bool(os.getenv("JWT_SECRET_KEY", "").strip()),
@@ -175,9 +181,24 @@ def config_status() -> dict:
         "max_document_chunks": env_int("MAX_DOCUMENT_CHUNKS", 3000),
         "ingest_batch_size": env_int("INGEST_BATCH_SIZE", 24),
         "gemini_embedding_batch_size": env_int("GEMINI_EMBEDDING_BATCH_SIZE", 2),
-        "rag_index_version": os.getenv("RAG_INDEX_VERSION", "3").strip() or "3",
-        "retrieval_candidates": env_int("RETRIEVAL_CANDIDATES", 40),
-        "retrieval_top_k": env_int("TOP_K", 3),
+        "gemini_direct_max_output_tokens": env_int("GEMINI_DIRECT_MAX_OUTPUT_TOKENS", 1800),
+        "gemini_complex_max_output_tokens": env_int("GEMINI_COMPLEX_MAX_OUTPUT_TOKENS", 4000),
+        "rag_evidence_planning": env_bool("RAG_EVIDENCE_PLANNING", True),
+        "rag_answer_verification": env_bool("RAG_ANSWER_VERIFICATION", True),
+        "cost_policy_version": COST_POLICY_VERSION,
+        "rag_cost_optimizations": env_bool("RAG_COST_OPTIMIZATIONS", True),
+        "rag_selective_planning": env_bool("RAG_SELECTIVE_PLANNING", True),
+        "rag_selective_history": env_bool("RAG_SELECTIVE_HISTORY", True),
+        "rag_selective_evidence": env_bool("RAG_SELECTIVE_EVIDENCE", True),
+        "rag_selective_reasoning": env_bool("RAG_SELECTIVE_REASONING", True),
+        "rag_selective_verification": env_bool("RAG_SELECTIVE_VERIFICATION", True),
+        "cost_usd_to_inr": positive_setting("COST_USD_TO_INR", 90.0),
+        "cost_query_max_inr": positive_setting("COST_QUERY_MAX_INR", 1.5),
+        "rag_multi_query": env_bool("RAG_MULTI_QUERY", True),
+        "rag_multi_query_max": env_int("RAG_MULTI_QUERY_MAX", 4),
+        "rag_index_version": os.getenv("RAG_INDEX_VERSION", "4").strip() or "4",
+        "rag_direct_contexts": env_int("RAG_DIRECT_CONTEXTS", 5),
+        "rag_complex_contexts": env_int("RAG_OVERVIEW_CONTEXTS", 12),
     }
     try:
         validate_supabase_settings()
@@ -219,8 +240,26 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
     for name in (
         "JWT_EXPIRES_MINUTES",
         "REFRESH_TOKEN_EXPIRES_DAYS",
-        "TOP_K",
-        "RETRIEVAL_CANDIDATES",
+        "RAG_DIRECT_CANDIDATES",
+        "RAG_DIRECT_ANCHORS",
+        "RAG_DIRECT_CONTEXTS",
+        "RAG_DIRECT_CONTEXT_TOKENS",
+        "RAG_PROCEDURE_CANDIDATES",
+        "RAG_PROCEDURE_ANCHORS",
+        "RAG_PROCEDURE_CONTEXTS",
+        "RAG_PROCEDURE_CONTEXT_TOKENS",
+        "RAG_COMPARISON_CANDIDATES",
+        "RAG_COMPARISON_ANCHORS",
+        "RAG_COMPARISON_CONTEXTS",
+        "RAG_COMPARISON_CONTEXT_TOKENS",
+        "RAG_OVERVIEW_CANDIDATES",
+        "RAG_OVERVIEW_ANCHORS",
+        "RAG_OVERVIEW_CONTEXTS",
+        "RAG_OVERVIEW_CONTEXT_TOKENS",
+        "RAG_TEMPORAL_CANDIDATES",
+        "RAG_TEMPORAL_ANCHORS",
+        "RAG_TEMPORAL_CONTEXTS",
+        "RAG_TEMPORAL_CONTEXT_TOKENS",
         "CELERY_VISIBILITY_TIMEOUT_SECONDS",
         "CELERY_TASK_MAX_RETRIES",
         "CELERY_TASK_RETRY_BASE_SECONDS",
@@ -234,15 +273,27 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "MAX_DOCUMENT_CHUNKS",
         "INGEST_BATCH_SIZE",
         "GEMINI_EMBEDDING_BATCH_SIZE",
-        "GEMINI_REQUEST_INTERVAL_MS",
         "GEMINI_API_MAX_RETRIES",
         "GEMINI_RETRY_BASE_SECONDS",
         "GEMINI_RETRY_MAX_SECONDS",
+        "GEMINI_EMBEDDING_RETRY_BASE_SECONDS",
+        "GEMINI_EMBEDDING_RETRY_MAX_SECONDS",
+        "GEMINI_EMBEDDING_DEADLINE_SECONDS",
+        "GEMINI_GENERATION_RETRY_BASE_SECONDS",
+        "GEMINI_GENERATION_RETRY_MAX_SECONDS",
+        "GEMINI_GENERATION_DEADLINE_SECONDS",
         "DOCUMENT_AI_OCR_MIN_TEXT_CHARS",
         "DOCUMENT_AI_OCR_MAX_PAGES",
         "DOCUMENT_AI_OCR_TIMEOUT_SECONDS",
         "DOCUMENT_AI_OCR_RETRY_ATTEMPTS",
         "DOCUMENT_AI_OCR_MAX_REQUEST_BYTES",
+        "GEMINI_DIRECT_MAX_OUTPUT_TOKENS",
+        "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS",
+        "GEMINI_REWRITE_MAX_OUTPUT_TOKENS",
+        "GEMINI_CONTEXT_REWRITE_MAX_OUTPUT_TOKENS",
+        "RAG_HISTORY_SELECTION_TOKENS",
+        "GEMINI_PLAN_MAX_OUTPUT_TOKENS",
+        "GEMINI_VERIFY_MAX_OUTPUT_TOKENS",
     ):
         raw = os.getenv(name)
         if raw is None or not raw.strip():
@@ -263,6 +314,37 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         else:
             if value < 0:
                 invalid.append("RETRIEVAL_MAX_PER_SOURCE")
+    for name in (
+        "GEMINI_EMBEDDING_REQUEST_INTERVAL_MS",
+        "GEMINI_GENERATION_REQUEST_INTERVAL_MS",
+        "GEMINI_UTILITY_REQUEST_INTERVAL_MS",
+        "GEMINI_DIRECT_REQUEST_INTERVAL_MS",
+        "GEMINI_COMPLEX_REQUEST_INTERVAL_MS",
+        "GEMINI_VERIFICATION_REQUEST_INTERVAL_MS",
+        "GEMINI_EMBEDDING_MAX_RETRIES",
+        "GEMINI_GENERATION_MAX_RETRIES",
+    ):
+        raw = os.getenv(name)
+        if raw is None or not raw.strip():
+            continue
+        try:
+            value = int(raw)
+        except ValueError:
+            invalid.append(name)
+            continue
+        if value < 0:
+            invalid.append(name)
+    for name in (
+        "GEMINI_REWRITE_THINKING_LEVEL",
+        "GEMINI_PLAN_THINKING_LEVEL",
+        "GEMINI_DIRECT_THINKING_LEVEL",
+        "GEMINI_COMPLEX_THINKING_LEVEL",
+        "GEMINI_COMPLEX_HIGH_THINKING_LEVEL",
+        "GEMINI_VERIFY_THINKING_LEVEL",
+    ):
+        raw = os.getenv(name)
+        if raw and raw.strip().lower() not in {"minimal", "low", "medium", "high"}:
+            invalid.append(name)
     for name in ("RETRIEVAL_DUPLICATE_THRESHOLD", "RETRIEVAL_MIN_CONTEXT_SCORE", "RETRIEVAL_CONFIDENCE_THRESHOLD"):
         raw = os.getenv(name)
         if raw is None or not raw.strip():

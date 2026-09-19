@@ -132,6 +132,7 @@ class AuthTokenResponse(BaseModel):
 
 
 class SourceResponse(BaseModel):
+    citation_number: int | None = None
     document_id: str
     source: str
     display_source: str
@@ -147,6 +148,7 @@ class SourceResponse(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[SourceResponse]
+    cited_sources: list[SourceResponse] = Field(default_factory=list)
     confidence: float | None = None
     abstained: bool = False
 
@@ -274,6 +276,7 @@ class ChatAskResponse(BaseModel):
     search_query: str
     answer: str
     sources: list[SourceResponse]
+    cited_sources: list[SourceResponse] = Field(default_factory=list)
     confidence: float | None = None
     abstained: bool = False
 

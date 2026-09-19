@@ -562,12 +562,12 @@ def test_retrieve_passes_query_text_for_hybrid_search(monkeypatch):
         {
             "query_embedding": [0.1, 0.2, 0.3],
             "query_text": "Rule 12 transit permits",
-            "match_count": 40,
+            "match_count": 50,
         },
         {
             "query_embedding": [0.1, 0.2, 0.3],
             "query_text": "Rule 12 transit permits Rule 12 amendment supersession latest update",
-            "match_count": 40,
+            "match_count": 50,
         },
     ]
     assert contexts[0]["base_score"] == 0.82
@@ -798,9 +798,34 @@ def test_chunk_embedding_includes_document_and_section_context():
         }
     )
 
-    assert "Document: Forest Conservation Rules, 2022" in text
+    assert text.startswith("title: Forest Conservation Rules, 2022 | text:")
     assert "Section: Rule 12 Prior approval" in text
     assert "Legal identifiers: Rule 12" in text
+
+
+def test_embedding_2_query_uses_question_answering_prefix(monkeypatch):
+    captured = []
+    monkeypatch.setenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2")
+    monkeypatch.setattr(
+        retrieval.gemini_client,
+        "embed",
+        lambda text, task_type: captured.append((text, task_type)) or [1.0, 0.0],
+    )
+
+    assert retrieval.embed_query("What does Rule 12 require?") == [1.0, 0.0]
+    assert captured == [
+        ("task: question answering | query: What does Rule 12 require?", "RETRIEVAL_QUERY")
+    ]
+
+
+def test_retrieval_plan_scales_with_question_complexity():
+    direct = retrieval.retrieval_plan("What is the fee?")
+    overview = retrieval.retrieval_plan("Give me an overview of all requirements")
+
+    assert direct.context_count == 5
+    assert overview.context_count == 12
+    assert overview.candidate_count > direct.candidate_count
+    assert overview.context_token_budget > direct.context_token_budget
 
 
 def test_document_metadata_extracts_legal_fields_and_better_title():
@@ -848,7 +873,11 @@ def test_answer_abstains_when_retrieval_confidence_is_low(monkeypatch):
 
 def test_answer_uses_model_when_low_scored_context_exists(monkeypatch):
     called = []
-    monkeypatch.setattr(prompts, "generate_with_gemini", lambda _prompt: called.append(True) or "Approval is required [1].")
+    monkeypatch.setattr(
+        prompts,
+        "generate_with_gemini",
+        lambda _prompt, **_kwargs: called.append(True) or "Approval is required [1].",
+    )
     monkeypatch.delenv("RETRIEVAL_CONFIDENCE_THRESHOLD", raising=False)
 
     answer = prompts.answer_with_gemini(
@@ -874,11 +903,133 @@ def test_answer_uses_model_when_low_scored_context_exists(monkeypatch):
 
 def test_citation_validation_preserves_uncited_answers_and_removes_invalid_references():
     assert prompts.validate_answer_citations("Approval is required.", 2) == "Approval is required."
-    assert prompts.validate_answer_citations("Approval is required [1], not [8].", 2) == "Approval is required [1], not ."
+    assert prompts.validate_answer_citations("Approval is required [1], not [8].", 2) == "Approval is required [1], not."
+    assert prompts.validate_answer_citations("Supported jointly [1, 3, 8].", 3) == "Supported jointly [1, 3]."
+    assert prompts.validate_answer_citations("No citation.", 2, require_citation=True) == prompts.UNSUPPORTED_ANSWER
+
+
+def test_overview_answer_uses_evidence_plan_and_requests_grounded_follow_up(monkeypatch):
+    captured = []
+    structured_responses = iter(
+        [
+            {
+                "question_scope": "re-diversion",
+                "central_answer": "Approval is required.",
+                "themes": [],
+                "conflicts": [],
+                "unknowns": [],
+            },
+            {
+                "supported": True,
+                "unchanged": False,
+                "answer": "Approval is required [1].\n\nIf useful, I can also explain the application process.",
+                "issues": [],
+            },
+        ]
+    )
+    monkeypatch.setattr(prompts, "retrieval_is_confident", lambda _: True)
+    monkeypatch.setattr(
+        prompts,
+        "generate_structured_with_gemini",
+        lambda prompt, _schema, **_kwargs: captured.append(prompt) or next(structured_responses),
+    )
+    monkeypatch.setattr(
+        prompts,
+        "generate_with_gemini",
+        lambda prompt, **_kwargs: captured.append(prompt)
+        or "Approval is required [1].\n\nIf useful, I can also explain the application process.",
+    )
+
+    answer = prompts.answer_with_gemini(
+        "What are the provisions for re-diversion?",
+        [
+            {
+                "source": "rules.pdf",
+                "chunk_index": 0,
+                "section_heading": "Re-diversion",
+                "page_start": 1,
+                "page_end": 1,
+                "text": "Prior approval is required.",
+                "score": 0.8,
+                "base_score": 0.8,
+                "evidence_role": "matched",
+            }
+        ],
+    )
+
+    assert len(captured) == 3
+    assert '"question_scope": "re-diversion"' in captured[1]
+    assert "Do not present every retrieved passage as equally important" in captured[1]
+    assert "End every supported answer with one brief, professional follow-up sentence" in captured[1]
+    assert "Never present a substantial answer as one dense block of text" in captured[1]
+    assert "Leave a blank line between paragraphs, headings, and lists" in captured[1]
+    assert "For every material factual or legal proposition" in captured[2]
+    assert "Preserve the draft's Markdown layout" in captured[2]
+    assert answer.endswith("application process.")
+
+
+def test_broad_question_expands_retrieval_facets_in_one_embedding_batch(monkeypatch):
+    calls = []
+
+    class Repository:
+        def match_chunks(self, query_embedding, query_text, match_count):
+            calls.append((query_embedding, query_text, match_count))
+            index = len(calls)
+            return [
+                {
+                    "id": f"chunk-{index}",
+                    "document_id": f"doc-{index}",
+                    "source": f"rules-{index}.pdf",
+                    "chunk_index": 0,
+                    "chunk_type": "section",
+                    "section_heading": "Land use",
+                    "page_start": 1,
+                    "page_end": 1,
+                    "content": "Change in land use requires approval.",
+                    "metadata": {},
+                    "similarity": 0.8,
+                }
+            ]
+
+        def neighbor_chunks(self, *_args, **_kwargs):
+            return []
+
+    batches = []
+    monkeypatch.setattr(
+        retrieval,
+        "embed_queries",
+        lambda queries: batches.append(queries) or [[float(index)] for index, _ in enumerate(queries)],
+    )
+
+    contexts = retrieval.retrieve(
+        "What are the provisions of change in land use?",
+        repository=Repository(),
+        options={"expand_neighbors": False},
+    )
+
+    assert len(batches) == 1
+    assert len(batches[0]) == 4
+    assert any("exceptions special cases" in query for query in batches[0])
+    assert len(calls) == 4
+    assert len(contexts) == 4
 
 
 def test_unsupported_answer_is_not_reported_as_abstention():
     assert not prompts.answer_is_abstention(prompts.UNSUPPORTED_ANSWER)
+
+
+def test_answer_model_route_uses_evidence_complexity():
+    contexts = [{"document_id": "one", "metadata": {}}]
+    assert prompts.answer_generation_operation("What is the fee?", contexts) == "answer_direct"
+    assert prompts.answer_generation_operation("Compare the two procedures", contexts) == "answer_complex"
+    assert (
+        prompts.answer_generation_operation(
+            "What is the applicable rule?",
+            contexts,
+            {"conflicts": ["Sources disagree on the effective date"]},
+        )
+        == "answer_complex_high"
+    )
 
 
 def test_read_docx_extracts_tables_as_structured_blocks(tmp_path):
@@ -1150,7 +1301,7 @@ def test_chunk_document_preserves_table_header_context():
 
 def test_gemini_client_redacts_upstream_error_body(monkeypatch):
     class Response:
-        status_code = 500
+        status_code = 400
         text = "secret upstream diagnostics"
 
         def json(self):
@@ -1163,7 +1314,7 @@ def test_gemini_client_redacts_upstream_error_body(monkeypatch):
         GeminiClient().generate("hello")
 
     assert exc.value.message == "Gemini API returned an error."
-    assert exc.value.details == {"status_code": 500}
+    assert exc.value.details == {"status_code": 400}
     assert "secret upstream diagnostics" not in exc.value.message
 
 
@@ -1194,12 +1345,54 @@ def test_gemini_client_retries_quota_error(monkeypatch):
     assert 3.0 in sleeps
 
 
+def test_gemini_generation_uses_task_specific_answer_controls(monkeypatch):
+    client = GeminiClient()
+    captured = {}
+    monkeypatch.setenv("GEMINI_DIRECT_MODEL", "gemini-3.5-flash-lite")
+    monkeypatch.setenv("GEMINI_DIRECT_TEMPERATURE", "0.2")
+    monkeypatch.setenv("GEMINI_DIRECT_MAX_OUTPUT_TOKENS", "1600")
+
+    def post(model, action, payload, timeout=None, max_retries=None, **_kwargs):
+        captured.update({"model": model, "action": action, "payload": payload, "timeout": timeout})
+        return {"candidates": [{"content": {"parts": [{"text": "answer"}]}}]}
+
+    monkeypatch.setattr(client, "_post", post)
+
+    assert client.generate("hello") == "answer"
+    assert captured["payload"]["generationConfig"] == {
+        "temperature": 0.2,
+        "maxOutputTokens": 1600,
+        "thinkingConfig": {"thinkingLevel": "minimal"},
+    }
+
+
+def test_gemini_generation_uses_native_structured_output(monkeypatch):
+    client = GeminiClient()
+    captured = {}
+    schema = {
+        "type": "object",
+        "properties": {"supported": {"type": "boolean"}},
+        "required": ["supported"],
+    }
+
+    def post(model, action, payload, timeout=None, max_retries=None, **_kwargs):
+        captured.update({"model": model, "action": action, "payload": payload})
+        return {"candidates": [{"content": {"parts": [{"text": '{"supported":true}'}]}}]}
+
+    monkeypatch.setattr(client, "_post", post)
+
+    assert client.generate_structured("audit", schema, operation="verify") == {"supported": True}
+    config = captured["payload"]["generationConfig"]
+    assert config["responseMimeType"] == "application/json"
+    assert config["responseJsonSchema"] == schema
+
+
 def test_gemini_client_batches_embeddings(monkeypatch):
     monkeypatch.setenv("EMBEDDING_DIMENSIONS", "2")
     client = GeminiClient()
     captured = {}
 
-    def post(model, action, payload, timeout=None, max_retries=None):
+    def post(model, action, payload, timeout=None, max_retries=None, **_kwargs):
         captured.update(
             {"model": model, "action": action, "payload": payload, "timeout": timeout, "max_retries": max_retries}
         )
@@ -1212,14 +1405,15 @@ def test_gemini_client_batches_embeddings(monkeypatch):
     assert result == [[1.0, 0.0], [0.0, 1.0]]
     assert captured["action"] == "batchEmbedContents"
     assert len(captured["payload"]["requests"]) == 2
+    assert all("taskType" not in request for request in captured["payload"]["requests"])
 
 
-def test_gemini_client_splits_rejected_embedding_batch(monkeypatch):
+def test_gemini_client_does_not_recursively_split_rejected_embedding_batch(monkeypatch):
     monkeypatch.setenv("EMBEDDING_DIMENSIONS", "2")
     client = GeminiClient()
     attempted_sizes = []
 
-    def post(_model, _action, payload, timeout=None, max_retries=None):
+    def post(_model, _action, payload, timeout=None, max_retries=None, **_kwargs):
         size = len(payload["requests"])
         attempted_sizes.append(size)
         if size > 2:
@@ -1233,10 +1427,10 @@ def test_gemini_client_splits_rejected_embedding_batch(monkeypatch):
 
     monkeypatch.setattr(client, "_post", post)
 
-    result = client.embed_many(["one", "two", "three", "four"], "RETRIEVAL_DOCUMENT")
+    with pytest.raises(AppError):
+        client.embed_many(["one", "two", "three", "four"], "RETRIEVAL_DOCUMENT")
 
-    assert result == [[1.0, 0.0]] * 4
-    assert attempted_sizes == [4, 2, 2]
+    assert attempted_sizes == [4]
 
 
 def test_gemini_client_singleton_batch_uses_retrying_single_endpoint(monkeypatch):

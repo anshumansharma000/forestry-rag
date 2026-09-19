@@ -63,7 +63,11 @@ def test_existing_chunk_uses_explicit_text_dates_only():
 def test_final_prompt_contains_dates_and_precedence_rules(monkeypatch):
     captured = []
     monkeypatch.setattr(prompts, 'retrieval_is_confident', lambda _: True)
-    monkeypatch.setattr(prompts, 'generate_with_gemini', lambda prompt: captured.append(prompt) or 'Fee: 100 [1]')
+    monkeypatch.setattr(
+        prompts,
+        'generate_with_gemini',
+        lambda prompt, **_kwargs: captured.append(prompt) or 'Fee: 100 [1]',
+    )
     assert prompts.answer_with_gemini('What is the fee?', [candidate('new', '2023-01-01')]) == 'Fee: 100 [1]'
     assert 'Issue date: 2023-01-01' in captured[0]
     assert 'retain unchanged older provisions' in captured[0]

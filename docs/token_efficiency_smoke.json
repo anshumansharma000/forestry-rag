@@ -1,0 +1,627 @@
+{
+  "scope": "Synthetic fixed-evidence paired smoke test; one sample per case and variant. Not a production quality benchmark.",
+  "results": [
+    {
+      "case": "fee",
+      "variant": "before",
+      "question": "How much is the application fee for a timber transit permit?",
+      "answer": "Under the applicable rules, the fee for a timber transit permit is INR 1,000 [1]. This fee must be paid as part of the formal application process prior to transporting timber [1]. In contrast, transit permits for bamboo are exempt from the permit fee [1].\n\n### Application Procedure and Requirements\n\nTo obtain a permit, an applicant must complete the following procedural steps:\n\n1. **Submission**: Submit an application on Form A accompanied by proof of ownership to the District Forest Officer [1].\n2. **Fee Payment**: Remit the applicable INR 1,000 fee for timber permits (bamboo applicants must submit Form A and secure approval, but are exempt from the fee) [1].\n3. **Approval and Transport**: Obtain formal approval from the District Forest Officer before moving the timber [1].\n\nOnce granted, a transit permit remains valid for 30 days from the date of issue and cannot be renewed [1].\n\nIf useful, I can also explain the specific application requirements and approval conditions administered by the District Forest Officer.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 277,
+            "candidatesTokenCount": 189,
+            "totalTokenCount": 466,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 277
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 599
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1453,
+            "candidatesTokenCount": 219,
+            "totalTokenCount": 1895,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1453
+              }
+            ],
+            "thoughtsTokenCount": 223,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1512
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 624,
+            "candidatesTokenCount": 29,
+            "totalTokenCount": 653,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 624
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 779
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2354,
+        "candidatesTokenCount": 437,
+        "thoughtsTokenCount": 223,
+        "totalTokenCount": 3014
+      }
+    },
+    {
+      "case": "duration",
+      "variant": "before",
+      "question": "How long is a transit permit valid?",
+      "answer": "A transit permit is valid for 30 days from the date of issue and cannot be renewed [1]. If useful, I can also explain the application requirements and fee structure for obtaining a transit permit under these rules.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 273,
+            "candidatesTokenCount": 137,
+            "totalTokenCount": 410,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 273
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 595
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1412,
+            "candidatesTokenCount": 56,
+            "totalTokenCount": 1825,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1412
+              }
+            ],
+            "thoughtsTokenCount": 357,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1466
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 457,
+            "candidatesTokenCount": 73,
+            "totalTokenCount": 530,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 457
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 606
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2142,
+        "candidatesTokenCount": 266,
+        "thoughtsTokenCount": 357,
+        "totalTokenCount": 2765
+      }
+    },
+    {
+      "case": "authority",
+      "variant": "before",
+      "question": "Who approves the application for a timber transit permit?",
+      "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 275,
+            "candidatesTokenCount": 121,
+            "totalTokenCount": 396,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 275
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 597
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1398,
+            "candidatesTokenCount": 173,
+            "totalTokenCount": 2102,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1398
+              }
+            ],
+            "thoughtsTokenCount": 531,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1453
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 576,
+            "candidatesTokenCount": 213,
+            "totalTokenCount": 789,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 576
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 726
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2249,
+        "candidatesTokenCount": 507,
+        "thoughtsTokenCount": 531,
+        "totalTokenCount": 3287
+      }
+    },
+    {
+      "case": "procedure",
+      "variant": "before",
+      "question": "How do I apply for a timber transit permit?",
+      "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 275,
+            "candidatesTokenCount": 316,
+            "totalTokenCount": 591,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 275
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 597
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1563,
+            "candidatesTokenCount": 258,
+            "totalTokenCount": 2341,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1563
+              }
+            ],
+            "thoughtsTokenCount": 520,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1623
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 661,
+            "candidatesTokenCount": 307,
+            "totalTokenCount": 968,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 661
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 823
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2499,
+        "candidatesTokenCount": 881,
+        "thoughtsTokenCount": 520,
+        "totalTokenCount": 3900
+      }
+    },
+    {
+      "case": "comparison",
+      "variant": "before",
+      "question": "Compare the permit fees and approval requirements for timber versus bamboo.",
+      "answer": "Timber and bamboo transit permits share application and approval processes but differ in their fee structures [1]. A timber transit permit requires payment of an INR 1,000 fee, whereas bamboo transit permits are exempt from the fee [1]. Transporting either commodity requires submitting Form A with proof of ownership to the District Forest Officer and obtaining prior approval [1]. Once approved, permits for both timber and bamboo are valid for 30 days from issuance and cannot be renewed [1]. If useful, I can also explain the specific restrictions governing the non-renewable validity period for these transit permits.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 277,
+            "candidatesTokenCount": 271,
+            "totalTokenCount": 548,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 277
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 599
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1528,
+            "candidatesTokenCount": 256,
+            "totalTokenCount": 2288,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1528
+              }
+            ],
+            "thoughtsTokenCount": 504,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1586
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 661,
+            "candidatesTokenCount": 148,
+            "totalTokenCount": 809,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 661
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 822
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2466,
+        "candidatesTokenCount": 675,
+        "thoughtsTokenCount": 504,
+        "totalTokenCount": 3645
+      }
+    },
+    {
+      "case": "amendment",
+      "variant": "before",
+      "question": "What is the current timber permit fee after the amendment?",
+      "answer": "The current timber transit permit fee is INR 1,500 [2]. Under the amendment effective 1 January 2025, the fee prescribed under Rule 12 was revised upward from the original rate of INR 1,000 [1, 2].\n\nAll other permit provisions established in Rule 12 remain unchanged [2]. Applicants must still submit Form A alongside proof of ownership to the District Forest Officer to secure approval, and the resulting transit permit remains valid for 30 days with no provision for renewal [1, 2]. Bamboo transit permits continue to be fully exempt from the permit fee [1, 2].\n\nIf useful, I can also outline the application procedure and documentation requirements for obtaining approval from the District Forest Officer.",
+      "calls": [
+        {
+          "operation": "answer_complex_high",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1409,
+            "candidatesTokenCount": 158,
+            "totalTokenCount": 2388,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1409
+              }
+            ],
+            "thoughtsTokenCount": 821,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1454
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1409,
+        "candidatesTokenCount": 158,
+        "thoughtsTokenCount": 821,
+        "totalTokenCount": 2388
+      }
+    },
+    {
+      "case": "fee",
+      "variant": "after",
+      "question": "How much is the application fee for a timber transit permit?",
+      "answer": "The application fee for a timber transit permit is INR 1,000 [1].\n\nBamboo transit permits are exempt from this fee [1].\n\nPlease let me know if you need details on the application procedure or permit validity requirements for forest products.",
+      "calls": [
+        {
+          "operation": "answer_direct",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 825,
+            "candidatesTokenCount": 52,
+            "totalTokenCount": 877,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 825
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 857
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 825,
+        "candidatesTokenCount": 52,
+        "thoughtsTokenCount": 0,
+        "totalTokenCount": 877
+      }
+    },
+    {
+      "case": "duration",
+      "variant": "after",
+      "question": "How long is a transit permit valid?",
+      "answer": "A timber transit permit is valid for 30 days from the date of issue and cannot be renewed [1]. \n\nWould you like details on the application process or fees for obtaining a transit permit?",
+      "calls": [
+        {
+          "operation": "answer_direct",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 821,
+            "candidatesTokenCount": 41,
+            "totalTokenCount": 862,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 821
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 853
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 821,
+        "candidatesTokenCount": 41,
+        "thoughtsTokenCount": 0,
+        "totalTokenCount": 862
+      }
+    },
+    {
+      "case": "authority",
+      "variant": "after",
+      "question": "Who approves the application for a timber transit permit?",
+      "answer": "The District Forest Officer approves the application for a timber transit permit [1].\n\nWould you like details on the application process and required documentation?",
+      "calls": [
+        {
+          "operation": "answer_direct",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 823,
+            "candidatesTokenCount": 28,
+            "totalTokenCount": 851,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 823
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 855
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 823,
+        "candidatesTokenCount": 28,
+        "thoughtsTokenCount": 0,
+        "totalTokenCount": 851
+      }
+    },
+    {
+      "case": "amendment",
+      "variant": "after",
+      "question": "What is the current timber permit fee after the amendment?",
+      "answer": "Under amended Rule 12, the current timber transit permit fee is INR 1,500 [2]. \n\nThis rate became effective on 1 January 2025, superseding the previous fee of INR 1,000 while keeping all other provisions\u2014including the fee exemption for bamboo transit permits\u2014unchanged [1, 2].\n\nPlease indicate if you need further details regarding transit permit application requirements or validity limits.",
+      "calls": [
+        {
+          "operation": "answer_complex_high",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 917,
+            "candidatesTokenCount": 93,
+            "totalTokenCount": 1991,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 917
+              }
+            ],
+            "thoughtsTokenCount": 981,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 940
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 917,
+        "candidatesTokenCount": 93,
+        "thoughtsTokenCount": 981,
+        "totalTokenCount": 1991
+      }
+    },
+    {
+      "case": "comparison",
+      "variant": "after",
+      "question": "Compare the permit fees and approval requirements for timber versus bamboo.",
+      "answer": "Timber transit permits require a fee while bamboo permits are fee-exempt; however, both require applicants to submit Form A and obtain approval from the District Forest Officer prior to transport [1].\n\n**Permit Fees**\n* **Timber:** A timber transit permit costs INR 1,000 [1].\n* **Bamboo:** Bamboo transit permits are exempt from the fee [1].\n\n**Approval Requirements**\n* **Timber:** To obtain approval, applicants must submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and secure approval before transporting the timber [1].\n* **Bamboo:** While exempt from the fee, bamboo applicants must still submit Form A and obtain approval from the District Forest Officer before transport [1].\n\nPlease indicate if you require further details on the 30-day validity period or non-renewal terms governing these transit permits.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 277,
+            "candidatesTokenCount": 244,
+            "totalTokenCount": 521,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 277
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 599
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1016,
+            "candidatesTokenCount": 185,
+            "totalTokenCount": 2146,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1016
+              }
+            ],
+            "thoughtsTokenCount": 945,
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 1051
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 612,
+            "candidatesTokenCount": 29,
+            "totalTokenCount": 641,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 612
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "estimated_prompt_tokens": 776
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 1905,
+        "candidatesTokenCount": 458,
+        "thoughtsTokenCount": 945,
+        "totalTokenCount": 3308
+      }
+    },
+    {
+      "case": "procedure",
+      "variant": "after",
+      "question": "How do I apply for a timber transit permit?",
+      "answer": "To obtain a timber transit permit, an applicant must submit the required documentation to the District Forest Officer, pay the prescribed fee, and obtain approval before transporting any timber [1].\n\nThe application procedure consists of the following steps:\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable timber transit permit fee of INR 1,000 [1].\n3. Obtain approval from the District Forest Officer prior to transport [1].\n\nOnce issued, a transit permit is valid for 30 days from the date of issue and cannot be renewed [1]. By contrast, bamboo transit permits are exempt from the INR 1,000 fee, though applicants transporting bamboo must still submit Form A and obtain approval [1].\n\nPlease indicate if you need clarification regarding permit validity periods or fee exemptions for specific forest produce.",
+      "calls": [
+        {
+          "operation": "plan",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 275,
+            "candidatesTokenCount": 382,
+            "totalTokenCount": 657,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 275
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "synthetic_response_text": "{\n  \"question_scope\": \"Application process, requirements, and fees for obtaining a timber transit permit.\",\n  \"central_answer\": \"To apply for a timber transit permit, you must submit Form A along with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transporting the timber.\",\n  \"themes\": [\n    {\n      \"category\": \"governing_rule\",\n      \"importance\": \"core\",\n      \"claim\": \"A timber transit permit costs INR 1,000, while bamboo transit permits are exempt from the fee.\",\n      \"source_ids\": [1],\n      \"qualifications\": [\"Bamboo applicants are exempt from the fee but still must follow application procedures.\"]\n    },\n    {\n      \"category\": \"procedure\",\n      \"importance\": \"core\",\n      \"claim\": \"Applicants must submit Form A with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval before transporting the timber.\",\n      \"source_ids\": [1],\n      \"qualifications\": [\"Bamboo applicants must still obtain approval and submit Form A.\"]\n    },\n    {\n      \"category\": \"governing_rule\",\n      \"importance\": \"supporting\",\n      \"claim\": \"The District Forest Officer is responsible for approving applications.\",\n      \"source_ids\": [1],\n      \"qualifications\": []\n    },\n    {\n      \"category\": \"qualification\",\n      \"importance\": \"supporting\",\n      \"claim\": \"A transit permit is valid for 30 days from issue and cannot be renewed.\",\n      \"source_ids\": [1],\n      \"qualifications\": []\n    }\n  ],\n  \"conflicts\": [],\n  \"unknowns\": []\n}",
+          "estimated_prompt_tokens": 597
+        },
+        {
+          "operation": "answer_complex",
+          "model": "gemini-3.8-flash",
+          "usage": {
+            "promptTokenCount": 1122,
+            "candidatesTokenCount": 180,
+            "totalTokenCount": 2087,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1122
+              }
+            ],
+            "thoughtsTokenCount": 785,
+            "serviceTier": "standard"
+          },
+          "synthetic_response_text": "To obtain a timber transit permit, an applicant must submit the required documentation to the District Forest Officer, pay the prescribed fee, and obtain approval before transporting any timber [1].\n\nThe application procedure consists of the following steps:\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable timber transit permit fee of INR 1,000 [1].\n3. Obtain approval from the District Forest Officer prior to transport [1].\n\nOnce issued, a transit permit is valid for 30 days from the date of issue and cannot be renewed [1]. By contrast, bamboo transit permits are exempt from the INR 1,000 fee, though applicants transporting bamboo must still submit Form A and obtain approval [1].\n\nPlease indicate if you need clarification regarding permit validity periods or fee exemptions for specific forest produce.",
+          "estimated_prompt_tokens": 1171
+        },
+        {
+          "operation": "verify",
+          "model": "gemini-3.5-flash-lite",
+          "usage": {
+            "promptTokenCount": 609,
+            "candidatesTokenCount": 29,
+            "totalTokenCount": 638,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 609
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "synthetic_response_text": "{\n  \"supported\": true,\n  \"answer\": \"\",\n  \"issues\": [],\n  \"unchanged\": true\n}",
+          "estimated_prompt_tokens": 763
+        }
+      ],
+      "totals": {
+        "promptTokenCount": 2006,
+        "candidatesTokenCount": 591,
+        "thoughtsTokenCount": 785,
+        "totalTokenCount": 3382
+      }
+    }
+  ]
+}

@@ -1,7 +1,9 @@
+from conversation_context import select_history, should_select_history
 from prompts import answer_is_abstention, answer_with_gemini, rewrite_question_for_retrieval
 from rag_errors import RagError
 from repositories import ChatRepository, DocumentRepository
-from retrieval import retrieval_confidence, retrieve, source_payload
+from retrieval import cited_source_payload, retrieval_confidence, retrieve, source_payload
+from token_usage import track_query_usage
 
 
 def create_chat_session(title: str | None = None, user_id: str | None = None, repository: ChatRepository | None = None) -> dict:
@@ -86,6 +88,7 @@ def delete_chat_message(session_id: str, message_id: str, user_id: str, reposito
     return {"deleted": True, "message": repository.delete_message(session_id, message_id, user_id)}
 
 
+@track_query_usage
 def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = None, repository: ChatRepository | None = None) -> dict:
     if not message.strip():
         raise RagError("message is required")
@@ -93,11 +96,15 @@ def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = No
     repository = repository or ChatRepository()
     previous_messages = get_chat_messages(session_id, user_id, repository=repository)
     user_message = save_chat_message(session_id, "user", message, repository=repository)
-    history_with_latest = previous_messages + [user_message]
-    search_query = rewrite_question_for_retrieval(previous_messages, message)
+    answer_history = previous_messages
+    if should_select_history(previous_messages):
+        search_query, answer_history = select_history(previous_messages, message)
+    else:
+        search_query = rewrite_question_for_retrieval(previous_messages, message)
     contexts = retrieve(search_query, top_k)
-    answer = answer_with_gemini(message, contexts, history_with_latest)
+    answer = answer_with_gemini(message, contexts, answer_history)
     sources = source_payload(contexts)
+    cited_sources = cited_source_payload(answer, contexts)
     confidence = retrieval_confidence(contexts)
     abstained = answer_is_abstention(answer)
     assistant_message = save_chat_message(
@@ -115,6 +122,7 @@ def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = No
         "search_query": search_query,
         "answer": answer,
         "sources": sources,
+        "cited_sources": cited_sources,
         "confidence": confidence,
         "abstained": abstained,
     }

@@ -1,0 +1,424 @@
+[
+  {
+    "case": "paraphrase",
+    "optimized": false,
+    "answer": "Apply to the District Forest Officer using Form A and proof of ownership. No fee is payable for bamboo, but approval is required before transport [1].",
+    "audits": [
+      {
+        "operation": "verify",
+        "result": {
+          "supported": true,
+          "answer": "Apply to the District Forest Officer using Form A and proof of ownership. No fee is payable for bamboo, but approval is required before transport [1].",
+          "issues": [],
+          "unchanged": true
+        }
+      }
+    ],
+    "calls": [
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 331,
+          "candidatesTokenCount": 50,
+          "totalTokenCount": 381,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 331
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0002243,
+        "estimated_cost_inr": 0.020187,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "repair_exception",
+    "optimized": false,
+    "answer": "Submit Form A with proof of ownership to the District Forest Officer. Bamboo permits are fee-exempt but still require approval before transport [1].",
+    "audits": [
+      {
+        "operation": "verify",
+        "result": {
+          "supported": false,
+          "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+          "issues": [
+            "The draft claims that bamboo may be transported without approval, which directly contradicts the excerpt stating that transport requires approval."
+          ],
+          "unchanged": false
+        }
+      },
+      {
+        "operation": "verify_complex",
+        "result": {
+          "supported": true,
+          "answer": "Submit Form A with proof of ownership to the District Forest Officer. Bamboo permits are fee-exempt but still require approval before transport [1].",
+          "issues": [
+            "The draft incorrectly claims that bamboo may be transported without approval, directly contradicting excerpt [1], which states that approval is still required before transport."
+          ],
+          "unchanged": false
+        }
+      }
+    ],
+    "calls": [
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 328,
+          "candidatesTokenCount": 75,
+          "totalTokenCount": 403,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 328
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00028589999999999996,
+        "estimated_cost_inr": 0.025730999999999997,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      },
+      {
+        "operation": "verify_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 328,
+          "candidatesTokenCount": 92,
+          "totalTokenCount": 924,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 328
+            }
+          ],
+          "thoughtsTokenCount": 504,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.002481,
+        "estimated_cost_inr": 0.22329000000000002,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "unsupported",
+    "optimized": false,
+    "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+    "audits": [
+      {
+        "operation": "verify",
+        "result": {
+          "supported": false,
+          "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+          "issues": [
+            "The cited excerpt does not mention any penalty for late renewal."
+          ],
+          "unchanged": false
+        }
+      },
+      {
+        "operation": "verify_complex",
+        "result": {
+          "supported": false,
+          "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+          "issues": [
+            "Excerpt [1] does not mention late renewal or a penalty of INR 500."
+          ],
+          "unchanged": false
+        }
+      }
+    ],
+    "calls": [
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 311,
+          "candidatesTokenCount": 49,
+          "totalTokenCount": 360,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 311
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00021580000000000001,
+        "estimated_cost_inr": 0.019422000000000002,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      },
+      {
+        "operation": "verify_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 311,
+          "candidatesTokenCount": 72,
+          "totalTokenCount": 530,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 311
+            }
+          ],
+          "thoughtsTokenCount": 147,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0010545,
+        "estimated_cost_inr": 0.094905,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "amendment_lookup",
+    "optimized": false,
+    "answer": "Under this amendment, the application fee is set at INR 100 [1]. However, bamboo remains exempt from the fee, though it still requires approval [1].\n\nPlease let me know if you need further details regarding the approval requirement for fee-exempt bamboo.",
+    "calls": [
+      {
+        "operation": "answer_complex_high",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 762,
+          "candidatesTokenCount": 55,
+          "totalTokenCount": 1420,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 762
+            }
+          ],
+          "thoughtsTokenCount": 603,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.003039,
+        "estimated_cost_inr": 0.27351000000000003,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "duplicate_selection",
+    "optimized": false,
+    "selected_ids": [
+      0,
+      4,
+      1,
+      2,
+      3
+    ],
+    "evidence_tokens": 130,
+    "formatted_source_tokens": 226
+  },
+  {
+    "case": "paraphrase",
+    "optimized": true,
+    "answer": "Apply to the District Forest Officer using Form A and proof of ownership. No fee is payable for bamboo, but approval is required before transport [1].",
+    "audits": [
+      {
+        "operation": "verify",
+        "result": {
+          "supported": true,
+          "unchanged": true,
+          "issues": [],
+          "answer": ""
+        }
+      }
+    ],
+    "calls": [
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 503,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 533,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 503
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00022590000000000002,
+        "estimated_cost_inr": 0.020331000000000002,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "repair_exception",
+    "optimized": true,
+    "answer": "Submit Form A with proof of ownership to the District Forest Officer. Bamboo is fee-exempt but requires approval before transport [1].",
+    "audits": [
+      {
+        "operation": "verify",
+        "result": {
+          "supported": true,
+          "unchanged": false,
+          "issues": [
+            "Draft incorrectly stated bamboo may be transported without approval, whereas the excerpt requires approval."
+          ],
+          "answer": "Submit Form A with proof of ownership to the District Forest Officer. Bamboo is fee-exempt but requires approval before transport [1]."
+        }
+      }
+    ],
+    "calls": [
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 500,
+          "candidatesTokenCount": 78,
+          "totalTokenCount": 578,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 500
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.000345,
+        "estimated_cost_inr": 0.031049999999999998,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "unsupported",
+    "optimized": true,
+    "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer.",
+    "audits": [
+      {
+        "operation": "verify",
+        "result": {
+          "supported": false,
+          "unchanged": false,
+          "issues": [
+            "The draft claims a penalty of INR 500 for late renewal, but the source excerpt only discusses bamboo permit approval requirements and mentions no penalties or renewal fees."
+          ],
+          "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer."
+        }
+      },
+      {
+        "operation": "verify_complex",
+        "result": {
+          "supported": false,
+          "unchanged": false,
+          "issues": [
+            "The cited excerpt does not mention any penalty for late renewal or an amount of INR 500."
+          ],
+          "answer": "The retrieved documents may contain relevant information, but I could not produce a sufficiently supported answer."
+        }
+      }
+    ],
+    "calls": [
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 483,
+          "candidatesTokenCount": 87,
+          "totalTokenCount": 570,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 483
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00036239999999999997,
+        "estimated_cost_inr": 0.032616,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      },
+      {
+        "operation": "verify_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 483,
+          "candidatesTokenCount": 75,
+          "totalTokenCount": 731,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 483
+            }
+          ],
+          "thoughtsTokenCount": 173,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00129225,
+        "estimated_cost_inr": 0.1163025,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "amendment_lookup",
+    "optimized": true,
+    "answer": "The application fee set by this amendment is INR 100 [1]. However, bamboo remains exempt from the fee, although it still requires approval [1].\n\nPlease indicate if your proposed application involves bamboo so that the fee exemption can be properly applied.",
+    "calls": [
+      {
+        "operation": "answer_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 762,
+          "candidatesTokenCount": 52,
+          "totalTokenCount": 1160,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 762
+            }
+          ],
+          "thoughtsTokenCount": 346,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.002064,
+        "estimated_cost_inr": 0.18575999999999998,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-17"
+      }
+    ]
+  },
+  {
+    "case": "duplicate_selection",
+    "optimized": true,
+    "selected_ids": [
+      0,
+      4
+    ],
+    "evidence_tokens": 37,
+    "formatted_source_tokens": 103
+  }
+]
