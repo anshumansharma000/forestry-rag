@@ -82,72 +82,27 @@ class DocumentRepository:
             },
         }
 
-    def upsert_document(self, doc: dict, status: str = "indexing") -> str:
-        metadata = {
-            **(doc.get("metadata") or {}),
-            "index_version": index_version(),
-            "ingest_status": status,
-            "ingest_started_at": datetime.now(UTC).isoformat(),
-        }
-        document_row = {
-            "source": doc["source"],
-            "kind": doc["kind"],
-            "title": doc["title"],
-            "page_count": doc["page_count"],
-            "metadata": metadata,
-        }
-        result = self.client.table("documents").upsert(document_row, on_conflict="source").execute()
-        return result.data[0]["id"]
+    def begin_revision(self, doc: dict) -> dict:
+        snapshot = {key: doc.get(key) for key in ("source", "kind", "title", "page_count")}
+        snapshot["metadata"] = {**(doc.get("metadata") or {}), "index_version": index_version()}
+        return self.client.rpc("begin_document_revision", {"p_document": snapshot}).execute().data
 
-    def mark_document_status(self, source: str, status: str, details: dict[str, Any] | None = None) -> None:
-        metadata = {"ingest_status": status, "ingest_updated_at": datetime.now(UTC).isoformat(), **(details or {})}
-        self.client.table("documents").update(
-            {"metadata": metadata, "updated_at": datetime.now(UTC).isoformat()}
-        ).eq("source", source).execute()
+    def insert_revision_chunks(self, rows: list[dict]) -> int:
+        if rows:
+            self.client.table("document_revision_chunks").insert(rows).execute()
+        return len(rows)
+
+    def publish_revision(self, revision_id: str, expected_chunks: int) -> dict:
+        return self.client.rpc("publish_document_revision", {
+            "p_revision_id": revision_id, "p_expected_chunks": expected_chunks,
+        }).execute().data
+
+    def fail_revision(self, revision_id: str, error: str) -> None:
+        self.client.rpc("fail_document_revision", {"p_revision_id": revision_id, "p_error": error}).execute()
 
     def record_ingest_failure(self, source: str, error: str) -> None:
-        """Ensure failures before document extraction are visible in the library."""
-        result = self.client.table("documents").select("id,metadata").eq("source", source).limit(1).execute()
-        now = datetime.now(UTC).isoformat()
-        if result.data:
-            metadata = {
-                **(result.data[0].get("metadata") or {}),
-                "ingest_status": "failed",
-                "ingest_error": error,
-                "ingest_updated_at": now,
-            }
-            self.client.table("documents").update({"metadata": metadata, "updated_at": now}).eq(
-                "source", source
-            ).execute()
-            return
-
-        suffix = source.rsplit(".", 1)[-1].lower() if "." in source else "document"
-        self.client.table("documents").insert(
-            {
-                "source": source,
-                "kind": suffix,
-                "title": source,
-                "page_count": None,
-                "metadata": {
-                    "ingest_status": "failed",
-                    "ingest_error": error,
-                    "ingest_updated_at": now,
-                    "index_version": index_version(),
-                },
-            }
-        ).execute()
-
-    def replace_chunks(self, source: str, rows: list[dict]) -> int:
-        self.delete_chunks(source)
-        return self.insert_chunk_batch(rows)
-
-    def delete_chunks(self, source: str) -> None:
-        self.client.table("document_chunks").delete().eq("source", source).execute()
-
-    def insert_chunk_batch(self, rows: list[dict]) -> int:
-        if rows:
-            self.client.table("document_chunks").insert(rows).execute()
-        return len(rows)
+        # A failed refresh must never hide the last successfully published index.
+        self.client.rpc("record_document_ingest_failure", {"p_source": source, "p_error": error}).execute()
 
     def match_chunks(self, query_embedding: list[float], query_text: str, match_count: int) -> list[dict]:
         result = self.client.rpc(
@@ -156,16 +111,11 @@ class DocumentRepository:
         ).execute()
         return result.data or []
 
-    def neighbor_chunks(self, document_id: str, chunk_index: int, radius: int = 1) -> list[dict]:
-        result = (
-            self.client.table("document_chunks")
-            .select("id,document_id,source,chunk_index,chunk_type,section_heading,page_start,page_end,content,metadata")
-            .eq("document_id", document_id)
-            .gte("chunk_index", max(0, chunk_index - radius))
-            .lte("chunk_index", chunk_index + radius)
-            .order("chunk_index")
-            .execute()
-        )
+    def neighbor_chunks(self, document_id: str, chunk_index: int, radius: int = 1, revision_id: str | None = None) -> list[dict]:
+        result = self.client.rpc("document_chunk_neighbors", {
+            "p_document_id": document_id, "p_chunk_index": chunk_index,
+            "p_radius": radius, "p_revision_id": revision_id,
+        }).execute()
         return result.data or []
 
 

@@ -76,7 +76,9 @@ def validation_error_handler(_request: Request, exc: RequestValidationError):
         status.HTTP_422_UNPROCESSABLE_ENTITY,
         ErrorCode.VALIDATION_ERROR,
         "Request validation failed",
-        {"errors": exc.errors()},
+        # Validator contexts may contain exceptions, and input may contain passwords.
+        # Return only the stable, JSON-safe diagnostic fields.
+        {"errors": [{"type": error["type"], "loc": list(error["loc"]), "msg": error["msg"]} for error in exc.errors()]},
     )
 
 

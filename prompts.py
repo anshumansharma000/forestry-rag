@@ -109,9 +109,14 @@ def format_contexts(contexts: list[dict]) -> str:
         blocks.append(
             f"[{i}] Source: {format_source(ctx)}\nSection: {section}; "
             f"Evidence role: {ctx.get('evidence_role', 'matched')}\n"
-            f"Issue date: {issued}; Effective date: {effective}\n{text}"
+            f"Issue date: {issued}; Effective date: {effective}\n"
+            + (f"Legal annotation (not excerpt evidence): {json.dumps(metadata['legal_profile'])}\n"
+               if metadata.get("legal_profile") else "")
+            + text
         )
-    return "\n\n".join(blocks)
+    from legal_retrieval import legal_prompt_context
+
+    return legal_prompt_context(contexts) + "\n\n".join(blocks)
 
 
 def env_enabled(name: str, default: bool = False) -> bool:

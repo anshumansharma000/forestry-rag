@@ -1508,18 +1508,18 @@ def test_ingest_marks_document_failed_when_chunk_insert_fails(monkeypatch):
         def indexed_sources(self):
             return set()
 
-        def upsert_document(self, _doc, status="indexing"):
-            self.statuses.append(status)
-            return "document-id"
+        def begin_revision(self, _doc):
+            self.statuses.append("indexing")
+            return {"id": "revision-id", "document_id": "document-id"}
 
         def delete_chunks(self, _source):
             pass
 
-        def insert_chunk_batch(self, _rows):
+        def insert_revision_chunks(self, _rows):
             raise RuntimeError("insert failed")
 
-        def mark_document_status(self, _source, status, _details=None):
-            self.statuses.append(status)
+        def fail_revision(self, _revision_id, _error):
+            self.statuses.append("failed")
 
     repository = Repository()
     monkeypatch.setattr(
@@ -1544,17 +1544,17 @@ def test_ingest_persists_embedding_rows_in_bounded_batches(monkeypatch):
         def indexed_sources(self):
             return set()
 
-        def upsert_document(self, _doc, status="indexing"):
-            return "document-id"
+        def begin_revision(self, _doc):
+            return {"id": "revision-id", "document_id": "document-id"}
 
         def delete_chunks(self, _source):
             pass
 
-        def insert_chunk_batch(self, rows):
+        def insert_revision_chunks(self, rows):
             self.batches.append(list(rows))
             return len(rows)
 
-        def mark_document_status(self, _source, _status, _details=None):
+        def publish_revision(self, _revision_id, _count):
             pass
 
     repository = Repository()
@@ -1592,18 +1592,18 @@ def test_explicit_ingest_rebuilds_replaced_source_under_stable_document_id(monke
         def indexed_sources(self):
             return {"a.txt"}
 
-        def upsert_document(self, doc, status="indexing"):
-            self.upserts.append((doc["source"], status))
-            return "stable-document-id"
+        def begin_revision(self, doc):
+            self.upserts.append((doc["source"], "indexing"))
+            return {"id": "revision-id", "document_id": "stable-document-id"}
 
         def delete_chunks(self, _source):
             pass
 
-        def insert_chunk_batch(self, rows):
+        def insert_revision_chunks(self, rows):
             self.batches.extend(rows)
             return len(rows)
 
-        def mark_document_status(self, _source, _status, _details=None):
+        def publish_revision(self, _revision_id, _count):
             pass
 
     repository = Repository()
@@ -1622,7 +1622,7 @@ def test_explicit_ingest_rebuilds_replaced_source_under_stable_document_id(monke
     result = ingest_service.build_index(repository, source="a.txt")
 
     assert repository.upserts == [("a.txt", "indexing")]
-    assert repository.batches == [{"document_id": "stable-document-id", "source": "a.txt", "content": "new"}]
+    assert repository.batches == [{"document_id": "stable-document-id", "source": "a.txt", "content": "new", "revision_id": "revision-id"}]
     assert result["documents_added"] == 1
 
 

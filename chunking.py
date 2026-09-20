@@ -330,6 +330,7 @@ def faq_document_units(doc: dict, chunk_token_limit: int | None = None) -> list[
                 elif is_heading(line):
                     flush_question()
                     active_heading = clean_heading(line)
+                    units.append({"type": "heading", "heading": active_heading, "page": page["page"], "text": line})
                 else:
                     active_heading = clean_heading(line) if is_heading(line) else active_heading
 
@@ -362,7 +363,7 @@ def page_units(
             continue
         if len(lines) == 1 and is_heading(lines[0]):
             active_heading = clean_heading(lines[0])
-            units.append({"type": "heading", "heading": active_heading, "page": page_number, "text": active_heading})
+            units.append({"type": "heading", "heading": active_heading, "page": page_number, "text": lines[0]})
             continue
 
         clause_buffer = []
@@ -374,7 +375,7 @@ def page_units(
                         units.append({"type": "text", "heading": active_heading, "page": page_number, "text": piece})
                     clause_buffer = []
                 active_heading = clean_heading(line)
-                units.append({"type": "heading", "heading": active_heading, "page": page_number, "text": active_heading})
+                units.append({"type": "heading", "heading": active_heading, "page": page_number, "text": line})
             elif is_clause_start(line) and clause_buffer:
                 text = " ".join(clause_buffer)
                 for piece in split_long_text(text, max_unit_tokens):
