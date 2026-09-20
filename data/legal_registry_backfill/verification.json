@@ -1,0 +1,39 @@
+{
+  "verified_at": "2026-09-19T10:57:46.138565+00:00",
+  "namespace": "dev",
+  "status": "applied_and_verified",
+  "summary": {
+    "documents": 358,
+    "chunks_examined": 4764,
+    "labels": {
+      "clarification": 73,
+      "judicial": 8,
+      "unknown": 62,
+      "instruction": 69,
+      "amendment": 10,
+      "notification": 8,
+      "guideline": 109,
+      "act": 8,
+      "handbook": 5,
+      "rules": 6
+    },
+    "candidate_relationships": 110,
+    "ambiguous_references": 706
+  },
+  "stored_profiles": 358,
+  "stored_relationships": 110,
+  "reviewed_profiles": 0,
+  "relationship_types": {
+    "refers_to": 102,
+    "amends": 2,
+    "supersedes": 6
+  },
+  "corpus_fingerprints": {
+    "documents": "f1877bb82be450d9b1ceb778199db1cb15ab6c98e5313543fb3ee4c567b3458d",
+    "document_chunks": "106bf38c33a5920ddd6db85b15131332ab42d6eeae0d17d4002f23a7d24f9555"
+  },
+  "existing_profiles_preserved": 0,
+  "idempotent_rerun_verified": true,
+  "corpus_unchanged": true,
+  "production_namespaces_unchanged": true
+}
