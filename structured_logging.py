@@ -5,6 +5,8 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
+from redaction import redact
+
 STANDARD_LOG_RECORD_FIELDS = {
     "args",
     "asctime",
@@ -45,7 +47,7 @@ class JsonLogFormatter(logging.Formatter):
             payload["exception"] = self.formatException(record.exc_info)
         if record.stack_info:
             payload["stack"] = self.formatStack(record.stack_info)
-        return json.dumps(payload, default=str, separators=(",", ":"))
+        return json.dumps(redact(payload), default=str, separators=(",", ":"))
 
     def _extra_fields(self, record: logging.LogRecord) -> dict[str, Any]:
         return {

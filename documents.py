@@ -13,11 +13,11 @@ from pptx import Presentation
 from pypdf import PdfReader, PdfWriter
 
 from rag_errors import RagError
-from temporal import extract_temporal_metadata
 from services.document_ai import document_ai_client
 from services.document_storage import SUPPORTED_STORAGE_EXTENSIONS, document_storage
 from settings import DOCS_DIR as _DOCS_DIR
 from settings import env_bool, env_int
+from temporal import extract_temporal_metadata
 
 SUPPORTED_EXTENSIONS = SUPPORTED_STORAGE_EXTENSIONS
 DOCS_DIR = _DOCS_DIR
@@ -74,7 +74,7 @@ def apply_pdf_ocr_fallback(path: Path, native_pages: list[dict], *, ocr_client=N
     try:
         reader = PdfReader(str(path))
     except Exception as exc:
-        raise RagError(f"Could not read PDF {path.name}: {exc}") from exc
+        raise RagError("Could not read PDF document.") from exc
 
     enforce_pdf_page_limit(path, len(reader.pages))
     min_text_chars = env_int("DOCUMENT_AI_OCR_MIN_TEXT_CHARS", 40)
@@ -123,7 +123,7 @@ def read_pdf_with_pypdf(path: Path) -> list[dict]:
     try:
         reader = PdfReader(str(path))
     except Exception as exc:
-        raise RagError(f"Could not read PDF {path.name}: {exc}") from exc
+        raise RagError("Could not read PDF document.") from exc
 
     enforce_pdf_page_limit(path, len(reader.pages))
     pages = []
@@ -225,7 +225,7 @@ def read_docx(path: Path) -> list[dict]:
     try:
         document = Document(str(path))
     except Exception as exc:
-        raise RagError(f"Could not read DOCX {path.name}: {exc}") from exc
+        raise RagError("Could not read DOCX document.") from exc
 
     blocks = []
     table_index = 0
@@ -256,7 +256,7 @@ def read_pptx(path: Path) -> list[dict]:
     try:
         presentation = Presentation(str(path))
     except Exception as exc:
-        raise RagError(f"Could not read PPTX {path.name}: {exc}") from exc
+        raise RagError("Could not read PPTX document.") from exc
 
     pages = []
     table_index = 0
@@ -356,7 +356,7 @@ def read_ppt(path: Path) -> list[dict]:
                 raise ValueError("PowerPoint Document stream is missing")
             payload = presentation.openstream("PowerPoint Document").read()
     except Exception as exc:
-        raise RagError(f"Could not read PPT {path.name}: {exc}") from exc
+        raise RagError("Could not read PPT document.") from exc
 
     slide_texts = legacy_ppt_slide_lists(payload) or legacy_ppt_slide_containers(payload)
     if not slide_texts:

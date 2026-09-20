@@ -2,19 +2,20 @@ import hashlib
 import logging
 import os
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import jwt
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from auth_repository import AuthRepository
 from errors import AppError, ErrorCode
 from rag_errors import RagError
+from security_settings import is_production
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class CurrentUser:
     full_name: str | None = None
     must_change_password: bool = False
     is_bootstrap: bool = False
+    token_version: int = field(default=0, repr=False)
 
 
 def _jwt_secret() -> str:
@@ -77,11 +79,11 @@ def _refresh_expires_days() -> int:
 
 
 def _bootstrap_admin_token() -> str:
-    return os.getenv("BOOTSTRAP_ADMIN_TOKEN", "").strip()
+    return "" if is_production() else os.getenv("BOOTSTRAP_ADMIN_TOKEN", "").strip()
 
 
 def _auth_disabled() -> bool:
-    return os.getenv("AUTH_DISABLED", "").strip().lower() in {"1", "true", "yes"}
+    return not is_production() and os.getenv("AUTH_DISABLED", "").strip().lower() in {"1", "true", "yes"}
 
 
 def _user_from_row(row: dict) -> CurrentUser:
@@ -96,6 +98,7 @@ def _user_from_row(row: dict) -> CurrentUser:
         role=row["role"],
         full_name=row.get("full_name"),
         must_change_password=bool(row.get("must_change_password", False)),
+        token_version=int(row.get("token_version", 0)),
     )
 
 
@@ -128,6 +131,7 @@ def create_access_token(user: CurrentUser) -> tuple[str, str]:
         "role": user.role,
         "full_name": user.full_name,
         "must_change_password": user.must_change_password,
+        "ver": user.token_version,
         "iat": now,
         "exp": expires_at,
     }
@@ -161,11 +165,15 @@ def _user_from_jwt(token: str) -> CurrentUser:
             AuthRepository().get_user_by_id(user_id)
         )
     except Exception as exc:
-        raise AuthError(f"Could not validate credentials: {exc}") from exc
+        raise AuthError("Could not validate credentials.") from exc
 
     if not result:
         raise AuthError("Invalid JWT")
 
+    # Pre-migration JWTs have version zero, so deployment does not log everyone out.
+    version = claims.get("ver", 0)
+    if type(version) is not int or version != int(result.get("token_version", 0)):
+        raise AuthError("Session has been revoked. Please log in again.")
     return _user_from_row(result)
 
 
@@ -214,25 +222,30 @@ def get_authenticated_user(
     return _user_from_token(token)
 
 
-def require_exact_admin(
+async def require_exact_admin(
+    request: Request,
     user: Annotated[CurrentUser, Depends(get_authenticated_user)],
-) -> CurrentUser:
+):
     if user.role != "admin":
         raise AuthError("Insufficient role permissions", status.HTTP_403_FORBIDDEN)
     if user.must_change_password:
         raise AuthError("Password change is required before using this endpoint", status.HTTP_403_FORBIDDEN)
-    return user
+    from request_limits import user_limits
+    async with user_limits(request, user.id):
+        yield user
 
 
 def require_roles(*roles: str):
     minimum = min(ROLE_ORDER[role] for role in roles)
 
-    def dependency(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
+    async def dependency(request: Request, user: Annotated[CurrentUser, Depends(get_current_user)]):
         if ROLE_ORDER.get(user.role, 0) < minimum:
             raise AuthError("Insufficient role permissions", status.HTTP_403_FORBIDDEN)
         if user.must_change_password:
             raise AuthError("Password change is required before using this endpoint", status.HTTP_403_FORBIDDEN)
-        return user
+        from request_limits import user_limits
+        async with user_limits(request, user.id):
+            yield user
 
     return dependency
 
@@ -240,10 +253,12 @@ def require_roles(*roles: str):
 def require_roles_allowing_password_change(*roles: str):
     minimum = min(ROLE_ORDER[role] for role in roles)
 
-    def dependency(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
+    async def dependency(request: Request, user: Annotated[CurrentUser, Depends(get_current_user)]):
         if ROLE_ORDER.get(user.role, 0) < minimum:
             raise AuthError("Insufficient role permissions", status.HTTP_403_FORBIDDEN)
-        return user
+        from request_limits import user_limits
+        async with user_limits(request, user.id):
+            yield user
 
     return dependency
 
@@ -255,7 +270,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, password_hash: str) -> bool:
     try:
         return password_hasher.verify(password_hash, password)
-    except VerifyMismatchError:
+    except (InvalidHashError, VerificationError):
         return False
 
 
@@ -268,6 +283,8 @@ def generate_refresh_token() -> str:
 
 
 def validate_password(password: str) -> None:
+    if len(password) > 256:
+        raise RagError("Password must not exceed 256 characters")
     if len(password) < 10:
         raise RagError("Password must be at least 10 characters")
     if not any(ch.isalpha() for ch in password) or not any(ch.isdigit() for ch in password):
@@ -286,15 +303,21 @@ def issue_refresh_token(user: CurrentUser, request: Request | None = None, metad
         "metadata": metadata or {},
     }
     try:
-        result = AuthRepository().insert_refresh_token(row)
+        result = AuthRepository().issue_refresh_token(row, user.token_version)
     except Exception as exc:
-        raise RagError(f"Could not issue refresh token: {exc}") from exc
+        raise RagError("Could not issue refresh token.") from exc
+    if not result:
+        raise AuthError("Credentials changed. Please log in again.")
     return token, expires_at.isoformat(), result["id"]
 
 
 def auth_token_bundle(user: CurrentUser, request: Request | None = None, metadata: dict | None = None) -> dict:
     access_token, access_expires_at = create_access_token(user)
     refresh_token, refresh_expires_at, _refresh_id = issue_refresh_token(user, request, metadata)
+    return token_bundle(user, access_token, access_expires_at, refresh_token, refresh_expires_at)
+
+
+def token_bundle(user: CurrentUser, access_token: str, access_expires_at: str, refresh_token: str, refresh_expires_at: str) -> dict:
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -333,7 +356,7 @@ def create_app_user(
     try:
         user = AuthRepository().create_user(row)
     except Exception as exc:
-        raise RagError(f"Could not create user: {exc}") from exc
+        raise RagError("Could not create user.") from exc
     user.pop("token_hash", None)
     user.pop("password_hash", None)
     return public_user(user)
@@ -343,7 +366,7 @@ def login_with_password(email: str, password: str, request: Request | None = Non
     try:
         row = AuthRepository().get_user_for_auth(email)
     except Exception as exc:
-        raise RagError(f"Could not load user: {exc}") from exc
+        raise RagError("Could not load user.") from exc
 
     if not row:
         raise AuthError("Invalid email or password")
@@ -361,46 +384,22 @@ def login_with_password(email: str, password: str, request: Request | None = Non
 
 
 def refresh_access_token(refresh_token: str, request: Request | None = None) -> dict:
-    token_hash = hash_refresh_token(refresh_token.strip())
-    repository = AuthRepository()
+    _jwt_secret()  # Reject signing misconfiguration before consuming the old token.
+    replacement = generate_refresh_token()
+    expires_at = (datetime.now(UTC) + timedelta(days=_refresh_expires_days())).isoformat()
     try:
-        token_row = repository.get_refresh_token(token_hash)
-    except Exception as exc:
-        raise RagError(f"Could not validate refresh token: {exc}") from exc
-
-    if not token_row:
-        raise AuthError("Invalid refresh token")
-
-    if token_row.get("revoked_at"):
-        raise AuthError("Refresh token has been revoked")
-    expires_at = datetime.fromisoformat(token_row["expires_at"].replace("Z", "+00:00"))
-    if expires_at <= datetime.now(UTC):
-        raise AuthError("Refresh token has expired")
-
-    try:
-        user_row = repository.get_user_by_id(token_row["user_id"])
-    except Exception as exc:
-        raise RagError(f"Could not load user for refresh token: {exc}") from exc
-
-    if not user_row:
-        raise AuthError("Invalid refresh token")
-
-    user = _user_from_row(user_row)
-    bundle = auth_token_bundle(user, request, {"action": "refresh"})
-    replacement_hash = hash_refresh_token(bundle["refresh_token"])
-    try:
-        replacement_id = repository.find_refresh_token_id(replacement_hash)
-        repository.update_refresh_token(
-            token_row["id"],
-            {
-                "revoked_at": datetime.now(UTC).isoformat(),
-                "last_used_at": datetime.now(UTC).isoformat(),
-                "replaced_by": replacement_id,
-            },
+        result = AuthRepository().rotate_refresh_token(
+            hash_refresh_token(refresh_token.strip()), hash_refresh_token(replacement), expires_at,
+            request.client.host if request and request.client else None,
+            request.headers.get("user-agent") if request else None,
         )
     except Exception as exc:
-        raise RagError(f"Could not rotate refresh token: {exc}") from exc
-    return bundle
+        raise AppError("Could not refresh session. Please try again.", code=ErrorCode.STORAGE_ERROR, status_code=503) from exc
+    if not result:
+        raise AuthError("Invalid, expired, or already used refresh token")
+    user = _user_from_row(result["user"])
+    access_token, access_expires_at = create_access_token(user)
+    return token_bundle(user, access_token, access_expires_at, replacement, result["expires_at"])
 
 
 def change_password(user: CurrentUser, current_password: str, new_password: str) -> dict:
@@ -409,25 +408,18 @@ def change_password(user: CurrentUser, current_password: str, new_password: str)
     try:
         row = repository.get_user_by_id(user.id, "id,password_hash")
     except Exception as exc:
-        raise RagError(f"Could not load user: {exc}") from exc
+        raise RagError("Could not load user.") from exc
     if not row or not row.get("password_hash"):
         raise AuthError("Password cannot be changed for this user")
     if not verify_password(current_password, row["password_hash"]):
         raise AuthError("Current password is incorrect")
-    now = datetime.now(UTC).isoformat()
     try:
-        repository.update_user(
-            user.id,
-            {
-                "password_hash": hash_password(new_password),
-                "must_change_password": False,
-                "updated_at": now,
-            },
-        )
-        repository.revoke_user_refresh_tokens(user.id, now)
+        updated = repository.change_password(user.id, row["password_hash"], hash_password(new_password), False)
     except Exception as exc:
-        raise RagError(f"Could not change password: {exc}") from exc
-    return {"changed": True}
+        raise AppError("Could not change password.", code=ErrorCode.STORAGE_ERROR, status_code=503) from exc
+    if not updated:
+        raise AuthError("Credentials changed. Please log in again.")
+    return {"changed": True, "user": _user_from_row(updated)}
 
 
 def update_own_profile(user: CurrentUser, full_name: str | None = None) -> dict:
@@ -437,7 +429,7 @@ def update_own_profile(user: CurrentUser, full_name: str | None = None) -> dict:
     try:
         row = AuthRepository().update_user(user.id, updates)
     except Exception as exc:
-        raise RagError(f"Could not update profile: {exc}") from exc
+        raise RagError("Could not update profile.") from exc
     return public_user(row)
 
 
@@ -465,7 +457,7 @@ def update_app_user(
     try:
         row = AuthRepository().update_user(user_id, updates)
     except Exception as exc:
-        raise RagError(f"Could not update user: {exc}") from exc
+        raise RagError("Could not update user.") from exc
     if not row:
         raise RagError(f"User not found: {user_id}")
     return public_user(row)
@@ -473,20 +465,10 @@ def update_app_user(
 
 def reset_app_user_password(user_id: str, new_password: str, must_change_password: bool = True) -> dict:
     validate_password(new_password)
-    now = datetime.now(UTC).isoformat()
     try:
-        repository = AuthRepository()
-        row = repository.update_user(
-            user_id,
-            {
-                "password_hash": hash_password(new_password),
-                "must_change_password": must_change_password,
-                "updated_at": now,
-            },
-        )
-        repository.revoke_user_refresh_tokens(user_id, now)
+        row = AuthRepository().change_password(user_id, None, hash_password(new_password), must_change_password)
     except Exception as exc:
-        raise RagError(f"Could not reset password: {exc}") from exc
+        raise AppError("Could not reset password.", code=ErrorCode.STORAGE_ERROR, status_code=503) from exc
     if not row:
         raise RagError(f"User not found: {user_id}")
     return public_user(row)
@@ -531,12 +513,12 @@ def list_audit_events(limit: int = 100) -> list[dict]:
     try:
         return AuthRepository().list_audit_events(limit)
     except Exception as exc:
-        raise RagError(f"Could not list audit events: {exc}") from exc
+        raise RagError("Could not list audit events.") from exc
 
 
 def list_app_users(limit: int = 100) -> list[dict]:
     try:
         rows = AuthRepository().list_users(limit)
     except Exception as exc:
-        raise RagError(f"Could not list users: {exc}") from exc
+        raise RagError("Could not list users.") from exc
     return [public_user(row) for row in rows]

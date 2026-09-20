@@ -2,6 +2,7 @@ import json
 import logging
 import struct
 import sys
+from contextlib import nullcontext
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -903,8 +904,8 @@ def test_answer_uses_model_when_low_scored_context_exists(monkeypatch):
 
 def test_citation_validation_preserves_uncited_answers_and_removes_invalid_references():
     assert prompts.validate_answer_citations("Approval is required.", 2) == "Approval is required."
-    assert prompts.validate_answer_citations("Approval is required [1], not [8].", 2) == "Approval is required [1], not."
-    assert prompts.validate_answer_citations("Supported jointly [1, 3, 8].", 3) == "Supported jointly [1, 3]."
+    assert prompts.validate_answer_citations("Approval is required [1], not [8].", 2) == prompts.UNSUPPORTED_ANSWER
+    assert prompts.validate_answer_citations("Supported jointly [1, 3, 8].", 3) == prompts.UNSUPPORTED_ANSWER
     assert prompts.validate_answer_citations("No citation.", 2, require_citation=True) == prompts.UNSUPPORTED_ANSWER
 
 
@@ -1014,8 +1015,8 @@ def test_broad_question_expands_retrieval_facets_in_one_embedding_batch(monkeypa
     assert len(contexts) == 4
 
 
-def test_unsupported_answer_is_not_reported_as_abstention():
-    assert not prompts.answer_is_abstention(prompts.UNSUPPORTED_ANSWER)
+def test_unsupported_answer_is_reported_as_abstention():
+    assert prompts.answer_is_abstention(prompts.UNSUPPORTED_ANSWER)
 
 
 def test_answer_model_route_uses_evidence_complexity():
@@ -1505,6 +1506,9 @@ def test_ingest_marks_document_failed_when_chunk_insert_fails(monkeypatch):
         def __init__(self):
             self.statuses = []
 
+        def index_lease(self):
+            return nullcontext(SimpleNamespace(token="test-token", check=lambda: None))
+
         def indexed_sources(self):
             return set()
 
@@ -1518,7 +1522,7 @@ def test_ingest_marks_document_failed_when_chunk_insert_fails(monkeypatch):
         def insert_revision_chunks(self, _rows):
             raise RuntimeError("insert failed")
 
-        def fail_revision(self, _revision_id, _error):
+        def fail_revision(self, _revision_id, _error, **kwargs):
             self.statuses.append("failed")
 
     repository = Repository()
@@ -1541,6 +1545,9 @@ def test_ingest_persists_embedding_rows_in_bounded_batches(monkeypatch):
         def __init__(self):
             self.batches = []
 
+        def index_lease(self):
+            return nullcontext(SimpleNamespace(token="test-token", check=lambda: None))
+
         def indexed_sources(self):
             return set()
 
@@ -1554,7 +1561,7 @@ def test_ingest_persists_embedding_rows_in_bounded_batches(monkeypatch):
             self.batches.append(list(rows))
             return len(rows)
 
-        def publish_revision(self, _revision_id, _count):
+        def publish_revision(self, _revision_id, _count, **kwargs):
             pass
 
     repository = Repository()
@@ -1589,6 +1596,9 @@ def test_explicit_ingest_rebuilds_replaced_source_under_stable_document_id(monke
             self.upserts = []
             self.batches = []
 
+        def index_lease(self):
+            return nullcontext(SimpleNamespace(token="test-token", check=lambda: None))
+
         def indexed_sources(self):
             return {"a.txt"}
 
@@ -1603,7 +1613,7 @@ def test_explicit_ingest_rebuilds_replaced_source_under_stable_document_id(monke
             self.batches.extend(rows)
             return len(rows)
 
-        def publish_revision(self, _revision_id, _count):
+        def publish_revision(self, _revision_id, _count, **kwargs):
             pass
 
     repository = Repository()
@@ -1631,8 +1641,11 @@ def test_ingest_job_processes_only_source_stored_in_job_metadata(monkeypatch):
     calls = []
 
     class JobRepository:
+        def lease(self, _job):
+            return nullcontext(SimpleNamespace(token="test-token", check=lambda: None))
+
         def get(self, _job_id):
-            return {"id": "job-1", "metadata": {"source": "rules.pdf", "scope": "document"}}
+            return {"id": "job-1", "status": "queued", "metadata": {"source": "rules.pdf", "scope": "document"}}
 
         def update(self, job_id, **values):
             updates.append((job_id, values))
@@ -1661,8 +1674,11 @@ def test_ingest_job_records_extraction_failure_for_document_filter(monkeypatch):
     failures = []
 
     class JobRepository:
+        def lease(self, _job):
+            return nullcontext(SimpleNamespace(token="test-token", check=lambda: None))
+
         def get(self, _job_id):
-            return {"id": "job-1", "metadata": {"source": "broken.pdf", "scope": "document"}}
+            return {"id": "job-1", "status": "queued", "metadata": {"source": "broken.pdf", "scope": "document"}}
 
         def update(self, job_id, **values):
             updates.append((job_id, values))
@@ -1682,7 +1698,8 @@ def test_ingest_job_records_extraction_failure_for_document_filter(monkeypatch):
         document_repository=DocumentRepository(),
     )
 
-    assert failures == [("broken.pdf", "Could not extract text")]
+    assert failures == []  # Document failures are recorded while holding the index lease, inside build_index.
+    assert updates[-1][1]["error"] == "Operation failed. Please retry or contact an administrator."
     assert [values["status"] for _job_id, values in updates] == ["running", "failed"]
 
 

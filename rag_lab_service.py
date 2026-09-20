@@ -3,10 +3,12 @@ import time
 from uuid import uuid4
 
 from chunking import iter_document_chunks
+from consistency import DatabaseLease, OperationBusy, check_job_schedule
 from documents import read_document
 from errors import AppError, ErrorCode
-from prompts import answer_is_abstention, answer_with_gemini
-from rag_lab_repository import RagLabRepository
+from prompts import answer_is_abstention, answer_outcome, answer_with_gemini
+from rag_lab_repository import FencedLabRepository, RagLabRepository
+from redaction import safe_failure
 from repositories import IngestJobRepository
 from retrieval import cited_source_payload, embed_texts, embedding_text, retrieval_confidence, retrieve, source_payload
 from services.rag_lab_storage import RagLabStorage, rag_lab_storage
@@ -53,23 +55,14 @@ def upload_files(experiment_id: str, uploads: list, repository=None, storage=Non
 
 def create_revision_job(experiment_id: str, config: dict | None, actor_user_id: str, repository=None) -> tuple[dict, dict]:
     repository = repository or RagLabRepository()
-    experiment = repository.get_experiment(experiment_id)
-    if experiment["status"] in {"building", "publishing", "archived"}:
-        raise AppError(
-            "A revision cannot be created in the experiment's current state.",
-            code=ErrorCode.CONFLICT,
-            status_code=409,
-        )
-    if not repository.list_files(experiment_id):
-        raise AppError("Upload at least one file before building a revision.", code=ErrorCode.INVALID_INPUT)
-    snapshot = config or experiment["config"]
-    revision = repository.create_revision(experiment_id, snapshot, actor_user_id)
-    job = IngestJobRepository(repository.client).create(
-        actor_user_id,
-        kind="rag_lab.build",
-        metadata={"revision_id": revision["id"], "experiment_id": experiment_id},
-    )
-    return revision, job
+    result = repository.create_revision_job(experiment_id, config, actor_user_id)
+    if result['state'] == 'not_found':
+        raise AppError('RAG Lab experiment not found.', code=ErrorCode.NOT_FOUND, status_code=404)
+    if result['state'] == 'empty':
+        raise AppError('Upload at least one file before building a revision.', code=ErrorCode.INVALID_INPUT)
+    if result['state'] != 'created':
+        raise AppError('A revision cannot be created in the experiment’s current state.', code=ErrorCode.CONFLICT, status_code=409)
+    return result['revision'], result['job']
 
 
 def build_revision(revision_id: str, repository=None, storage: RagLabStorage | None = None) -> dict:
@@ -77,6 +70,13 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
     storage = storage or rag_lab_storage()
     revision = repository.get_revision(revision_id)
     files = repository.list_files(revision["experiment_id"])
+    if revision.get('file_ids') is not None:
+        expected = set(revision['file_ids'])
+        files = [file for file in files if file['id'] in expected]
+        if len(files) != len(expected):
+            raise AppError('A revision input file is missing.', code=ErrorCode.CONFLICT, status_code=409)
+    if revision["status"] in {"ready", "published"}:
+        return {"revision_id": revision_id, "documents": len(files), "chunks": revision.get("chunk_count", 0)}
     config = revision["config"]["chunking"]
     if revision["status"] == "queued":
         repository.delete_revision_chunks(revision_id)
@@ -121,11 +121,13 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
             if batch:
                 inserted += insert_embedded_batch(repository, batch)
                 existing_chunk_keys.update((row["file_id"], row["chunk_index"]) for row, _ in batch)
+        if not inserted:
+            raise AppError("Revision produced no searchable chunks.", code=ErrorCode.INVALID_INPUT)
         repository.update_revision(revision_id, status="ready", chunk_count=inserted)
         repository.update_experiment(revision["experiment_id"], {"status": "ready"})
         return {"revision_id": revision_id, "documents": len(files), "chunks": inserted}
     except Exception as exc:
-        repository.update_revision(revision_id, status="failed", chunk_count=inserted, error=str(exc))
+        repository.update_revision(revision_id, status="failed", chunk_count=inserted, error=safe_failure(exc))
         repository.update_experiment(revision["experiment_id"], {"status": "failed"})
         raise
 
@@ -187,6 +189,7 @@ def query_revision(revision_id: str, question: str, actor_user_id: str, retrieva
             "question": question,
             "retrieval_config": options,
             "answer": answer,
+            "outcome": answer_outcome(answer),
             "sources": sources,
             "confidence": confidence,
             "abstained": answer_is_abstention(answer),
@@ -196,10 +199,12 @@ def query_revision(revision_id: str, question: str, actor_user_id: str, retrieva
     return {
         "trial": trial,
         "answer": answer,
+        "outcome": answer_outcome(answer),
         "sources": sources,
         "cited_sources": cited_sources,
         "confidence": confidence,
         "latency_ms": latency_ms,
+        "abstained": answer_is_abstention(answer),
     }
 
 
@@ -220,22 +225,39 @@ def publish_revision(revision_id: str, actor_user_id: str | None, repository=Non
     return repository.publish_revision(revision_id, actor_user_id)
 
 
-def run_rag_lab_job(job_id: str, *, raise_on_failure: bool = False) -> None:
+def run_rag_lab_job(job_id: str, *, raise_on_failure: bool = False, retryable: bool = False,
+                    retry_delay_seconds: int = 0) -> None:
     jobs = IngestJobRepository()
-    job = jobs.get(job_id)
-    if not job:
-        raise AppError("RAG Lab job not found.", code=ErrorCode.NOT_FOUND)
-    jobs.update(job_id, status="running")
-    try:
-        if job["kind"] == "rag_lab.build":
-            result = build_revision(job["metadata"]["revision_id"])
-        elif job["kind"] == "rag_lab.publish":
-            result = publish_revision(job["metadata"]["revision_id"], job.get("actor_user_id"))
-        else:
-            raise AppError("Unsupported RAG Lab job kind.", code=ErrorCode.INVALID_INPUT)
-    except Exception as exc:
-        jobs.update(job_id, status="failed", error=str(exc))
-        if raise_on_failure:
-            raise
-        return
-    jobs.update(job_id, status="succeeded", result=result)
+    with jobs.lease(job_id) as lease:
+        job = jobs.get(job_id)
+        if not job:
+            raise AppError('RAG Lab job not found.', code=ErrorCode.NOT_FOUND, status_code=404)
+        if job['status'] in {'succeeded', 'failed'}:
+            return
+        check_job_schedule(job)
+        jobs.update(job_id, status='running', token=lease.token)
+        try:
+            revision_id = job['metadata']['revision_id']
+            with DatabaseLease(jobs.client, 'lab:' + revision_id, token=lease.token):
+                repository = FencedLabRepository(jobs.client, job_id, lease.token)
+                if job['kind'] == 'rag_lab.build':
+                    result = build_revision(revision_id, repository=repository)
+                elif job['kind'] == 'rag_lab.publish':
+                    result = publish_revision(revision_id, job.get('actor_user_id'), repository=repository)
+                else:
+                    raise AppError('Unsupported RAG Lab job kind.', code=ErrorCode.INVALID_INPUT)
+        except Exception as exc:
+            jobs.update(
+                job_id,
+                status='queued' if retryable or isinstance(exc, OperationBusy) else 'failed',
+                error=safe_failure(exc),
+                token=lease.token,
+                metadata={
+                    'capacity_wait': isinstance(exc, OperationBusy),
+                    'retry_delay_seconds': 5 if isinstance(exc, OperationBusy) else retry_delay_seconds,
+                },
+            )
+            if raise_on_failure:
+                raise
+            return
+        jobs.update(job_id, status='succeeded', result=result, token=lease.token)

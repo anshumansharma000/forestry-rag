@@ -67,4 +67,5 @@ def ask_in_session(
     request_body: ChatAskRequest,
     user: CurrentUser = Depends(require_roles("viewer")),
 ):
-    return chat_ask(session_id, request_body.message, user.id, request_body.top_k)
+    return chat_ask(session_id, request_body.message, user.id, request_body.top_k,
+                    request_id=str(request_body.request_id) if request_body.request_id else None)

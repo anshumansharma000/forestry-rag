@@ -12,7 +12,7 @@ import requests
 from errors import AppError, ErrorCode
 from generation_cost import generation_cost
 from settings import embedding_dimensions, env_int, gemini_api_key
-from token_usage import record_generation, record_unmetered_attempt
+from token_usage import record_embedding, record_generation, record_unmetered_attempt
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ GENERATION_PROFILES: dict[str, GenerationProfile] = {
     "answer_complex_high": GenerationProfile(
         "GEMINI_COMPLEX_MODEL", "gemini-3.8-flash",
         "GEMINI_COMPLEX_TEMPERATURE", 0.1,
-        "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS", 4000,
+        "GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS", 8192,
         "GEMINI_COMPLEX_HIGH_THINKING_LEVEL", "high",
         "GEMINI_COMPLEX_TIMEOUT_SECONDS", 120,
         "complex",
@@ -221,11 +221,18 @@ class GeminiClient:
                     timeout=request_timeout,
                 )
                 if response.status_code < 400:
-                    return response.json()
+                    data = response.json()
+                    if rate_bucket == "embedding":
+                        record_embedding(model, data.get("usageMetadata"), items=len(payload.get("requests", [payload])))
+                    return data
                 if action == "generateContent" and (response.status_code == 408 or response.status_code >= 500):
                     record_unmetered_attempt()
+                if rate_bucket == "embedding":
+                    record_embedding(model, None, items=len(payload.get("requests", [payload])))
                 retryable = response.status_code in RETRYABLE_STATUS_CODES
             except requests.RequestException as exc:
+                if rate_bucket == "embedding":
+                    record_embedding(model, None, items=len(payload.get("requests", [payload])))
                 if action == "generateContent":
                     record_unmetered_attempt()
                 last_exception = exc
@@ -409,36 +416,66 @@ class GeminiClient:
         if system_instruction:
             payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
 
-        started = time.perf_counter()
-        data = self._post(
-            model,
-            "generateContent",
-            payload,
-            timeout=env_int(profile.timeout_env, profile.default_timeout),
-            bucket=profile.rate_bucket,
-            operation=operation,
-        )
-        usage_metadata = data.get("usageMetadata") or {}
-        query_id = record_generation(operation, model, usage_metadata)
-        candidates = data.get("candidates")
-        first_candidate = candidates[0] if isinstance(candidates, list) and candidates else None
-        logged_finish_reason = first_candidate.get("finishReason") if isinstance(first_candidate, dict) else None
-        logger.info(
-            "gemini_generation_received",
-            extra={
-                "operation": operation,
-                "query_id": query_id,
-                "model": model,
-                "finish_reason": logged_finish_reason,
-                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
-                "prompt_tokens": usage_metadata.get("promptTokenCount"),
-                "output_tokens": usage_metadata.get("candidatesTokenCount"),
-                "thinking_tokens": usage_metadata.get("thoughtsTokenCount"),
-                "cached_tokens": usage_metadata.get("cachedContentTokenCount"),
-                "total_tokens": usage_metadata.get("totalTokenCount"),
-                **generation_cost(model, usage_metadata),
-            },
-        )
+        recovery_enabled = os.getenv("GEMINI_TRUNCATION_RECOVERY", "true").strip().lower() in {"true", "1", "yes"}
+        recovery_ceiling = env_int("GEMINI_TRUNCATION_MAX_OUTPUT_TOKENS", 16384)
+        for attempt in range(2):
+            started = time.perf_counter()
+            data = self._post(
+                model,
+                "generateContent",
+                payload,
+                timeout=env_int(profile.timeout_env, profile.default_timeout),
+                bucket=profile.rate_bucket,
+                operation=operation,
+            )
+            usage_metadata = data.get("usageMetadata") or {}
+            query_id = record_generation(operation, model, usage_metadata)
+            candidates = data.get("candidates")
+            first_candidate = candidates[0] if isinstance(candidates, list) and candidates else None
+            logged_finish_reason = first_candidate.get("finishReason") if isinstance(first_candidate, dict) else None
+            logger.info(
+                "gemini_generation_received",
+                extra={
+                    "operation": operation,
+                    "query_id": query_id,
+                    "model": model,
+                    "finish_reason": logged_finish_reason,
+                    "generation_attempt": attempt + 1,
+                    "max_output_tokens": generation_config["maxOutputTokens"],
+                    "thinking_level": thinking_level,
+                    "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+                    "prompt_tokens": usage_metadata.get("promptTokenCount"),
+                    "output_tokens": usage_metadata.get("candidatesTokenCount"),
+                    "thinking_tokens": usage_metadata.get("thoughtsTokenCount"),
+                    "cached_tokens": usage_metadata.get("cachedContentTokenCount"),
+                    "total_tokens": usage_metadata.get("totalTokenCount"),
+                    **generation_cost(model, usage_metadata),
+                },
+            )
+            if logged_finish_reason != "MAX_TOKENS":
+                break
+            previous_limit = generation_config["maxOutputTokens"]
+            next_limit = min(previous_limit * 2, recovery_ceiling)
+            if attempt == 0 and recovery_enabled and next_limit > previous_limit:
+                logger.warning("gemini_truncation_retrying", extra={
+                    "query_id": query_id, "operation": operation, "model": model,
+                    "previous_max_output_tokens": previous_limit, "max_output_tokens": next_limit,
+                    "thinking_level": thinking_level,
+                })
+                generation_config["maxOutputTokens"] = next_limit
+                continue
+            # Check before extracting content: reasoning can exhaust the budget
+            # without producing any visible text or content object.
+            raise AppError(
+                "Gemini response was truncated before completion.",
+                code=ErrorCode.UPSTREAM_ERROR,
+                status_code=502,
+                details={"finish_reason": logged_finish_reason, "operation": operation,
+                         "model": model, "max_output_tokens": previous_limit,
+                         "generation_attempts": attempt + 1,
+                         "thinking_tokens": usage_metadata.get("thoughtsTokenCount"),
+                         "output_tokens": usage_metadata.get("candidatesTokenCount")},
+            )
         try:
             candidate = data["candidates"][0]
             parts = candidate["content"]["parts"]
@@ -453,13 +490,6 @@ class GeminiClient:
                 code=ErrorCode.UPSTREAM_ERROR,
                 status_code=502,
                 details={"finish_reason": finish_reason},
-            )
-        if finish_reason == "MAX_TOKENS":
-            raise AppError(
-                "Gemini response was truncated before completion.",
-                code=ErrorCode.UPSTREAM_ERROR,
-                status_code=502,
-                details={"finish_reason": finish_reason, "operation": operation},
             )
         return GenerationResult(text, model, operation, finish_reason, usage_metadata)
 

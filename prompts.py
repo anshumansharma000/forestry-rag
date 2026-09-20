@@ -6,6 +6,7 @@ from datetime import date
 
 from chunking import count_tokens
 from errors import AppError
+from model_routing import extraction_eligible
 from retrieval import (
     classify_question_shape,
     format_source,
@@ -15,7 +16,7 @@ from retrieval import (
     retrieval_is_confident,
 )
 from temporal import historical_question, parse_date, temporal_metadata
-from token_usage import current_query_id
+from token_usage import current_query_id, record_verification_escalation
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,7 @@ def format_history(messages: list[dict], max_messages: int | None = None) -> str
 def format_contexts(contexts: list[dict]) -> str:
     blocks = []
     seen = {}
+    annotations = {}
     for i, ctx in enumerate(contexts, 1):
         metadata = temporal_metadata(ctx)
         issued = metadata.get("issued_date") or "Unknown"
@@ -106,12 +108,21 @@ def format_contexts(contexts: list[dict]) -> str:
         key = (ctx.get("document_id"), ctx["source"], section, issued, effective, ctx["text"])
         text = f"Identical excerpt text to [{seen[key]}]." if key in seen else ctx["text"]
         seen.setdefault(key, i)
+        annotation = ""
+        profile = metadata.get("legal_profile")
+        if profile:
+            serialized = json.dumps(profile, sort_keys=True)
+            key_profile = (ctx.get("document_id"), serialized)
+            if key_profile in annotations:
+                annotation = f"Legal annotation: same as [{annotations[key_profile]}].\n"
+            else:
+                annotation = f"Legal annotation (not excerpt evidence): {serialized}\n"
+                annotations[key_profile] = i
         blocks.append(
             f"[{i}] Source: {format_source(ctx)}\nSection: {section}; "
             f"Evidence role: {ctx.get('evidence_role', 'matched')}\n"
             f"Issue date: {issued}; Effective date: {effective}\n"
-            + (f"Legal annotation (not excerpt evidence): {json.dumps(metadata['legal_profile'])}\n"
-               if metadata.get("legal_profile") else "")
+            + annotation
             + text
         )
     from legal_retrieval import legal_prompt_context
@@ -177,7 +188,7 @@ def parse_verified_answer(value: str) -> str | None:
     return answer.strip() if isinstance(answer, str) and answer.strip() else None
 
 
-def verify_answer_with_gemini(question: str, answer: str, source_block: str) -> str:
+def verify_answer_with_gemini(question: str, answer: str, source_block: str, *, complex_required: bool = False) -> str:
     compact = env_enabled("RAG_COMPACT_VERIFICATION", True)
     selective = env_enabled("RAG_COST_OPTIMIZATIONS", True) and env_enabled("RAG_SELECTIVE_VERIFICATION", True)
     audit_guidance = """Assess factual support, not stylistic preference. A faithful paraphrase or synthesis can be supported
@@ -218,7 +229,11 @@ Draft answer:
 Source excerpts:
 {source_block}"""
     operations = ("verify", "verify_complex") if env_enabled("RAG_VERIFICATION_ESCALATION", True) else ("verify",)
+    if complex_required:
+        operations = ("verify_complex",)
     for operation in operations:
+        if operation == "verify_complex" and not complex_required:
+            record_verification_escalation()
         try:
             result = generate_structured_with_gemini(
                 prompt,
@@ -255,9 +270,18 @@ def accepted_verification(result: dict, answer: str, *, compact: bool) -> str | 
     return verified.strip()
 
 
-def answer_generation_operation(question: str, contexts: list[dict], evidence_plan: dict | None = None) -> str:
+def answer_generation_operation(
+    question: str, contexts: list[dict], evidence_plan: dict | None = None, *, allow_extraction: bool = True,
+) -> str:
     """Route on question complexity and the evidence actually retrieved."""
+    if allow_extraction and lite_extraction_enabled() and extraction_eligible(question, contexts, evidence_plan):
+        return "answer_direct"
     normalized = " ".join(question.lower().split())
+    if env_enabled("RAG_RISK_BASED_VERIFICATION", False) and (
+        re.search(r"\b(?:court|judicial|judgment|in force|applicab\w*|apply to|current(?:ly)?|latest)\b", normalized)
+        or any((ctx.get("metadata", {}).get("legal_profile") or {}).get("instrument_type") == "judicial" for ctx in contexts)
+    ):
+        return "answer_complex_high"
     if simple_dated_amendment_lookup(question, contexts, evidence_plan):
         return "answer_complex"
     if re.search(
@@ -306,7 +330,13 @@ def simple_dated_amendment_lookup(question: str, contexts: list[dict], evidence_
     )
 
 
+def lite_extraction_enabled() -> bool:
+    return env_enabled("RAG_COST_OPTIMIZATIONS", True) and env_enabled("RAG_LITE_EXTRACTION", False)
+
+
 def needs_evidence_plan(question: str, contexts: list[dict]) -> bool:
+    if lite_extraction_enabled() and extraction_eligible(question, contexts):
+        return False
     shape = classify_question_shape(question)
     if shape not in {"overview", "procedure", "comparison"} or not env_enabled("RAG_EVIDENCE_PLANNING", True):
         return False
@@ -389,7 +419,7 @@ Evidence plan:
 
 Latest question: {question}
 Answer:"""
-    operation = answer_generation_operation(question, contexts, evidence_plan)
+    operation = answer_generation_operation(question, contexts, evidence_plan, allow_extraction=not bool(chat_history))
     logger.info(
         "answer_route_selected",
         extra={
@@ -398,6 +428,8 @@ Answer:"""
             "question_shape": question_shape,
             "context_count": len(contexts),
             "evidence_plan_used": evidence_plan is not None,
+            "evidence_plan_conflict_count": len((evidence_plan or {}).get("conflicts") or []),
+            "amendment_context_count": sum(bool(temporal_metadata(context).get("amendment_references")) for context in contexts),
             "source_tokens_estimate": count_tokens(source_block),
             "history_tokens_estimate": count_tokens(history_block),
             "answer_prompt_tokens_estimate": count_tokens(prompt),
@@ -410,37 +442,61 @@ Answer:"""
     )
     if answer == UNSUPPORTED_ANSWER:
         return answer
-    if question_shape in {"overview", "procedure", "comparison"} and env_enabled("RAG_ANSWER_VERIFICATION", True):
+    lite_extraction = not chat_history and lite_extraction_enabled() and extraction_eligible(question, contexts, evidence_plan)
+    risk_audit = env_enabled("RAG_RISK_BASED_VERIFICATION", False) and operation == "answer_complex_high"
+    if risk_audit:
+        answer = verify_answer_with_gemini(question, answer, source_block, complex_required=True)
+    elif lite_extraction or (question_shape in {"overview", "procedure", "comparison"}
+                             and env_enabled("RAG_ANSWER_VERIFICATION", True)):
         answer = verify_answer_with_gemini(question, answer, source_block)
     return validate_answer_citations(answer, len(contexts), require_citation=True)
 
 
 def validate_answer_citations(answer: str, source_count: int, *, require_citation: bool = False) -> str:
-    if source_count <= 0:
+    if answer.strip() in {INSUFFICIENT_EVIDENCE_ANSWER, UNSUPPORTED_ANSWER}:
+        return answer.strip()
+    if source_count <= 0 or not answer.strip():
         return UNSUPPORTED_ANSWER
+    found = False
+    invalid = False
 
-    valid_citation_found = False
+    def normalize(match: re.Match) -> str:
+        nonlocal found, invalid
+        value = match.group(1).strip()
+        if not re.search(r"\d", value):
+            return match.group(0)
+        if not re.fullmatch(r"\d+(?:\s*,\s*\d+)*", value):
+            invalid = True
+            return match.group(0)
+        numbers = [int(number) for number in re.findall(r"\d+", value)]
+        if any(number < 1 or number > source_count for number in numbers):
+            invalid = True
+            return match.group(0)
+        found = True
+        return '[' + ', '.join(str(number) for number in dict.fromkeys(numbers)) + ']'
 
-    def clean_citation(match: re.Match) -> str:
-        nonlocal valid_citation_found
-        numbers = [int(value) for value in re.findall(r"\d+", match.group(1))]
-        valid = list(dict.fromkeys(number for number in numbers if 1 <= number <= source_count))
-        if not valid:
-            return ""
-        valid_citation_found = True
-        return f"[{', '.join(str(number) for number in valid)}]"
-
-    cleaned = re.sub(r"\[((?:\d+\s*,\s*)*\d+)\]", clean_citation, answer)
-    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
-    cleaned = re.sub(r",\s*([.;:!?])", r"\1", cleaned)
-    cleaned = re.sub(r" {2,}", " ", cleaned).strip()
-    if require_citation and not valid_citation_found:
+    cleaned = re.sub(r"\[([^\[\]\n]*)\]", normalize, answer).strip()
+    remainder = re.sub(r"\[[^\[\]\n]*\]", "", answer)
+    if re.search(r"\[[^\]\n]*\d|\d\s*\]", remainder):
+        invalid = True
+    # Never remove a bad reference while retaining the unsupported claim.
+    if invalid or (require_citation and not found):
         return UNSUPPORTED_ANSWER
     return cleaned
 
 
+def answer_outcome(answer: str) -> str:
+    if answer.strip() == INSUFFICIENT_EVIDENCE_ANSWER:
+        return 'insufficient_evidence'
+    if answer.strip() == UNSUPPORTED_ANSWER:
+        return 'unsupported_answer'
+    if not answer.strip():
+        return 'not_generated'
+    return 'answered'
+
+
 def answer_is_abstention(answer: str) -> bool:
-    return answer == INSUFFICIENT_EVIDENCE_ANSWER
+    return answer_outcome(answer) in {'insufficient_evidence', 'unsupported_answer'}
 
 
 def rewrite_question_for_retrieval(messages: list[dict], latest_message: str) -> str:

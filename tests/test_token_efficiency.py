@@ -1,7 +1,9 @@
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from threading import Barrier
+from types import SimpleNamespace
 
 import pytest
 
@@ -41,7 +43,11 @@ def test_chat_passes_prior_history_without_duplicating_latest_question(monkeypat
     monkeypatch.setattr(chat_service, "retrieve", lambda *a: [])
     captured = []
     monkeypatch.setattr(chat_service, "answer_with_gemini", lambda q, c, h: captured.append((q, h)) or "No evidence")
-    chat_service.chat_ask("session", "What is the fee?", "user", repository=object())
+    chat_service.chat_ask("session", "What is the fee?", "user", repository=SimpleNamespace(
+        begin_turn=lambda *a: {"state": "claimed"},
+        turn_lease=lambda *a: nullcontext(SimpleNamespace(check=lambda: None)),
+        complete_turn=lambda *a: a[-1],
+    ))
     assert captured == [("What is the fee?", history)]
 
 
@@ -130,6 +136,7 @@ def test_verification_escalation_is_bounded_and_can_be_disabled(monkeypatch):
 
 
 def test_usage_includes_truncated_generations_and_resets_between_queries(monkeypatch, caplog):
+    monkeypatch.setenv("GEMINI_TRUNCATION_RECOVERY", "false")
     caplog.set_level(logging.INFO)
     client = GeminiClient()
     metadata = {"promptTokenCount": 100, "candidatesTokenCount": 20, "thoughtsTokenCount": 5,

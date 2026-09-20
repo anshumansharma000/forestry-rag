@@ -1,9 +1,13 @@
+import hashlib
+import json
 import logging
 import os
 
 from chunking import chunk_document, iter_document_chunks
+from consistency import OperationBusy, check_job_schedule
 from documents import iter_documents
 from errors import AppError, ErrorCode
+from redaction import safe_failure
 from repositories import DocumentRepository, IngestJobRepository
 from retrieval import chunk_row
 
@@ -12,8 +16,29 @@ logger = logging.getLogger(__name__)
 
 def build_index(repository: DocumentRepository | None = None, *, source: str | None = None) -> dict:
     repository = repository or DocumentRepository()
-    existing_sources = repository.indexed_sources()
+    with repository.index_lease() as lease:
+        try:
+            return _build_index(repository, source=source, lease=lease)
+        except Exception as exc:
+            if source and not isinstance(exc, OperationBusy):
+                try:
+                    lease.check()
+                    repository.record_ingest_failure(source, safe_failure(exc), token=lease.token)
+                except Exception:
+                    logger.exception('document_failure_record_failed')
+            raise
 
+
+def content_fingerprint(doc: dict) -> str:
+    config = {key: value for key, value in os.environ.items() if key.startswith(
+        ('CHUNK_', 'FAQ_', 'PROCEDURE_', 'MAX_UNIT_', 'EMBEDDING_', 'GEMINI_EMBEDDING_MODEL', 'RAG_INDEX_VERSION')
+    )}
+    content = {key: value for key, value in doc.items() if not key.startswith('_')}
+    return hashlib.sha256(json.dumps({'document': content, 'config': config, 'format': 1},
+                                    sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def _build_index(repository, *, source, lease):
     documents_seen = 0
     documents_added = 0
     documents_skipped = 0
@@ -21,26 +46,26 @@ def build_index(repository: DocumentRepository | None = None, *, source: str | N
 
     for doc in iter_documents(source=source):
         documents_seen += 1
-        # An explicit source is a requested refresh (including file replacement),
-        # so rebuild its chunks while preserving the upserted document ID.
-        if doc["source"] in existing_sources and source is None:
+        fingerprint = content_fingerprint(doc)
+        doc = {**doc, '_lease_token': lease.token,
+               'metadata': {**(doc.get('metadata') or {}), 'content_fingerprint': fingerprint}}
+        lease.check()
+        revision = repository.begin_revision(doc)
+        if revision.get('already_indexed'):
             documents_skipped += 1
             continue
-
-        revision = repository.begin_revision(doc)
         try:
             document_chunks = persist_document_chunks(repository, revision, doc)
-            repository.publish_revision(revision["id"], document_chunks)
+            repository.publish_revision(revision["id"], document_chunks, token=lease.token)
             chunks_added += document_chunks
         except Exception as exc:
             try:
-                repository.fail_revision(revision["id"], str(exc))
+                repository.fail_revision(revision["id"], safe_failure(exc), token=lease.token)
             except Exception:
                 logger.exception("index_revision_failure_record_failed")
             raise
 
         documents_added += 1
-        existing_sources.add(doc["source"])
 
     if source and documents_seen == 0:
         raise AppError(
@@ -240,31 +265,39 @@ def mark_ingest_job_enqueue_failed(
     repository: IngestJobRepository | None = None,
 ) -> None:
     repository = repository or IngestJobRepository()
-    repository.update(job_id, status="failed", error=error, metadata={"queue": queue})
+    repository.update(job_id, status="queued", error=error, metadata={"queue": queue})
 
 
 def run_ingest_job(
-    job_id: str,
-    repository: IngestJobRepository | None = None,
-    *,
-    document_repository: DocumentRepository | None = None,
-    raise_on_failure: bool = False,
+    job_id: str, repository: IngestJobRepository | None = None, *,
+    document_repository: DocumentRepository | None = None, raise_on_failure: bool = False, retryable: bool = False,
+    retry_delay_seconds: int = 0,
 ) -> None:
     repository = repository or IngestJobRepository()
     document_repository = document_repository or DocumentRepository()
-    job = repository.get(job_id)
-    source = ((job or {}).get("metadata") or {}).get("source")
-    repository.update(job_id, status="running")
-    try:
-        result = build_index(repository=document_repository, source=source)
-    except Exception as exc:
-        if source:
-            try:
-                document_repository.record_ingest_failure(source, str(exc))
-            except Exception:
-                pass
-        repository.update(job_id, status="failed", error=str(exc))
-        if raise_on_failure:
-            raise
-        return
-    repository.update(job_id, status="succeeded", result=result)
+    with repository.lease(job_id) as lease:
+        job = repository.get(job_id)
+        if not job:
+            raise AppError('Ingestion job not found.', code=ErrorCode.NOT_FOUND, status_code=404)
+        if job['status'] in {'succeeded', 'failed'}:
+            return
+        check_job_schedule(job)
+        source = (job.get('metadata') or {}).get('source')
+        repository.update(job_id, status='running', token=lease.token)
+        try:
+            result = build_index(repository=document_repository, source=source)
+        except Exception as exc:
+            repository.update(
+                job_id,
+                status='queued' if retryable or isinstance(exc, OperationBusy) else 'failed',
+                error=safe_failure(exc),
+                token=lease.token,
+                metadata={
+                    'capacity_wait': isinstance(exc, OperationBusy),
+                    'retry_delay_seconds': 5 if isinstance(exc, OperationBusy) else retry_delay_seconds,
+                },
+            )
+            if raise_on_failure:
+                raise
+            return
+        repository.update(job_id, status='succeeded', result=result, token=lease.token)

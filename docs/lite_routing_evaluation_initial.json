@@ -1,0 +1,254 @@
+[
+  {
+    "optimized": false,
+    "question": "How do I apply for a bamboo permit?",
+    "route": "answer_complex",
+    "answer": "To obtain a bamboo permit, you must submit an application and receive official approval from the District Forest Officer prior to transport, although bamboo permits are exempt from the standard permit fee [1].\n\nThe required procedure to apply is as follows:\n\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Forego fee payment, as bamboo permits are specifically fee-exempt (unlike timber permits, which require an applicable fee) [1].\n3. Obtain approval from the authority before transport begins [1].\n\nOnce granted, the permit remains valid for 30 days and cannot be renewed [1].\n\nPlease let me know if you would like additional information regarding the 30-day validity term or the submission of Form A [1].",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 797,
+          "candidatesTokenCount": 159,
+          "totalTokenCount": 1758,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 797
+            }
+          ],
+          "thoughtsTokenCount": 802,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0042015,
+        "estimated_cost_inr": 0.37813500000000005,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 710,
+          "candidatesTokenCount": 106,
+          "totalTokenCount": 816,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 710
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.000478,
+        "estimated_cost_inr": 0.04302,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 710,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 3593,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 710
+            }
+          ],
+          "thoughtsTokenCount": 2853,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.01134375,
+        "estimated_cost_inr": 1.0209375,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.01602325
+  },
+  {
+    "optimized": false,
+    "question": "List the application steps for a timber transit permit.",
+    "route": "answer_complex",
+    "answer": "To transport timber, an applicant must fulfill the governing requirement of obtaining official approval prior to transport [1]. \n\nThe application procedure consists of the following steps:\n\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the applicable fee of INR 1,000 [1].\n3. Obtain approval before transporting the timber [1].\n\nOnce granted, the permit remains valid for 30 days and cannot be renewed [1].\n\nPlease indicate if you need further clarification regarding permit validity periods or fee rules for other forest produce under these regulations [1].",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 798,
+          "candidatesTokenCount": 126,
+          "totalTokenCount": 1768,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 798
+            }
+          ],
+          "thoughtsTokenCount": 844,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.004236,
+        "estimated_cost_inr": 0.38124,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 678,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 708,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 678
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0002784,
+        "estimated_cost_inr": 0.025056,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.0045144
+  },
+  {
+    "optimized": true,
+    "question": "How do I apply for a bamboo permit?",
+    "route": "answer_direct",
+    "answer": "To apply for a bamboo permit, submit Form A along with proof of ownership to the District Forest Officer, pay the applicable fee, and obtain approval prior to transport [1].\n\nWhile bamboo permits are fee-exempt, they still require approval [1].\n\nPlease let me know if you need assistance with any other forest department procedures.",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_direct",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 797,
+          "candidatesTokenCount": 61,
+          "totalTokenCount": 858,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 797
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00039160000000000003,
+        "estimated_cost_inr": 0.035244000000000004,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 612,
+          "candidatesTokenCount": 222,
+          "totalTokenCount": 834,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 612
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0007386000000000001,
+        "estimated_cost_inr": 0.066474,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.0011302
+  },
+  {
+    "optimized": true,
+    "question": "List the application steps for a timber transit permit.",
+    "route": "answer_direct",
+    "answer": "To apply for a timber transit permit under the Synthetic Green State rules, applicants must follow the prescribed procedure before transport [1]. \n\nThe governing requirements and ordered steps are as follows:\n\n* Submit Form A along with proof of ownership to the District Forest Officer [1].\n* Pay the applicable timber transit permit fee of INR 1,000 [1].\n* Obtain approval from the District Forest Officer prior to transport [1].\n\nPermits granted through this procedure are valid for 30 days and cannot be renewed [1].\n\nPlease let me know if you need any additional information regarding transit permit requirements or fees.",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_direct",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 798,
+          "candidatesTokenCount": 129,
+          "totalTokenCount": 927,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 798
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0005618999999999999,
+        "estimated_cost_inr": 0.050571,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 681,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 711,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 681
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00027929999999999996,
+        "estimated_cost_inr": 0.025136999999999996,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.0008411999999999998
+  }
+]

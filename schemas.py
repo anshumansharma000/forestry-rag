@@ -3,7 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
-NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
+CredentialStr = Annotated[str, StringConstraints(min_length=1, max_length=256)]
+RefreshTokenStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1024)]
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 PasswordStr = Annotated[str, StringConstraints(min_length=10, max_length=256)]
 
@@ -18,6 +20,7 @@ class CreateChatSessionRequest(BaseModel):
 
 
 class ChatAskRequest(BaseModel):
+    request_id: UUID | None = None
     message: NonEmptyStr
     top_k: int | None = Field(default=None, ge=1, le=20)
 
@@ -79,15 +82,15 @@ class CreateUserRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: NonEmptyStr
+    password: CredentialStr
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: NonEmptyStr
+    refresh_token: RefreshTokenStr
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: NonEmptyStr
+    current_password: CredentialStr
     new_password: PasswordStr
 
 
@@ -145,7 +148,11 @@ class SourceResponse(BaseModel):
     text: str
 
 
+AnswerOutcome = Literal['answered', 'insufficient_evidence', 'unsupported_answer', 'not_generated']
+
+
 class AskResponse(BaseModel):
+    outcome: AnswerOutcome = 'answered'
     answer: str
     sources: list[SourceResponse]
     cited_sources: list[SourceResponse] = Field(default_factory=list)
@@ -217,7 +224,7 @@ class DocumentLibraryResponse(BaseModel):
 
 
 class DirectUploadFileRequest(BaseModel):
-    filename: NonEmptyStr
+    filename: NonEmptyStr = Field(max_length=255)
     size_bytes: int = Field(gt=0)
     content_type: str | None = Field(default=None, max_length=255)
 
@@ -243,7 +250,7 @@ class PresignedUploadsResponse(BaseModel):
 
 class CompleteDirectUploadFileRequest(BaseModel):
     upload_id: UUID
-    filename: NonEmptyStr
+    filename: NonEmptyStr = Field(max_length=255)
 
 
 class CompleteDirectUploadsRequest(BaseModel):
@@ -270,6 +277,8 @@ class ChatMessageResponse(BaseModel):
 
 
 class ChatAskResponse(BaseModel):
+    request_id: UUID | str | None = None
+    outcome: AnswerOutcome = 'answered'
     session_id: UUID | str
     user_message: ChatMessageResponse
     assistant_message: ChatMessageResponse

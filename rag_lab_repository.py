@@ -47,8 +47,11 @@ class RagLabRepository:
     def update_experiment(self, experiment_id: str, updates: dict) -> dict:
         self.get_experiment(experiment_id)
         updates = {**updates, "updated_at": now_iso()}
-        result = self.client.table("rag_lab_experiments").update(updates).eq("id", experiment_id).execute()
-        return result.data[0]
+        query = self.client.table("rag_lab_experiments").update(updates).eq("id", experiment_id)
+        if updates.get('status') == 'draft':
+            query = query.in_('status', ['draft', 'ready', 'failed', 'published'])
+        result = query.execute()
+        return result.data[0] if result.data else self.get_experiment(experiment_id)
 
     def add_file(self, row: dict) -> dict:
         return self.client.table("rag_lab_files").insert(row).execute().data[0]
@@ -68,6 +71,11 @@ class RagLabRepository:
         self.client.table("rag_lab_files").update(
             {"extraction_key": extraction_key, "extraction_metadata": metadata, "updated_at": now_iso()}
         ).eq("id", file_id).execute()
+
+    def create_revision_job(self, experiment_id, config, actor_user_id):
+        return self.client.rpc('create_consistent_lab_revision', {
+            'p_experiment': experiment_id, 'p_config': config, 'p_actor': actor_user_id,
+        }).execute().data
 
     def create_revision(self, experiment_id: str, config: dict, created_by: str) -> dict:
         self.get_experiment(experiment_id)
@@ -217,3 +225,36 @@ class RagLabRepository:
 
 def now_iso() -> str:
     return datetime.now(UTC).isoformat()
+
+
+class FencedLabRepository(RagLabRepository):
+    """Worker mutations include both job and revision ownership in their transaction."""
+    def __init__(self, client, job_id, token):
+        super().__init__(client)
+        self.job_id, self.token = job_id, token
+
+    def mutate(self, revision_id, action, payload):
+        return self.client.rpc('mutate_lab_revision', {
+            'p_job': self.job_id, 'p_token': self.token, 'p_revision': revision_id,
+            'p_action': action, 'p_payload': payload,
+        }).execute().data
+
+    def update_revision(self, revision_id, *, status, chunk_count=None, error=None):
+        return self.mutate(revision_id, 'status', {'status': status, 'chunk_count': chunk_count, 'error': error})
+
+    def update_experiment(self, experiment_id, updates):
+        # Status is committed with update_revision, never in a later unfenced write.
+        if set(updates) != {'status'}:
+            raise ValueError('Unsupported worker experiment update')
+
+    def delete_revision_chunks(self, revision_id):
+        # Retry batches use a uniqueness constraint; previously committed chunks survive.
+        pass
+
+    def insert_chunk_batch(self, rows):
+        if rows:
+            self.mutate(rows[0]['revision_id'], 'chunks', {'rows': rows})
+        return len(rows)
+
+    def publish_revision(self, revision_id, published_by):
+        return self.mutate(revision_id, 'publish', {'published_by': published_by})

@@ -11,6 +11,7 @@ from auth import (
     require_roles_allowing_password_change,
     update_own_profile,
 )
+from request_limits import user_limits
 from schemas import AuthTokenResponse, ChangePasswordRequest, LoginRequest, RefreshRequest, UpdateOwnProfileRequest, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -28,7 +29,12 @@ def auth_me(user: CurrentUser = Depends(require_roles_allowing_password_change("
     }
 
 
-@router.post("/login", response_model=AuthTokenResponse)
+async def login_limits(request: Request, request_body: LoginRequest):
+    async with user_limits(request, 'login:' + request_body.email.lower()):
+        yield
+
+
+@router.post("/login", response_model=AuthTokenResponse, dependencies=[Depends(login_limits)])
 def auth_login(request: Request, request_body: LoginRequest):
     result = login_with_password(request_body.email, request_body.password, request)
     audit_user = CurrentUser(
@@ -55,15 +61,9 @@ def auth_change_password(
 ):
     if user.is_bootstrap:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bootstrap user cannot change password")
-    change_password(user, request_body.current_password, request_body.new_password)
+    changed = change_password(user, request_body.current_password, request_body.new_password)
     audit_event(request, user, "auth.password_change", "app_user", user.id)
-    updated_user = CurrentUser(
-        id=user.id,
-        email=user.email,
-        role=user.role,
-        full_name=user.full_name,
-        must_change_password=False,
-    )
+    updated_user = changed["user"]
     result = auth_token_bundle(updated_user, request, {"action": "password_change"})
     result["changed"] = True
     return result

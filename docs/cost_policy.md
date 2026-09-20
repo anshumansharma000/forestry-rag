@@ -152,3 +152,106 @@ estimate false-rejection rates and confirm aggregate quality/cost improvements.
 
 Validation: 207 automated tests pass, including 18 new evidence/routing/verification
 boundary checks. Changes are local and have not been deployed.
+
+## Truncation recovery (20 September 2026)
+
+A supplied production trace showed `answer_complex_high` ending with `MAX_TOKENS`:
+3,843 thinking tokens plus 153 visible answer tokens under a 4,000-token ceiling.
+Rewrite and planning completed; verification never ran. The query's generation
+cost was approximately INR 2.056, of which INR 1.746 was the failed answer.
+
+High-reasoning answers now use a separate
+`GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS=8192`; the medium profile remains at 4000.
+The ceiling is for thinking plus visible output, not a requested answer length.
+Existing complex-model overrides still apply. Existing deployments overriding only
+`GEMINI_COMPLEX_MAX_OUTPUT_TOKENS` must use the new high-specific setting if they
+want to override the high-reasoning budget too.
+
+`GEMINI_TRUNCATION_RECOVERY=true` permits one regeneration per generation call,
+only on `MAX_TOKENS`, at twice the previous ceiling, bounded by
+`GEMINI_TRUNCATION_MAX_OUTPUT_TOKENS=16384`. It preserves the original prompt,
+evidence, model, reasoning level, system instruction and response schema. It does
+not resume or concatenate partial text, lower reasoning, bypass verification, or
+retry an unchanged ceiling. Content-less truncated responses are handled as
+truncation too. Repeated truncation still fails closed with diagnostic details.
+HTTP retry and structured JSON parsing policies remain separate.
+
+Every attempt is metered. Generation logs now include the effective ceiling,
+thinking level and attempt number; routing logs include counts of amendment
+contexts and plan conflicts without logging source text. Raising the ceiling does
+not require the model to use it, but recovery and additional reasoning can increase
+cost and latency. This is a reliability correction, not a cost-saving claim or a
+hard INR 1.50 guarantee. The supplied trace lacks evidence/plan contents, so it
+cannot establish whether high reasoning was necessary; that routing decision is
+preserved pending evidence-based evaluation.
+
+Validation: 261 tests passed, 4 skipped, including recovery from empty and partial
+truncation, bounded repeated failure, retained evidence/schema/reasoning, usage
+accounting for both attempts, opt-out, and no retry on success/upstream errors.
+The actual PARIVESH request cannot be replayed from the trace alone because its
+retrieved excerpts and history are absent. Deploy the updated backend and config,
+then replay the original question against the same documents to confirm completion
+and review its cost. These changes have not been deployed by this task.
+
+## Selective Lite extraction and stronger legal audits (20 September 2026)
+
+The new policy is opt-in (`RAG_LITE_EXTRACTION`, `RAG_RISK_BASED_VERIFICATION`,
+`RAG_LEGAL_BATCH_EMBEDDINGS`). Code and deployment examples default these flags to false;
+local development enables them explicitly. Existing truncation-recovery changes are preserved.
+No database migration, annotation update, or frontend change is required.
+
+Lite eligibility is deterministic: an explicit extraction/summary/checklist request or simple
+application procedure, one identified source, at most four excerpts and 2,000 excerpt tokens.
+Empty evidence, unresolved review gaps, draft legal profiles, amendments, judicial material,
+exceptions/exemptions, cross-instrument conditions, and applicability/temporal/conflict questions
+are excluded. Follow-ups with supplied history do not take the new drafting shortcut. This
+intentionally does not move amendment reporting or multi-document comparisons to Lite yet.
+
+Eligible extraction skips the planning call, drafts on Lite, and **always** receives the full-evidence
+Lite audit, even when ordinary answer verification is disabled. A rejected audit retains the existing
+bounded Flash escalation. The master cost flag disables the new Lite shortcut. Set
+`RAG_LITE_EXTRACTION=false` to roll it back independently.
+
+With `RAG_RISK_BASED_VERIFICATION=true`, high-reasoning answers receive a direct Flash audit,
+including direct questions that previously skipped auditing because of their question shape.
+Judicial/current-applicability questions and retrieved judicial profiles also take the high route.
+This safety policy can increase cost on difficult questions. It is independent of the cost master
+switch, and can be reverted with its own flag. Planned Flash audits are counted separately from
+actual Lite-to-Flash escalations.
+
+Legal retrieval still executes all six category and legacy searches. After the handbook step,
+five remaining embeddings are requested in one batch. This reduces embedding HTTP requests from
+six to two before relationship expansion; it does **not** imply fewer billed input tokens or fewer
+SQL searches. Provenance-aware exact containment deduplication runs before final context packing,
+and identical legal annotations are represented once per document/profile in the prompt. No source
+excerpts, dates, exceptions, or amendment checks are truncated to save cost.
+
+The admin legal preview now has aggregate request accounting. Existing generation-only cost fields
+remain unchanged. New fields include embedding calls/items, `embedding_cost_usd/inr`,
+`total_api_cost_usd/inr`, and `total_api_cost_complete`. Embedding costs require provider-reported
+`usageMetadata.promptTokenCount`, `COST_EMBEDDING_RATE_MODEL` matching the actual model, and a verified
+`COST_EMBEDDING_USD_PER_MILLION_TOKENS` value. Missing metadata, pricing, or failed attempts produce
+unknown totals, not zero. No extra token-count API is called. Embeddings without usage metadata
+cannot be fully priced from these logs; reconcile with provider billing. Infrastructure/taxes remain
+outside the estimate, and the existing advisory threshold remains generation-only.
+
+### Live synthetic checks
+
+The [initial paired report](lite_routing_evaluation_initial.json) revealed a weakness: Lite instructed
+an exempt bamboo applicant to pay the applicable fee before stating the exemption, and the Lite audit
+accepted it. The eligibility rule was tightened to exclude exception-bearing procedures. The report
+is retained rather than counting this as a successful quality comparison.
+
+The [subsequent paired report](lite_routing_evaluation.json) used an unconditional synthetic timber
+procedure. Generation plus verification estimates were:
+
+| Wording | Previous policy | Lite policy |
+|---|---:|---:|
+| How do I apply? | $0.0051204 | $0.0008660 |
+| List the application steps | $0.0028965 | $0.0007428 |
+
+These are individual stochastic runs of closely related questions on the same synthetic source,
+not independent production benchmarks. Form, ownership, fee, and approval appeared in the outputs;
+wording, explicit timing, and optional detail varied. Presence checks alone do not establish legal
+quality equivalence. A broader SME-reviewed evaluation is still required before production enablement.
+Run `python -m scripts.evaluate_lite_routing --live` to repeat this bounded paid comparison.

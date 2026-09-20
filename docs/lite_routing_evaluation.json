@@ -1,0 +1,232 @@
+[
+  {
+    "optimized": false,
+    "question": "How do I apply for a timber transit permit?",
+    "route": "answer_complex",
+    "answer": "To transport timber, you must apply for and secure approved transit authorization from the District Forest Officer prior to transport [1].\n\nThe required procedure is as follows:\n\n1. Submit Form A and proof of ownership to the District Forest Officer [1].\n2. Pay the fee of INR 1,000 [1].\n3. Obtain official approval before transporting the timber [1].\n\nOnce granted, the permit is valid for 30 days and cannot be renewed [1].\n\nPlease ensure your transportation is fully scheduled within the 30-day period, as permit renewals are not permitted under the rules [1].",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 760,
+          "candidatesTokenCount": 129,
+          "totalTokenCount": 1902,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 760
+            }
+          ],
+          "thoughtsTokenCount": 1013,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0048525,
+        "estimated_cost_inr": 0.43672500000000003,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 643,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 673,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 643
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00026789999999999995,
+        "estimated_cost_inr": 0.024110999999999997,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.0051204
+  },
+  {
+    "optimized": false,
+    "question": "List the application steps for a timber transit permit.",
+    "route": "answer_complex",
+    "answer": "To transport timber, an applicant must obtain prior official approval by completing the required filing and fee requirements [1]. \n\nThe application steps are as follows:\n\n1. Submit Form A along with proof of ownership to the District Forest Officer [1].\n2. Pay the fee of INR 1,000 [1].\n3. Obtain approval before transporting the timber [1].\n\nOnce granted, permits remain valid for 30 days and cannot be renewed [1].\n\nPlease indicate if you require additional details on permit validity limits or submission requirements [1].",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_complex",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "promptTokenCount": 760,
+          "candidatesTokenCount": 116,
+          "totalTokenCount": 1310,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 760
+            }
+          ],
+          "thoughtsTokenCount": 434,
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.0026325,
+        "estimated_cost_inr": 0.236925,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 630,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 660,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 630
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.000264,
+        "estimated_cost_inr": 0.023760000000000003,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.0028964999999999998
+  },
+  {
+    "optimized": true,
+    "question": "How do I apply for a timber transit permit?",
+    "route": "answer_direct",
+    "answer": "**Conclusion**\nTo apply for a timber transit permit, you must submit the required documentation and payment to the designated authority prior to transport [1].\n\n**Governing Requirements and Procedure**\nThe governing requirement for obtaining a timber transit permit involves a sequential application and approval process [1]. \n\n* Submit Form A and proof of ownership to the District Forest Officer [1].\n* Pay a fee of INR 1,000 [1].\n* Obtain approval before transporting timber [1].\n\n**Exceptions and Qualifications**\nPermits granted through this process are valid for 30 days and cannot be renewed [1].\n\nPlease let me know if you need assistance regarding permit validity periods or documentation requirements.",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_direct",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 760,
+          "candidatesTokenCount": 146,
+          "totalTokenCount": 906,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 760
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.000593,
+        "estimated_cost_inr": 0.05337,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 660,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 690,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 660
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.000273,
+        "estimated_cost_inr": 0.02457,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.000866
+  },
+  {
+    "optimized": true,
+    "question": "List the application steps for a timber transit permit.",
+    "route": "answer_direct",
+    "answer": "To obtain a timber transit permit, the applicant must follow the required governing submission and payment procedure before transporting timber [1]. \n\n* Submit Form A to the District Forest Officer [1].\n* Provide proof of ownership alongside the form [1].\n* Pay the required fee of INR 1,000 [1].\n* Obtain approval from the District Forest Officer [1].\n\nPlease let me know if you need any additional information regarding timber transport regulations based on the available records [1].",
+    "checks": {
+      "form a": true,
+      "ownership": true,
+      "approval": true,
+      "[1]": true
+    },
+    "calls": [
+      {
+        "operation": "answer_direct",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 760,
+          "candidatesTokenCount": 102,
+          "totalTokenCount": 862,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 760
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.000483,
+        "estimated_cost_inr": 0.043469999999999995,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      },
+      {
+        "operation": "verify",
+        "model": "gemini-3.5-flash-lite",
+        "usage": {
+          "promptTokenCount": 616,
+          "candidatesTokenCount": 30,
+          "totalTokenCount": 646,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 616
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "estimated_cost_usd": 0.00025979999999999997,
+        "estimated_cost_inr": 0.023381999999999997,
+        "cost_usd_to_inr": 90.0,
+        "pricing_version": "google-standard-2026-09-17",
+        "pricing_date": "2026-09-20"
+      }
+    ],
+    "estimated_generation_cost_usd": 0.0007428
+  }
+]

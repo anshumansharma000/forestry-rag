@@ -6,7 +6,10 @@ from legal_registry import STAGES, LegalRegistryRepository
 from retrieval import (
     candidate_strength,
     context_from_row,
+    embed_queries,
     embed_query,
+    env_bool,
+    evidence_contains,
     meaningful_terms,
     min_context_score,
     pack_contexts,
@@ -67,9 +70,11 @@ def retrieve_legal(question, top_k=None, repository=None, options=None, registry
     rows = {}
     stages = {}
     identifiers = extract_legal_identifiers(question)
+    batched = env_bool("RAG_LEGAL_BATCH_EMBEDDINGS", False)
+    later_embeddings = {}
     for stage, kinds in STAGES.items():
         query = f"{question} {' '.join(identifiers[:12])} {FACETS[stage]}"
-        embedding = embed_query(query)
+        embedding = later_embeddings[stage] if stage in later_embeddings else embed_query(query)
         stage_rows = registry.match(embedding, query, kinds, min(plan.candidate_count, 30))
         # Always search legacy/unclassified documents as well, including with no handbook hit.
         legacy_rows = repository.match_chunks(embedding, query, min(plan.candidate_count, 30))
@@ -82,6 +87,10 @@ def retrieve_legal(question, top_k=None, repository=None, options=None, registry
             for row in stage_rows[:3]:
                 identifiers.extend(extract_legal_identifiers(row['content']))
             identifiers = list(dict.fromkeys(identifiers))[:12]
+            if batched:
+                later_stages = [name for name in STAGES if name != 'handbook']
+                later_queries = [f"{question} {' '.join(identifiers[:12])} {FACETS[name]}" for name in later_stages]
+                later_embeddings = dict(zip(later_stages, embed_queries(later_queries), strict=True))
 
     seeds = {str(row['document_id']) for row in rows.values()}
     linked, truncated = related_documents(seeds, profiles)
@@ -119,6 +128,12 @@ def retrieve_legal(question, top_k=None, repository=None, options=None, registry
         if candidate and candidate not in ordered:
             ordered.append(candidate)
     ordered.extend(ctx for ctx in ranked if ctx not in ordered)
+    if env_bool('RAG_COST_OPTIMIZATIONS', True) and env_bool('RAG_SELECTIVE_EVIDENCE', True):
+        deduplicated = []
+        for context in ordered:
+            if not any(evidence_contains(existing, context) for existing in deduplicated):
+                deduplicated.append(context)
+        ordered = deduplicated
     selected = pack_contexts(ordered, plan.context_count, plan.context_token_budget)
     present = {
         stage for stage, kinds in STAGES.items()

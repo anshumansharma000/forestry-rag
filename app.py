@@ -1,14 +1,20 @@
+import asyncio
 import logging
 import os
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from errors import AppError, app_error_handler, http_error_handler, unhandled_error_handler, validation_error_handler
+from job_recovery import recovery_loop
+from request_limits import check_available
 from routers import admin, auth_routes, chat, documents, legal, qa, rag_lab, system
+from security_middleware import SecurityMiddleware
+from security_settings import validate_security_settings
 from settings import validate_runtime_config
 from structured_logging import configure_logging
 
@@ -20,6 +26,7 @@ def create_app() -> FastAPI:
     configure_logging()
     app = FastAPI(title="Forest Department Pilot RAG", lifespan=lifespan)
     app.middleware("http")(log_requests)
+    app.add_middleware(SecurityMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_cors_origins(),
@@ -84,6 +91,8 @@ def allowed_cors_origins() -> list[str]:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    validate_security_settings()
+    await run_in_threadpool(check_available)
     if os.getenv("VALIDATE_CONFIG_ON_STARTUP", "false").strip().lower() in {"1", "true", "yes"}:
         result = validate_runtime_config()
         if not result["ok"]:
@@ -93,8 +102,14 @@ async def lifespan(_app: FastAPI):
             )
             raise RuntimeError(f"Invalid runtime configuration: {', '.join(result['missing'])}")
     logger.info("application_started")
-    yield
-    logger.info("application_stopped")
+    recovery = asyncio.create_task(recovery_loop())
+    try:
+        yield
+    finally:
+        recovery.cancel()
+        with suppress(asyncio.CancelledError):
+            await recovery
+        logger.info("application_stopped")
 
 
 app = create_app()

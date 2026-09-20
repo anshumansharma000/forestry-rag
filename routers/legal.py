@@ -9,10 +9,11 @@ from pydantic import BaseModel, Field
 from auth import CurrentUser, require_exact_admin
 from legal_registry import LegalProfile, LegalRegistryRepository, suggest_profile
 from legal_retrieval import retrieve_legal
-from prompts import answer_is_abstention, answer_with_gemini
+from prompts import answer_is_abstention, answer_outcome, answer_with_gemini
 from repositories import DocumentRepository
 from retrieval import cited_source_payload, retrieval_confidence, source_payload
 from schemas import AskRequest, AskResponse
+from token_usage import track_query_usage
 
 router = APIRouter(prefix='/admin/legal', tags=['legal'])
 
@@ -56,6 +57,7 @@ def save_profile(document_id: UUID, body: LegalProfile, user: CurrentUser = Depe
 
 
 @router.post('/preview', response_model=LegalPreviewResponse)
+@track_query_usage
 def preview(body: LegalPreviewRequest, _user: CurrentUser = Depends(require_exact_admin)):
     contexts = retrieve_legal(body.question, body.top_k, options={
         'as_of': body.as_of.isoformat() if body.as_of else None,
@@ -64,6 +66,7 @@ def preview(body: LegalPreviewRequest, _user: CurrentUser = Depends(require_exac
     answer = answer_with_gemini(body.question, contexts) if body.generate_answer else ''
     return {
         'answer': answer,
+        'outcome': answer_outcome(answer),
         'sources': source_payload(contexts),
         'cited_sources': cited_source_payload(answer, contexts),
         'confidence': retrieval_confidence(contexts),

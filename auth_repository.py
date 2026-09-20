@@ -12,14 +12,16 @@ class AuthRepository:
     def get_user_for_auth(self, email: str) -> dict | None:
         result = (
             self.client.table("app_users")
-            .select(f"{USER_PUBLIC_COLUMNS},password_hash")
+            .select(f"{USER_PUBLIC_COLUMNS},password_hash,token_version")
             .eq("email", email.strip().lower())
             .limit(1)
             .execute()
         )
         return result.data[0] if result.data else None
 
-    def get_user_by_id(self, user_id: str, columns: str = "id,email,full_name,role,is_active,must_change_password") -> dict | None:
+    def get_user_by_id(
+        self, user_id: str, columns: str = "id,email,full_name,role,is_active,must_change_password,token_version"
+    ) -> dict | None:
         result = self.client.table("app_users").select(columns).eq("id", user_id).limit(1).execute()
         return result.data[0] if result.data else None
 
@@ -41,29 +43,24 @@ class AuthRepository:
         )
         return result.data
 
-    def insert_refresh_token(self, row: dict) -> dict:
-        result = self.client.table("refresh_tokens").insert(row).execute()
-        return result.data[0]
+    def issue_refresh_token(self, row: dict, token_version: int) -> dict | None:
+        return self.client.rpc("issue_auth_refresh_token", {
+            "p_user_id": row["user_id"], "p_version": token_version, "p_hash": row["token_hash"],
+            "p_expires_at": row["expires_at"], "p_ip": row["ip_address"], "p_agent": row["user_agent"],
+            "p_metadata": row["metadata"],
+        }).execute().data
 
-    def get_refresh_token(self, token_hash: str) -> dict | None:
-        result = (
-            self.client.table("refresh_tokens")
-            .select("id,user_id,expires_at,revoked_at")
-            .eq("token_hash", token_hash)
-            .limit(1)
-            .execute()
-        )
-        return result.data[0] if result.data else None
+    def rotate_refresh_token(self, old_hash: str, new_hash: str, expires_at: str, ip: str | None, agent: str | None) -> dict | None:
+        return self.client.rpc("rotate_auth_refresh_token", {
+            "p_old_hash": old_hash, "p_new_hash": new_hash, "p_expires_at": expires_at,
+            "p_ip": ip, "p_agent": agent,
+        }).execute().data
 
-    def find_refresh_token_id(self, token_hash: str) -> str | None:
-        result = self.client.table("refresh_tokens").select("id").eq("token_hash", token_hash).limit(1).execute()
-        return result.data[0]["id"] if result.data else None
-
-    def update_refresh_token(self, token_id: str, updates: dict) -> None:
-        self.client.table("refresh_tokens").update(updates).eq("id", token_id).execute()
-
-    def revoke_user_refresh_tokens(self, user_id: str, revoked_at: str) -> None:
-        self.client.table("refresh_tokens").update({"revoked_at": revoked_at}).eq("user_id", user_id).is_("revoked_at", "null").execute()
+    def change_password(self, user_id: str, expected_hash: str | None, new_hash: str, must_change: bool) -> dict | None:
+        return self.client.rpc("change_auth_password", {
+            "p_user_id": user_id, "p_expected_hash": expected_hash, "p_new_hash": new_hash,
+            "p_must_change": must_change,
+        }).execute().data
 
     def insert_audit_event(self, row: dict) -> None:
         self.client.table("audit_events").insert(row).execute()

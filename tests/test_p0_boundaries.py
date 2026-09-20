@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -62,7 +63,7 @@ def test_failed_build_never_mutates_active_chunks(monkeypatch, failure):
             raise RuntimeError('insert failed')
         events.append('staged')
         return len(rows)
-    def publish(*args):
+    def publish(*args, **kwargs):
         assert failure == 'publish'
         raise RuntimeError('publish failed')
     def embed(*args):
@@ -70,11 +71,12 @@ def test_failed_build_never_mutates_active_chunks(monkeypatch, failure):
             raise RuntimeError('embedding failed')
         return {'content': 'replacement'}
     repo = SimpleNamespace(
+        index_lease=lambda: nullcontext(SimpleNamespace(token="token", check=lambda: None)),
         indexed_sources=lambda: set(),
         begin_revision=lambda doc: {'id': 'revision', 'document_id': 'document'},
         insert_revision_chunks=insert,
         publish_revision=publish,
-        fail_revision=lambda *args: events.append('failed'),
+        fail_revision=lambda *args, **kwargs: events.append('failed'),
     )
     monkeypatch.setattr(ingest_service, 'iter_documents', lambda **kw: iter([{'source': 'rules.txt'}]))
     monkeypatch.setattr(ingest_service, 'iter_document_chunks', lambda doc: iter([] if failure == 'empty' else [{}]))

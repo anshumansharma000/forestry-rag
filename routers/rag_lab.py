@@ -171,5 +171,5 @@ def enqueue_job_or_fail(job: dict) -> None:
             ),
         )
     except AppError as exc:
-        jobs.update(str(job["id"]), status="failed", error=exc.message, metadata={"queue": "celery"})
+        jobs.update(str(job["id"]), status="queued", error=exc.message, metadata={"queue": "celery"})
         raise

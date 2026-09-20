@@ -8,6 +8,10 @@ services:
     healthCheckPath: /health
     autoDeployTrigger: checksPass
     envVars:
+      - key: APP_ENV
+        value: production
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_EMBEDDING_MODEL
@@ -50,6 +54,12 @@ services:
         value: 1800
       - key: GEMINI_COMPLEX_MAX_OUTPUT_TOKENS
         value: 4000
+      - key: GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS
+        value: 8192
+      - key: GEMINI_TRUNCATION_RECOVERY
+        value: "true"
+      - key: GEMINI_TRUNCATION_MAX_OUTPUT_TOKENS
+        value: 16384
       - key: GEMINI_EMBEDDING_REQUEST_INTERVAL_MS
         value: 250
       - key: GEMINI_GENERATION_REQUEST_INTERVAL_MS
@@ -115,8 +125,6 @@ services:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: BOOTSTRAP_ADMIN_TOKEN
         sync: false
       - key: JWT_SECRET_KEY
         generateValue: true

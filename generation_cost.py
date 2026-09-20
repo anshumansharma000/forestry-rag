@@ -9,7 +9,7 @@ import os
 from datetime import UTC, date, datetime
 
 PRICING_VERSION = "google-standard-2026-09-17"
-COST_POLICY_VERSION = "selective-evidence-audit-2026-09-18"
+COST_POLICY_VERSION = "selective-routing-audit-2026-09-20"
 
 
 def positive_setting(name: str, default: float) -> float | None:

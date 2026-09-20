@@ -61,8 +61,8 @@ def isolated(monkeypatch):
 
 def test_legacy_requests_and_sources_keep_existing_shape():
     assert AskRequest(question='Forest?').model_dump() == {'question': 'Forest?', 'top_k': None}
-    assert ChatAskRequest(message='Forest?').model_dump() == {'message': 'Forest?', 'top_k': None}
-    assert set(AskResponse.model_fields) == {'answer', 'sources', 'cited_sources', 'confidence', 'abstained'}
+    assert ChatAskRequest(message='Forest?').model_dump() == {'message': 'Forest?', 'top_k': None, 'request_id': None}
+    assert set(AskResponse.model_fields) == {'answer', 'sources', 'cited_sources', 'confidence', 'abstained', 'outcome'}
     assert 'legal_profile' not in SourceResponse.model_fields
 
 

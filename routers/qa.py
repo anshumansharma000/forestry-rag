@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import CurrentUser, require_roles
+from prompts import answer_outcome
 from rag import answer_is_abstention, answer_with_gemini, cited_source_payload, retrieval_confidence, retrieve, source_payload
 from schemas import AskRequest, AskResponse
 from token_usage import track_query_usage
@@ -18,6 +19,7 @@ def ask(request_body: AskRequest, _user: CurrentUser = Depends(require_roles("vi
     answer = answer_with_gemini(request_body.question, contexts)
     return {
         "answer": answer,
+        "outcome": answer_outcome(answer),
         "sources": source_payload(contexts),
         "cited_sources": cited_source_payload(answer, contexts),
         "confidence": retrieval_confidence(contexts),

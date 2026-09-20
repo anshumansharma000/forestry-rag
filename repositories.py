@@ -4,6 +4,7 @@ from typing import Any
 
 from supabase import Client
 
+from consistency import DatabaseLease
 from rag_errors import RagError
 from services.storage import supabase_client
 
@@ -82,27 +83,34 @@ class DocumentRepository:
             },
         }
 
+    def index_lease(self):
+        return DatabaseLease(self.client, 'documents:ingest')
+
     def begin_revision(self, doc: dict) -> dict:
         snapshot = {key: doc.get(key) for key in ("source", "kind", "title", "page_count")}
         snapshot["metadata"] = {**(doc.get("metadata") or {}), "index_version": index_version()}
-        return self.client.rpc("begin_document_revision", {"p_document": snapshot}).execute().data
+        return self.client.rpc("begin_consistent_revision", {"p_document": snapshot, "p_token": doc["_lease_token"]}).execute().data
 
     def insert_revision_chunks(self, rows: list[dict]) -> int:
         if rows:
             self.client.table("document_revision_chunks").insert(rows).execute()
         return len(rows)
 
-    def publish_revision(self, revision_id: str, expected_chunks: int) -> dict:
-        return self.client.rpc("publish_document_revision", {
-            "p_revision_id": revision_id, "p_expected_chunks": expected_chunks,
+    def publish_revision(self, revision_id: str, expected_chunks: int, *, token: str) -> dict:
+        return self.client.rpc("publish_consistent_revision", {
+            "p_revision_id": revision_id, "p_expected_chunks": expected_chunks, "p_token": token,
         }).execute().data
 
-    def fail_revision(self, revision_id: str, error: str) -> None:
-        self.client.rpc("fail_document_revision", {"p_revision_id": revision_id, "p_error": error}).execute()
+    def fail_revision(self, revision_id: str, error: str, *, token: str) -> None:
+        self.client.rpc("fail_consistent_revision", {
+            "p_revision_id": revision_id, "p_error": error, "p_token": token,
+        }).execute()
 
-    def record_ingest_failure(self, source: str, error: str) -> None:
+    def record_ingest_failure(self, source: str, error: str, *, token: str) -> None:
         # A failed refresh must never hide the last successfully published index.
-        self.client.rpc("record_document_ingest_failure", {"p_source": source, "p_error": error}).execute()
+        self.client.rpc("record_consistent_ingest_failure", {
+            "p_source": source, "p_error": error, "p_token": token,
+        }).execute()
 
     def match_chunks(self, query_embedding: list[float], query_text: str, match_count: int) -> list[dict]:
         result = self.client.rpc(
@@ -156,6 +164,21 @@ def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
 class ChatRepository:
     def __init__(self, client: Client | None = None):
         self.client = client or supabase_client()
+
+    def begin_turn(self, session_id, user_id, request_id, request, token):
+        return self.client.rpc('begin_chat_turn', {
+            'p_session': session_id, 'p_user': user_id, 'p_request_id': request_id,
+            'p_request': request, 'p_token': token,
+        }).execute().data
+
+    def turn_lease(self, session_id, token):
+        return DatabaseLease(self.client, 'chat:' + session_id, token=token, claimed=True)
+
+    def complete_turn(self, session_id, user_id, request_id, token, response):
+        return self.client.rpc('complete_chat_turn', {
+            'p_session': session_id, 'p_user': user_id, 'p_request_id': request_id,
+            'p_token': token, 'p_response': response,
+        }).execute().data
 
     def create_session(self, title: str | None, user_id: str | None) -> dict:
         row = {"title": title or "New chat", "user_id": user_id, "metadata": {}}
@@ -255,30 +278,17 @@ class IngestJobRepository:
         result = self.client.table("ingest_jobs").select("*").eq("id", job_id).limit(1).execute()
         return result.data[0] if result.data else None
 
+    def lease(self, job_id):
+        return DatabaseLease(self.client, 'job:' + job_id)
+
+    def recover(self):
+        return self.client.rpc('recover_ingest_jobs').execute().data or []
+
     def update(
-        self,
-        job_id: str,
-        *,
-        status: str,
-        result: dict[str, Any] | None = None,
-        error: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        updates = {
-            "status": status,
-            "result": result,
-            "error": error,
-            "updated_at": datetime.now(UTC).isoformat(),
-        }
-        if metadata is not None:
-            current = self.get(job_id)
-            updates["metadata"] = {**((current or {}).get("metadata") or {}), **metadata}
-        if status == "running":
-            updates["started_at"] = datetime.now(UTC).isoformat()
-            updates["finished_at"] = None
-        if status == "queued":
-            updates["started_at"] = None
-            updates["finished_at"] = None
-        if status in {"succeeded", "failed"}:
-            updates["finished_at"] = datetime.now(UTC).isoformat()
-        self.client.table("ingest_jobs").update(updates).eq("id", job_id).execute()
+        self, job_id: str, *, status: str, result: dict | None = None, error: str | None = None,
+        metadata: dict | None = None, token: str | None = None,
+    ) -> dict | None:
+        return self.client.rpc('transition_ingest_job', {
+            'p_id': job_id, 'p_status': status, 'p_token': token,
+            'p_result': result, 'p_error': error, 'p_metadata': metadata or {},
+        }).execute().data
