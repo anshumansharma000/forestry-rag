@@ -160,6 +160,10 @@ def retrieve(
     repository: DocumentRepository | None = None,
     options: dict | None = None,
 ) -> list[dict]:
+    if env_bool("RAG_LEGAL_HIERARCHY", False):
+        from legal_retrieval import retrieve_legal
+
+        return retrieve_legal(question, top_k, repository, options)
     repository = repository or DocumentRepository()
     options = options or {}
     plan = retrieval_plan(question, options, top_k)
@@ -470,7 +474,9 @@ def expand_neighbors(
         return pool[:limit]
     seen_ids = {context["id"] for context in pool}
     for anchor in anchors[:anchor_limit]:
-        for row in repository.neighbor_chunks(anchor["document_id"], anchor["chunk_index"], radius=1):
+        revision_id = (anchor.get("metadata") or {}).get("index_revision_id")
+        revision_options = {"revision_id": revision_id} if revision_id else {}
+        for row in repository.neighbor_chunks(anchor["document_id"], anchor["chunk_index"], radius=1, **revision_options):
             if row["id"] in seen_ids or row["chunk_index"] == anchor["chunk_index"]:
                 continue
             neighbor = context_from_row({**row, "similarity": anchor["base_score"] * 0.82}, rank=None)

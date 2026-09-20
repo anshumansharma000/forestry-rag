@@ -33,9 +33,10 @@ migrations/006_fix_match_document_chunks_ambiguous_id.sql
 migrations/007_document_library.sql
 migrations/008_failed_documents_library.sql
 migrations/009_rag_lab.sql
+migrations/011_atomic_document_indexing.sql
 ```
 
-New installations should run `migrations/009_rag_lab.sql` after `supabase_schema.sql` to enable the admin RAG Lab.
+New installations should run `migrations/009_rag_lab.sql` and then `migrations/011_atomic_document_indexing.sql` after `supabase_schema.sql`. Migration 011 is required by ingestion and neighbor retrieval. The optional legal registry uses migration 010; migration 011 also updates its retrieval function when installed. See [atomic indexing rollout](docs/atomic_indexing.md) before deploying.
 
 If you already created the wrong vector dimension while experimenting, run:
 
@@ -571,3 +572,11 @@ Existing chunks immediately benefit from the prompt and can recover explicitly l
 
 See [cost policy and rollout](docs/cost_policy.md) for selective planning, verbatim history selection, per-stage USD/INR
 cost estimates, the advisory ₹1.50 threshold, live quality comparisons, deployment-version checks, and rollback flags.
+
+### Opt-in handbook-led legal verification
+
+Existing ingested documents can use a separate, environment-scoped legal registry without re-ingestion or changes
+to existing API contracts. The new retrieval path is disabled by default. Admin previews report missing evidence,
+follow reviewed amendment/order relationships, and preserve the shared production corpus. See
+[legal hierarchy setup, API, compatibility, and dev validation](docs/legal_hierarchy.md) before applying migration 010
+or enabling the feature. Development and production must use different registry namespaces on a shared database.

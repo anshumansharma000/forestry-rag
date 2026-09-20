@@ -197,7 +197,8 @@ begin
       row_number() over (order by dc.embedding <=> query_embedding) as vector_rank,
       greatest(0, 1 - (dc.embedding <=> query_embedding)) as vector_similarity
     from document_chunks dc
-    where dc.metadata @> filter
+    join documents d on d.id = dc.document_id
+    where d.metadata->>'ingest_status' = 'indexed' and dc.metadata @> filter
     order by dc.embedding <=> query_embedding
     limit greatest(match_count, vector_candidate_count)
   ),
@@ -215,8 +216,9 @@ begin
         sq.ts_query
       ) as text_score
     from document_chunks dc
+    join documents d on d.id = dc.document_id
     cross join search_query sq
-    where sq.ts_query is not null
+    where d.metadata->>'ingest_status' = 'indexed' and sq.ts_query is not null
       and dc.metadata @> filter
       and to_tsvector('english', coalesce(dc.source, '') || ' ' || coalesce(dc.section_heading, '') || ' ' || dc.content) @@ sq.ts_query
     order by text_score desc

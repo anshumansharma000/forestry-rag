@@ -4,3 +4,6 @@ data/index.json
 __pycache__/
 *.pyc
 .DS_Store
+
+# Database-derived legal annotation and verification artifacts
+data/legal_registry_backfill/

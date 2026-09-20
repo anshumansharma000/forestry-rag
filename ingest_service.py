@@ -1,10 +1,13 @@
+import logging
 import os
 
 from chunking import chunk_document, iter_document_chunks
 from documents import iter_documents
 from errors import AppError, ErrorCode
-from repositories import DocumentRepository, IngestJobRepository, index_version
+from repositories import DocumentRepository, IngestJobRepository
 from retrieval import chunk_row
+
+logger = logging.getLogger(__name__)
 
 
 def build_index(repository: DocumentRepository | None = None, *, source: str | None = None) -> dict:
@@ -24,20 +27,16 @@ def build_index(repository: DocumentRepository | None = None, *, source: str | N
             documents_skipped += 1
             continue
 
-        document_id = repository.upsert_document(doc, status="indexing")
-        index_metadata = {**(doc.get("metadata") or {}), "index_version": index_version()}
+        revision = repository.begin_revision(doc)
         try:
-            document_chunks = persist_document_chunks(repository, document_id, doc)
+            document_chunks = persist_document_chunks(repository, revision, doc)
+            repository.publish_revision(revision["id"], document_chunks)
             chunks_added += document_chunks
-            repository.mark_document_status(doc["source"], "indexed", {**index_metadata, "chunks": document_chunks})
         except Exception as exc:
             try:
-                repository.delete_chunks(doc["source"])
+                repository.fail_revision(revision["id"], str(exc))
             except Exception:
-                pass
-            repository.mark_document_status(
-                doc["source"], "failed", {**index_metadata, "ingest_error": str(exc)}
-            )
+                logger.exception("index_revision_failure_record_failed")
             raise
 
         documents_added += 1
@@ -61,11 +60,10 @@ def build_index(repository: DocumentRepository | None = None, *, source: str | N
     }
 
 
-def persist_document_chunks(repository: DocumentRepository, document_id: str, doc: dict) -> int:
+def persist_document_chunks(repository: DocumentRepository, revision: dict, doc: dict) -> int:
     batch_size = positive_env_int("INGEST_BATCH_SIZE", 24)
     max_chunks = positive_env_int("MAX_DOCUMENT_CHUNKS", 3000)
     source = doc["source"]
-    repository.delete_chunks(source)
     batch = []
     inserted = 0
 
@@ -76,13 +74,15 @@ def persist_document_chunks(repository: DocumentRepository, document_id: str, do
                 code=ErrorCode.INVALID_INPUT,
                 details={"source": source, "max_chunks": max_chunks},
             )
-        batch.append(chunk_row(document_id, chunk))
+        batch.append({**chunk_row(revision["document_id"], chunk), "revision_id": revision["id"]})
         if len(batch) >= batch_size:
-            inserted += repository.insert_chunk_batch(batch)
+            inserted += repository.insert_revision_chunks(batch)
             batch.clear()
 
     if batch:
-        inserted += repository.insert_chunk_batch(batch)
+        inserted += repository.insert_revision_chunks(batch)
+    if not inserted:
+        raise AppError("Document produced no searchable chunks.", code=ErrorCode.INVALID_INPUT)
     return inserted
 
 
