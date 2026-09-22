@@ -129,6 +129,9 @@ def test_failed_revision_resumes_existing_chunks(monkeypatch):
         def existing_chunk_keys(self, _revision_id):
             return {("file-1", 0)}
 
+        def existing_chunk_profiles(self, _revision_id):
+            return {}
+
         def delete_revision_chunks(self, _revision_id):
             self.deleted = True
 
@@ -167,6 +170,48 @@ def test_failed_revision_resumes_existing_chunks(monkeypatch):
     assert [row["chunk_index"] for row in repository.inserted_rows] == [1]
     assert result["chunks"] == 2
     assert repository.revision_updates[-1] == {"status": "ready", "chunk_count": 2}
+
+
+def test_revision_fails_when_any_file_has_no_searchable_chunks(monkeypatch):
+    class Repository:
+        def __init__(self):
+            self.updates = []
+
+        def get_revision(self, _revision_id):
+            return {"status": "queued", "experiment_id": "experiment-1",
+                    "config": {"chunking": {"max_tokens": 200, "overlap_tokens": 0, "profile": "auto"}}}
+
+        def list_files(self, _experiment_id):
+            return [{"id": "first", "filename": "first.txt"}, {"id": "empty", "filename": "empty.txt"}]
+
+        def delete_revision_chunks(self, _revision_id):
+            pass
+
+        def update_revision(self, _revision_id, **updates):
+            self.updates.append(updates)
+
+        def update_experiment(self, *_args):
+            pass
+
+        def insert_chunk_batch(self, rows):
+            return len(rows)
+
+    repository = Repository()
+    monkeypatch.setattr(rag_lab_service, "extracted_document", lambda file, *_:
+                        {"source": file["filename"], "kind": "txt", "title": file["filename"],
+                         "metadata": {}, "pages": [{"page": 1, "text": "text"}]})
+    monkeypatch.setattr(rag_lab_service, "iter_document_chunks", lambda doc, **kw: iter([]) if
+                        doc["source"] == "empty.txt" else iter([{
+                            "source": doc["source"], "chunk_index": 0, "chunk_type": "section",
+                            "section_heading": None, "page_start": 1, "page_end": 1, "content": "text",
+                            "token_estimate": 1, "metadata": {},
+                        }]))
+    monkeypatch.setattr(rag_lab_service, "embed_texts", lambda texts: [[1.0] for _ in texts])
+
+    with pytest.raises(Exception, match="Document produced no searchable chunks"):
+        rag_lab_service.build_revision("revision", repository=repository, storage=SimpleNamespace())
+
+    assert repository.updates[-1]["status"] == "failed"
 
 
 def test_rag_lab_routes_require_admin():

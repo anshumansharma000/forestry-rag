@@ -125,6 +125,25 @@ class RagLabRepository:
     def delete_revision_chunks(self, revision_id: str) -> None:
         self.client.table("rag_lab_chunks").delete().eq("revision_id", revision_id).execute()
 
+    def existing_chunk_profiles(self, revision_id: str) -> dict[str, str]:
+        """Recover the committed chunking recipe; never mix profiles on a retry."""
+        profiles: dict[str, str] = {}
+        offset = 0
+        while True:
+            rows = (self.client.table("rag_lab_chunks").select("file_id,metadata")
+                    .eq("revision_id", revision_id).order("id").range(offset, offset + 499).execute().data or [])
+            for row in rows:
+                profile = (row.get("metadata") or {}).get("profile", "auto")
+                if profile not in {"auto", "section", "procedure", "faq"}:
+                    raise ValueError("Invalid saved chunking profile")
+                file_id = row["file_id"]
+                if file_id in profiles and profiles[file_id] != profile:
+                    raise ValueError("Mixed saved chunking profiles; create a new revision")
+                profiles[file_id] = profile
+            if len(rows) < 500:
+                return profiles
+            offset += 500
+
     def existing_chunk_keys(self, revision_id: str) -> set[tuple[str, int]]:
         keys: set[tuple[str, int]] = set()
         offset = 0

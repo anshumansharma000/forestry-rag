@@ -195,6 +195,9 @@ def retrieve(
     )
     minimum_score = float(options.get("min_context_score", min_context_score()))
     candidates = [candidate for candidate in candidates if candidate_strength(candidate) >= minimum_score]
+    from jev_policy import rerank
+
+    candidates = rerank(question, candidates)
     anchors = diversify_contexts(
         candidates,
         plan.anchor_count,

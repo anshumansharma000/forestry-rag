@@ -149,9 +149,12 @@ def validate_supabase_settings() -> tuple[str, str]:
 
 
 def config_status() -> dict:
+    from jev_settings import status as jev_status
+
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
     status = {
+        **jev_status(),
         "gemini_api_key_configured": bool(gemini_key) and gemini_key != "your_api_key_here",
         "supabase_url_configured": bool(os.getenv("SUPABASE_URL", "").strip()),
         "supabase_service_role_key_configured": bool(service_key) and service_key != "your_service_role_key_here",
@@ -215,9 +218,11 @@ def config_status() -> dict:
 
 
 def validate_runtime_config(require_auth: bool = True) -> dict:
+    from jev_settings import invalid_settings
+
     status = config_status()
     missing = []
-    invalid = []
+    invalid = invalid_settings()
     if not status["gemini_api_key_configured"]:
         missing.append("GEMINI_API_KEY")
     if not status["supabase_url_configured"]:

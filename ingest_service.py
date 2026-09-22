@@ -7,6 +7,7 @@ from chunking import chunk_document, iter_document_chunks
 from consistency import OperationBusy, check_job_schedule
 from documents import iter_documents
 from errors import AppError, ErrorCode
+from jev_shadow import document_policy
 from redaction import safe_failure
 from repositories import DocumentRepository, IngestJobRepository
 from retrieval import chunk_row
@@ -33,6 +34,10 @@ def content_fingerprint(doc: dict) -> str:
     config = {key: value for key, value in os.environ.items() if key.startswith(
         ('CHUNK_', 'FAQ_', 'PROCEDURE_', 'MAX_UNIT_', 'EMBEDDING_', 'GEMINI_EMBEDDING_MODEL', 'RAG_INDEX_VERSION')
     )}
+    if os.getenv("JEV_CLASSIFICATION_MODE", "off").strip().lower() == "active":
+        config["jev_classification_recipe"] = os.getenv("JEV_MODEL", "jev-latest") + ":v1"
+    if os.getenv("JEV_EXTRACTION_MODE", "off").strip().lower() == "active":
+        config["jev_extraction_recipe"] = os.getenv("JEV_MODEL", "jev-latest") + ":v1"
     content = {key: value for key, value in doc.items() if not key.startswith('_')}
     return hashlib.sha256(json.dumps({'document': content, 'config': config, 'format': 1},
                                     sort_keys=True, ensure_ascii=False).encode()).hexdigest()
@@ -55,7 +60,17 @@ def _build_index(repository, *, source, lease):
             documents_skipped += 1
             continue
         try:
-            document_chunks = persist_document_chunks(repository, revision, doc)
+            proposal = document_policy(doc, baseline_profile=None, document_ref=fingerprint, origin="ingest")
+            if proposal.get("review_required"):
+                raise AppError("Extracted text needs review before indexing. Check the original document and retry.",
+                               code=ErrorCode.INVALID_INPUT)
+            if proposal.get("instrument_type_suggestion"):
+                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
+                       "jev_instrument_type_suggestion": proposal["instrument_type_suggestion"]}}
+            if proposal.get("profile"):
+                document_chunks = persist_document_chunks(repository, revision, doc, profile=proposal["profile"])
+            else:
+                document_chunks = persist_document_chunks(repository, revision, doc)
             repository.publish_revision(revision["id"], document_chunks, token=lease.token)
             chunks_added += document_chunks
         except Exception as exc:
@@ -85,14 +100,15 @@ def _build_index(repository, *, source, lease):
     }
 
 
-def persist_document_chunks(repository: DocumentRepository, revision: dict, doc: dict) -> int:
+def persist_document_chunks(repository: DocumentRepository, revision: dict, doc: dict, *, profile: str = "auto") -> int:
     batch_size = positive_env_int("INGEST_BATCH_SIZE", 24)
     max_chunks = positive_env_int("MAX_DOCUMENT_CHUNKS", 3000)
     source = doc["source"]
     batch = []
     inserted = 0
 
-    for chunk in iter_document_chunks(doc):
+    chunks = iter_document_chunks(doc) if profile == "auto" else iter_document_chunks(doc, profile=profile)
+    for chunk in chunks:
         if inserted + len(batch) >= max_chunks:
             raise AppError(
                 "Document produced too many chunks.",

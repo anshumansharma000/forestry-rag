@@ -1,11 +1,15 @@
 import hashlib
 import time
+from itertools import chain
 from uuid import uuid4
 
 from chunking import iter_document_chunks
 from consistency import DatabaseLease, OperationBusy, check_job_schedule
 from documents import read_document
 from errors import AppError, ErrorCode
+from jev_policy import enabled
+from jev_settings import rag_lab_extraction_policy
+from jev_shadow import document_policy
 from prompts import answer_is_abstention, answer_outcome, answer_with_gemini
 from rag_lab_repository import FencedLabRepository, RagLabRepository
 from redaction import safe_failure
@@ -14,6 +18,37 @@ from retrieval import cited_source_payload, embed_texts, embedding_text, retriev
 from services.rag_lab_storage import RagLabStorage, rag_lab_storage
 from settings import env_int
 from token_usage import track_query_usage
+
+_MISSING = object()
+
+
+def compatible_document_chunks(doc: dict, config: dict, profile: str, fallback_profile: str | None = None):
+    """Use a Jev profile when viable and safely recover when it yields no chunks."""
+    kwargs = {"max_tokens": config["max_tokens"], "overlap_tokens": config["overlap_tokens"]}
+    if fallback_profile is not None and fallback_profile != profile:
+        # A FAQ parser can emit heading-only chunks for a non-FAQ document. Inspect
+        # the bounded revision output before committing any chunks so that a confident
+        # but structurally incompatible Jev label cannot make the file unsearchable.
+        proposed = list(iter_document_chunks(doc, profile=profile, **kwargs))
+        usable = bool(proposed) and (
+            profile != "faq"
+            or any("faq" in (chunk.get("metadata") or {}).get("unit_types", []) for chunk in proposed)
+        )
+        if usable:
+            return iter(proposed), doc, False
+        fallback_doc = {
+            **doc,
+            "metadata": {
+                **(doc.get("metadata") or {}),
+                "jev_chunk_profile_fallback": fallback_profile,
+            },
+        }
+        return iter(iter_document_chunks(fallback_doc, profile=fallback_profile, **kwargs)), fallback_doc, True
+    primary = iter(iter_document_chunks(doc, profile=profile, **kwargs))
+    first = next(primary, _MISSING)
+    if first is not _MISSING:
+        return chain((first,), primary), doc, False
+    return iter(()), doc, False
 
 
 def upload_files(experiment_id: str, uploads: list, repository=None, storage=None) -> list[dict]:
@@ -83,19 +118,59 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
         existing_chunk_keys: set[tuple[str, int]] = set()
     else:
         existing_chunk_keys = repository.existing_chunk_keys(revision_id)
+    frozen_profiles = repository.existing_chunk_profiles(revision_id) if existing_chunk_keys else {}
     repository.update_revision(revision_id, status="building")
     inserted = len(existing_chunk_keys)
+    warnings = []
     embedding_batch_size = min(env_int("GEMINI_EMBEDDING_BATCH_SIZE", 2), 100)
     try:
         for file in files:
             doc = extracted_document(file, storage, repository)
+            configured_profile = config.get("profile", "auto")
+            baseline_profile = frozen_profiles.get(file["id"], configured_profile) if configured_profile == "auto" else configured_profile
+            proposal = document_policy(doc, baseline_profile=baseline_profile,
+                                       document_ref=file["id"], origin="rag_lab")
+            if proposal.get("review_required"):
+                if rag_lab_extraction_policy() == "block":
+                    raise AppError("Extracted text needs review before indexing. Check the original document and retry.",
+                                   code=ErrorCode.INVALID_INPUT)
+                pages = proposal.get("extraction_review_pages") or []
+                warnings.append({"file_id": file["id"], "filename": file["filename"],
+                                 "code": "jev_extraction_review", "pages": pages})
+                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
+                       "jev_extraction_review_required": True, "jev_extraction_review_pages": pages}}
+            if proposal.get("instrument_type_suggestion"):
+                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
+                       "jev_instrument_type_suggestion": proposal["instrument_type_suggestion"]}}
+            if proposal.get("profile"):
+                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
+                       "jev_chunk_profile_suggestion": proposal["profile"]}}
+            effective_profile = configured_profile
+            fallback_profile = None
+            if configured_profile == "auto" and file["id"] in frozen_profiles:
+                effective_profile = frozen_profiles[file["id"]]
+            elif configured_profile == "auto" and enabled("classification") == "active":
+                if any(key[0] == file["id"] for key in existing_chunk_keys):
+                    # A legacy partial build has no recorded Jev recipe. Never mix
+                    # a newly chosen profile with its existing chunk indices.
+                    effective_profile = "auto"
+                else:
+                    from chunking import document_profile
+
+                    effective_profile = proposal.get("profile", document_profile(doc))
+                    if proposal.get("profile"):
+                        fallback_profile = "auto"
+            chunks, doc, profile_fallback = compatible_document_chunks(
+                doc, config, effective_profile, fallback_profile=fallback_profile
+            )
+            if profile_fallback:
+                warnings.append({"file_id": file["id"], "filename": file["filename"],
+                                 "code": "jev_chunk_profile_fallback",
+                                 "suggested_profile": effective_profile, "applied_profile": "auto"})
             batch: list[tuple[dict, str]] = []
-            for chunk in iter_document_chunks(
-                doc,
-                max_tokens=config["max_tokens"],
-                overlap_tokens=config["overlap_tokens"],
-                profile=config.get("profile", "auto"),
-            ):
+            file_has_chunks = any(key[0] == file["id"] for key in existing_chunk_keys)
+            for chunk in chunks:
+                file_has_chunks = True
                 chunk_key = (file["id"], chunk["chunk_index"])
                 if chunk_key in existing_chunk_keys:
                     continue
@@ -121,11 +196,14 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
             if batch:
                 inserted += insert_embedded_batch(repository, batch)
                 existing_chunk_keys.update((row["file_id"], row["chunk_index"]) for row, _ in batch)
+            if not file_has_chunks:
+                raise AppError("Document produced no searchable chunks.", code=ErrorCode.INVALID_INPUT,
+                               details={"filename": file["filename"]})
         if not inserted:
             raise AppError("Revision produced no searchable chunks.", code=ErrorCode.INVALID_INPUT)
         repository.update_revision(revision_id, status="ready", chunk_count=inserted)
         repository.update_experiment(revision["experiment_id"], {"status": "ready"})
-        return {"revision_id": revision_id, "documents": len(files), "chunks": inserted}
+        return {"revision_id": revision_id, "documents": len(files), "chunks": inserted, "warnings": warnings}
     except Exception as exc:
         repository.update_revision(revision_id, status="failed", chunk_count=inserted, error=safe_failure(exc))
         repository.update_experiment(revision["experiment_id"], {"status": "failed"})

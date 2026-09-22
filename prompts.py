@@ -363,7 +363,14 @@ def answer_with_gemini(question: str, contexts: list[dict], chat_history: list[d
     history_block = format_history(chat_history or [], max_messages=10)
     question_shape = classify_question_shape(question)
     evidence_plan = None
-    if needs_evidence_plan(question, contexts):
+    baseline_planning = needs_evidence_plan(question, contexts)
+    from jev_shadow import answer_policy, apply_planning, apply_route
+
+    preliminary_route = answer_generation_operation(question, contexts, allow_extraction=not bool(chat_history))
+    jev_proposals = answer_policy(question, source_block, history_block, baseline_route=preliminary_route,
+                                  baseline_planning=baseline_planning)
+    if apply_planning(jev_proposals, baseline_planning, question, contexts, baseline_route=preliminary_route,
+                      history=bool(chat_history), allowed=env_enabled("RAG_EVIDENCE_PLANNING", True)):
         evidence_plan = build_evidence_plan(question, source_block)
     plan_block = json.dumps(evidence_plan, ensure_ascii=False) if evidence_plan else "No separate evidence plan is available."
 
@@ -419,7 +426,9 @@ Evidence plan:
 
 Latest question: {question}
 Answer:"""
-    operation = answer_generation_operation(question, contexts, evidence_plan, allow_extraction=not bool(chat_history))
+    baseline_operation = answer_generation_operation(question, contexts, evidence_plan, allow_extraction=not bool(chat_history))
+    operation = apply_route(jev_proposals, baseline_operation, question, contexts,
+                            evidence_plan=evidence_plan, history=bool(chat_history))
     logger.info(
         "answer_route_selected",
         extra={
@@ -443,12 +452,34 @@ Answer:"""
     if answer == UNSUPPORTED_ANSWER:
         return answer
     lite_extraction = not chat_history and lite_extraction_enabled() and extraction_eligible(question, contexts, evidence_plan)
-    risk_audit = env_enabled("RAG_RISK_BASED_VERIFICATION", False) and operation == "answer_complex_high"
+    risk_audit = (
+        env_enabled("RAG_RISK_BASED_VERIFICATION", False) or operation != baseline_operation
+    ) and operation == "answer_complex_high"
     if risk_audit:
         answer = verify_answer_with_gemini(question, answer, source_block, complex_required=True)
-    elif lite_extraction or (question_shape in {"overview", "procedure", "comparison"}
+    elif lite_extraction or operation != baseline_operation or (question_shape in {"overview", "procedure", "comparison"}
                              and env_enabled("RAG_ANSWER_VERIFICATION", True)):
-        answer = verify_answer_with_gemini(question, answer, source_block)
+        from jev_policy import draft_verification_decision, enabled
+        from jev_settings import active_failure_policy
+
+        verification_mode = enabled("verification")
+        high_risk = operation == "answer_complex_high" or bool((evidence_plan or {}).get("conflicts")) \
+            or bool((evidence_plan or {}).get("unknowns"))
+        if verification_mode == "off":
+            answer = verify_answer_with_gemini(question, answer, source_block)
+        else:
+            decision = draft_verification_decision(
+                question, answer, contexts, source_block, high_risk=high_risk, history=bool(chat_history)
+            )
+            if verification_mode == "shadow" or decision == "ineligible":
+                # Shadow explicitly compares both owners. Ineligible complex/history
+                # audits belong to Gemini and never make a Jev request.
+                answer = verify_answer_with_gemini(question, answer, source_block)
+            elif decision == "rejected":
+                answer = UNSUPPORTED_ANSWER
+            elif decision == "unavailable":
+                answer = (verify_answer_with_gemini(question, answer, source_block)
+                          if active_failure_policy() == "baseline" else UNSUPPORTED_ANSWER)
     return validate_answer_citations(answer, len(contexts), require_citation=True)
 
 

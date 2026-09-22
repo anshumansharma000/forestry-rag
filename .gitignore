@@ -7,3 +7,6 @@ __pycache__/
 
 # Database-derived legal annotation and verification artifacts
 data/legal_registry_backfill/
+docs/
+*.example
+deployment.env.example

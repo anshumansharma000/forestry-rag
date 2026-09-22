@@ -45,6 +45,22 @@ def record_verification_escalation() -> None:
     if usage is not None:
         usage["verification_escalations"] += 1
 
+
+def record_decision(operation: str, model: str | None, metadata: dict | None, *,
+                    elapsed_ms: float, succeeded: bool) -> dict:
+    metadata = metadata if isinstance(metadata, dict) else {}
+    tokens = metadata.get("input_tokens")
+    rate = positive_setting("JEV_INPUT_USD_PER_MILLION", 0.042)
+    fx = positive_setting("COST_USD_TO_INR", 90)
+    known = type(tokens) is int and tokens >= 0 and rate is not None and isinstance(model, str) and model.startswith("jev-")
+    usd = tokens * rate / 1_000_000 if known else None
+    cost = {"estimated_cost_usd": usd, "estimated_cost_inr": usd * fx if usd is not None and fx else None}
+    usage = _usage.get()
+    if usage is not None:
+        usage["decisions"].append({"operation": operation, "model": model, "input_tokens": tokens,
+                                   "elapsed_ms": elapsed_ms, "succeeded": succeeded, **cost})
+    return cost
+
 def record_embedding(model: str, metadata: dict | None, *, items: int = 1) -> None:
     usage = _usage.get()
     if usage is None:
@@ -65,7 +81,7 @@ def track_query_usage(function):
     def wrapped(*args, **kwargs):
         if _usage.get() is not None:
             return function(*args, **kwargs)
-        usage = {"query_id": uuid4().hex, "calls": [], "embeddings": [], "unmetered_attempts": 0, "verification_escalations": 0}
+        usage = {"query_id": uuid4().hex, "calls": [], "embeddings": [], "decisions": [], "unmetered_attempts": 0, "verification_escalations": 0}
         token = _usage.set(usage)
         succeeded = False
         try:
@@ -87,9 +103,13 @@ def track_query_usage(function):
             for currency in ("usd", "inr"):
                 key = f"estimated_cost_{currency}"
                 embedding_total = sum(e[key] for e in embeddings) if all(e[key] is not None for e in embeddings) else None
+                decisions = usage["decisions"]
+                decision_total = sum(d[key] for d in decisions) if all(d[key] is not None for d in decisions) else None
                 api_costs[f"embedding_cost_{currency}"] = embedding_total
+                api_costs[f"decision_cost_{currency}"] = decision_total
                 api_costs[f"total_api_cost_{currency}"] = (
-                    costs[key] + embedding_total if costs[key] is not None and embedding_total is not None else None
+                    costs[key] + embedding_total + decision_total
+                    if costs[key] is not None and embedding_total is not None and decision_total is not None else None
                 )
             max_cost = positive_setting("COST_QUERY_MAX_INR", 1.5)
             inr = costs["estimated_cost_inr"]
@@ -109,6 +129,8 @@ def track_query_usage(function):
                     "embedding_calls": len(embeddings),
                     "embedding_items": sum(e["items"] for e in embeddings),
                     "embedding_stages": embeddings,
+                    "decision_calls": len(usage["decisions"]),
+                    "decision_stages": usage["decisions"],
                     "total_api_cost_complete": api_costs["total_api_cost_usd"] is not None,
                     "cost_complete": costs["estimated_cost_usd"] is not None,
                     "unmetered_generation_attempts": usage["unmetered_attempts"],

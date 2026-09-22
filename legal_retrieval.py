@@ -127,7 +127,10 @@ def retrieve_legal(question, top_k=None, repository=None, options=None, registry
                           ctx['metadata']['legal_profile'].get('instrument_type') in STAGES[stage]), None)
         if candidate and candidate not in ordered:
             ordered.append(candidate)
-    ordered.extend(ctx for ctx in ranked if ctx not in ordered)
+    from jev_policy import rerank
+
+    # Jev only reorders the remaining evidence, after protected category anchors.
+    ordered.extend(rerank(ranking_question, [ctx for ctx in ranked if ctx not in ordered]))
     if env_bool('RAG_COST_OPTIMIZATIONS', True) and env_bool('RAG_SELECTIVE_EVIDENCE', True):
         deduplicated = []
         for context in ordered:

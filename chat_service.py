@@ -114,10 +114,20 @@ def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = No
     with repository.turn_lease(session_id, token) as lease:
         previous_messages = get_chat_messages(session_id, user_id, repository=repository)
         answer_history = previous_messages
-        if should_select_history(previous_messages):
+        from jev_policy import enabled, standalone_question
+        from jev_shadow import history_selection
+
+        if standalone_question(previous_messages, message):
+            search_query = message.strip()
+        elif enabled("history") == "active":
+            # Query resolution is generative work owned by Gemini. History selection
+            # is a separate bounded classification task owned exclusively by Jev.
+            search_query = rewrite_question_for_retrieval(previous_messages, message)
+        elif should_select_history(previous_messages):
             search_query, answer_history = select_history(previous_messages, message)
         else:
             search_query = rewrite_question_for_retrieval(previous_messages, message)
+        answer_history = history_selection(previous_messages, message, answer_history)
         contexts = retrieve(search_query, top_k)
         answer = answer_with_gemini(message, contexts, answer_history)
         result = {

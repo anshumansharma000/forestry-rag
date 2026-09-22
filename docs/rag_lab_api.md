@@ -59,6 +59,13 @@ Content-Type: application/json
 
 To override the experiment configuration for this revision, send `{ "config": { ... } }`. The response contains both `revision` and `job`. Poll the returned job through `GET /ingest/jobs/{job_id}`.
 
+When Jev flags sampled extraction quality or its automatic chunk-profile suggestion is
+structurally incompatible with a file, the build still completes by default. The
+succeeded job's `result.warnings` contains entries with `code` set to
+`jev_extraction_review` or `jev_chunk_profile_fallback`; the same review/suggestion
+details are retained in chunk metadata. Set `JEV_RAG_LAB_EXTRACTION_POLICY=block` only
+when experimental revisions should fail on Jev extraction-quality findings.
+
 ### 4. Inspect chunks
 
 ```http

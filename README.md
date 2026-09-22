@@ -1,5 +1,10 @@
 # Forest Department Pilot RAG
 
+Optional Jev integration evaluates verification, evidence ranking, chat rewriting,
+model/reasoning routes, planning, history selection, document classification and
+extraction quality. Each mode controls task ownership (`off`, `shadow`, or exclusive `active`). See [Jev rollout and evaluation](docs/jev.md)
+for key configuration, independent rollout modes, fallbacks, and cost accounting.
+
 This is a pilot-ready RAG API foundation for forest department source documents. It stores source files locally for now, extracts text from `.pdf`, `.docx`, `.txt`, `.ppt`, and `.pptx` files, chunks the text, creates embeddings with the Gemini API, stores chunks in Supabase Postgres + pgvector, and answers questions with citations.
 
 Phase 1 hardening adds bearer-token auth, roles, user-scoped chat sessions, upload restrictions, audit events, structured errors, runtime config validation, migrations, and Docker deployment files. The current codebase also separates routes, repositories, document loading, chunking, retrieval, prompt construction, chat, and ingestion into focused modules.

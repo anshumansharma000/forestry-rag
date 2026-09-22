@@ -14,6 +14,30 @@ services:
         value: "true"
       - key: GEMINI_API_KEY
         sync: false
+      - key: JEV_KEY
+        sync: false
+      - key: JEV_MODEL
+        value: jev-latest
+      - key: JEV_VERIFICATION_MODE
+        value: shadow
+      - key: JEV_RERANK_MODE
+        value: shadow
+      - key: JEV_REWRITE_MODE
+        value: shadow
+      - key: JEV_ROUTING_MODE
+        value: shadow
+      - key: JEV_PLANNING_MODE
+        value: shadow
+      - key: JEV_HISTORY_MODE
+        value: shadow
+      - key: JEV_CLASSIFICATION_MODE
+        value: shadow
+      - key: JEV_EXTRACTION_MODE
+        value: shadow
+      - key: JEV_ACTIVE_FAILURE_POLICY
+        value: closed
+      - key: JEV_RAG_LAB_EXTRACTION_POLICY
+        value: warn
       - key: GEMINI_EMBEDDING_MODEL
         value: gemini-embedding-2
       - key: RAG_COST_OPTIMIZATIONS
