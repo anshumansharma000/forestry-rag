@@ -4,6 +4,7 @@ import json
 import logging
 
 from chunking import count_tokens
+from pipeline_trace import measured
 from prompts import env_enabled, format_history, rewrite_question_for_retrieval
 from retrieval import generate_structured_with_gemini
 from settings import env_int
@@ -32,6 +33,7 @@ def should_select_history(messages: list[dict]) -> bool:
     )
 
 
+@measured("context_resolution")
 def select_history(messages: list[dict], latest: str) -> tuple[str, list[dict]]:
     recent = messages[-10:]
     serialized = json.dumps(

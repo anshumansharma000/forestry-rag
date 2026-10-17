@@ -102,11 +102,7 @@ def apply_pdf_ocr_fallback(path: Path, native_pages: list[dict], *, ocr_client=N
                 "extraction_method": "google_document_ai_ocr",
             }
 
-    pages = [
-        pages_by_number[page_number]
-        for page_number in sorted(pages_by_number)
-        if pages_by_number[page_number].get("text")
-    ]
+    pages = [pages_by_number[page_number] for page_number in sorted(pages_by_number) if pages_by_number[page_number].get("text")]
     enforce_extracted_text_limit(path, sum(len(page["text"]) for page in pages))
     return pages
 
@@ -207,11 +203,21 @@ def table_block_from_rows(raw_rows: list[list[str | None]], table_index: int) ->
 
     headers = rows[0] if len(rows) > 1 else []
     data_rows = rows[1:] if headers else rows
+    caption = None
+    if env_bool("RAG_EXTRACTION_DIAGNOSTICS") and len(rows) >= 3:
+        first = {c for c in rows[0] if c}
+        second = {c for c in rows[1] if c}
+        # A single repeated merged title followed by distinct column labels.
+        # Preserve all original text; only use the observed second row as headers.
+        if len(first) == 1 and len(second) > 1 and len(rows[1]) == len(rows[0]):
+            caption = next(iter(first))
+            headers, data_rows = rows[1], rows[2:]
     rendered_rows = [" | ".join(cell for cell in row) for row in rows]
     return {
         "type": "table",
         "table_index": table_index,
         "headers": headers,
+        **({"caption": caption} if caption else {}),
         "rows": data_rows,
         "text": normalize_text("\n".join(rendered_rows)),
     }
@@ -408,6 +414,13 @@ def read_document(document_file) -> dict | None:
 
     title = infer_title(document_file.name, pages)
     metadata = extract_document_metadata(document_file.name, title, pages)
+    from pipeline_settings import PipelineSettings
+
+    if PipelineSettings.read().extraction_diagnostics:
+        from extraction_quality import document_diagnostics
+
+        metadata["extraction_quality"] = document_diagnostics(pages)
+        metadata["extraction_recipe"] = {"version": "structured-v2.1", "tables": env_bool("PDF_EXTRACT_TABLES", True)}
     if suffix == ".pdf":
         extraction_methods = Counter(page.get("extraction_method", "native_pdf_text") for page in pages)
         metadata.update(
@@ -435,9 +448,7 @@ def infer_title(source: str, pages: list[dict]) -> str:
         source_title,
         re.I,
     )
-    if len(re.findall(r"[A-Za-z]", source_title)) >= 8 or (
-        source_has_title_keyword and len(re.findall(r"[A-Za-z]", source_title)) >= 5
-    ):
+    if len(re.findall(r"[A-Za-z]", source_title)) >= 8 or (source_has_title_keyword and len(re.findall(r"[A-Za-z]", source_title)) >= 5):
         source_score = 35
         if source_has_title_keyword:
             source_score += 40
@@ -575,9 +586,7 @@ def remove_repeated_margin_lines(pages: list[dict]) -> list[dict]:
         cleaned["blocks"] = [
             {
                 **block,
-                "text": normalize_text(
-                    "\n".join(line for line in block.get("text", "").splitlines() if line.strip() not in repeated)
-                ),
+                "text": normalize_text("\n".join(line for line in block.get("text", "").splitlines() if line.strip() not in repeated)),
             }
             if block.get("type") == "text"
             else block

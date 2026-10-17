@@ -91,11 +91,7 @@ def document_ai_ocr_settings() -> dict[str, str | int | list[str]]:
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()
     location = os.getenv("DOCUMENT_AI_LOCATION", "").strip()
     processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID", "").strip()
-    language_hints = [
-        language.strip()
-        for language in os.getenv("DOCUMENT_AI_OCR_LANGUAGE_HINTS", "en,hi").split(",")
-        if language.strip()
-    ]
+    language_hints = [language.strip() for language in os.getenv("DOCUMENT_AI_OCR_LANGUAGE_HINTS", "en,hi").split(",") if language.strip()]
     missing = [
         name
         for name, value in {
@@ -150,11 +146,13 @@ def validate_supabase_settings() -> tuple[str, str]:
 
 def config_status() -> dict:
     from jev_settings import status as jev_status
+    from pipeline_settings import safe_status
 
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
     status = {
         **jev_status(),
+        "answer_pipeline": safe_status(),
         "gemini_api_key_configured": bool(gemini_key) and gemini_key != "your_api_key_here",
         "supabase_url_configured": bool(os.getenv("SUPABASE_URL", "").strip()),
         "supabase_service_role_key_configured": bool(service_key) and service_key != "your_service_role_key_here",
@@ -164,6 +162,7 @@ def config_status() -> dict:
         "gemini_embedding_model": os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
         "gemini_direct_model": os.getenv("GEMINI_DIRECT_MODEL", "gemini-3.5-flash-lite"),
         "gemini_complex_model": os.getenv("GEMINI_COMPLEX_MODEL", "gemini-3.8-flash"),
+        "rag_lite_first": env_bool("RAG_LITE_FIRST", True),
         "gemini_utility_model": os.getenv("GEMINI_UTILITY_MODEL", "gemini-3.5-flash-lite"),
         "gemini_verification_model": os.getenv("GEMINI_VERIFICATION_MODEL", "gemini-3.5-flash-lite"),
         "auth_disabled": env_bool("AUTH_DISABLED"),
@@ -187,6 +186,8 @@ def config_status() -> dict:
         "gemini_direct_max_output_tokens": env_int("GEMINI_DIRECT_MAX_OUTPUT_TOKENS", 1800),
         "gemini_complex_max_output_tokens": env_int("GEMINI_COMPLEX_MAX_OUTPUT_TOKENS", 4000),
         "gemini_complex_high_max_output_tokens": env_int("GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS", 8192),
+        "gemini_verify_complex_max_output_tokens": env_int("GEMINI_VERIFY_COMPLEX_MAX_OUTPUT_TOKENS", 4000),
+        "gemini_verify_complex_thinking_level": os.getenv("GEMINI_VERIFY_COMPLEX_THINKING_LEVEL", "medium"),
         "gemini_truncation_recovery": env_bool("GEMINI_TRUNCATION_RECOVERY", True),
         "gemini_truncation_max_output_tokens": env_int("GEMINI_TRUNCATION_MAX_OUTPUT_TOKENS", 16384),
         "rag_evidence_planning": env_bool("RAG_EVIDENCE_PLANNING", True),
@@ -203,6 +204,8 @@ def config_status() -> dict:
         "rag_selective_verification": env_bool("RAG_SELECTIVE_VERIFICATION", True),
         "cost_usd_to_inr": positive_setting("COST_USD_TO_INR", 90.0),
         "cost_query_max_inr": positive_setting("COST_QUERY_MAX_INR", 1.5),
+        "cost_ordinary_target_inr": positive_setting("COST_ORDINARY_TARGET_INR", 1.2),
+        "cost_complex_target_inr": positive_setting("COST_COMPLEX_TARGET_INR", 1.5),
         "rag_multi_query": env_bool("RAG_MULTI_QUERY", True),
         "rag_multi_query_max": env_int("RAG_MULTI_QUERY_MAX", 4),
         "rag_index_version": os.getenv("RAG_INDEX_VERSION", "4").strip() or "4",
@@ -223,6 +226,8 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
     status = config_status()
     missing = []
     invalid = invalid_settings()
+    if not status["answer_pipeline"]["valid"]:
+        invalid.append(status["answer_pipeline"]["invalid"])
     if not status["gemini_api_key_configured"]:
         missing.append("GEMINI_API_KEY")
     if not status["supabase_url_configured"]:
@@ -307,6 +312,7 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "RAG_HISTORY_SELECTION_TOKENS",
         "GEMINI_PLAN_MAX_OUTPUT_TOKENS",
         "GEMINI_VERIFY_MAX_OUTPUT_TOKENS",
+        "GEMINI_VERIFY_COMPLEX_MAX_OUTPUT_TOKENS",
     ):
         raw = os.getenv(name)
         if raw is None or not raw.strip():
@@ -354,6 +360,7 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "GEMINI_COMPLEX_THINKING_LEVEL",
         "GEMINI_COMPLEX_HIGH_THINKING_LEVEL",
         "GEMINI_VERIFY_THINKING_LEVEL",
+        "GEMINI_VERIFY_COMPLEX_THINKING_LEVEL",
     ):
         raw = os.getenv(name)
         if raw and raw.strip().lower() not in {"minimal", "low", "medium", "high"}:

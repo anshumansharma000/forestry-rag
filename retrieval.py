@@ -7,8 +7,13 @@ from datetime import date
 
 from chunking import count_tokens
 from documents import extract_legal_identifiers
+from pipeline_network import ordered_search
+from pipeline_settings import PipelineSettings
+from pipeline_trace import event, measured, stage
+from query_cache import cached_compute, opaque, retrieval_cached, valid_embedding
 from repositories import DocumentRepository
 from services.gemini import gemini_client
+from settings import embedding_dimensions
 from temporal import applicable_date, historical_question, temporal_metadata
 
 STOP_WORDS = {
@@ -89,13 +94,47 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return [normalize_embedding(values) for values in gemini_client.embed_many(texts, "RETRIEVAL_DOCUMENT")]
 
 
+@measured("embedding")
 def embed_query(text: str) -> list[float]:
-    return normalize_embedding(gemini_client.embed(embedding_query_text(text), "RETRIEVAL_QUERY"))
+    prepared = embedding_query_text(text)
+    dimensions = embedding_dimensions()
+    material = [
+        prepared,
+        os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
+        dimensions,
+        "query-v1",
+        os.getenv("RAG_CACHE_EPOCH", "1"),
+        opaque(os.getenv("GEMINI_API_KEY", "")),
+    ]
+    return cached_compute(
+        "embedding",
+        material,
+        lambda: normalize_embedding(gemini_client.embed(prepared, "RETRIEVAL_QUERY")),
+        enabled=PipelineSettings.read().embedding_cache,
+        validate=lambda v: valid_embedding(v, dimensions),
+        ttl=86400,
+    )
 
 
+@measured("embedding_batch")
 def embed_queries(texts: list[str]) -> list[list[float]]:
     prepared = [embedding_query_text(text) for text in texts]
-    return [normalize_embedding(values) for values in gemini_client.embed_many(prepared, "RETRIEVAL_QUERY")]
+    material = [
+        prepared,
+        os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
+        embedding_dimensions(),
+        "query-batch-v1",
+        os.getenv("RAG_CACHE_EPOCH", "1"),
+        opaque(os.getenv("GEMINI_API_KEY", "")),
+    ]
+    return cached_compute(
+        "embedding_batch",
+        material,
+        lambda: [normalize_embedding(v) for v in gemini_client.embed_many(prepared, "RETRIEVAL_QUERY")],
+        enabled=PipelineSettings.read().embedding_cache,
+        validate=lambda vv: isinstance(vv, list) and len(vv) == len(texts) and all(valid_embedding(v, embedding_dimensions()) for v in vv),
+        ttl=86400,
+    )
 
 
 def embedding_text(chunk: dict) -> str:
@@ -106,9 +145,7 @@ def embedding_text(chunk: dict) -> str:
         lines.append(f"Authority: {metadata['authority']}")
     if chunk.get("section_heading"):
         lines.append(f"Section: {chunk['section_heading']}")
-    identifiers = extract_legal_identifiers(
-        f"{chunk.get('section_heading') or ''}\n{chunk.get('content') or ''}"
-    )
+    identifiers = extract_legal_identifiers(f"{chunk.get('section_heading') or ''}\n{chunk.get('content') or ''}")
     if identifiers:
         lines.append(f"Legal identifiers: {', '.join(identifiers[:20])}")
     lines.append(chunk["content"])
@@ -154,16 +191,21 @@ def retrieval_shape(question: str) -> str:
     return classify_question_shape(question)
 
 
+@measured("retrieval")
 def retrieve(
-    question: str,
-    top_k: int | None = None,
-    repository: DocumentRepository | None = None,
-    options: dict | None = None,
+    question: str, top_k: int | None = None, repository: DocumentRepository | None = None, options: dict | None = None
 ) -> list[dict]:
-    if env_bool("RAG_LEGAL_HIERARCHY", False):
+    # An explicit Lab adapter always remains revision-scoped, including under the
+    # global legal flag. Preview invokes the legal pipeline explicitly.
+    if env_bool("RAG_LEGAL_HIERARCHY", False) and not getattr(repository, "revision_id", None):
         from legal_retrieval import retrieve_legal
 
         return retrieve_legal(question, top_k, repository, options)
+    repository = repository or DocumentRepository()
+    return retrieval_cached(repository, question, top_k, options or {}, lambda: _retrieve(question, top_k, repository, options))
+
+
+def _retrieve(question, top_k, repository, options):
     repository = repository or DocumentRepository()
     options = options or {}
     plan = retrieval_plan(question, options, top_k)
@@ -174,10 +216,26 @@ def retrieve(
     rows_by_id: dict[str, dict] = {}
     fusion_by_id: dict[str, dict] = {}
     query_embeddings = embed_queries(queries) if len(queries) > 1 else [embed_query(queries[0])]
-    for query, query_embedding in zip(queries, query_embeddings, strict=True):
-        query_rows = repository.match_chunks(query_embedding, query, plan.candidate_count)
+
+    def search(item):
+        query, vector = item
+        adapter = repository.parallel_clone() if hasattr(repository, "parallel_clone") else repository
+        return adapter.match_chunks(vector, query, plan.candidate_count)
+
+    batches = ordered_search(list(zip(queries, query_embeddings, strict=True)), search, safe=hasattr(repository, "parallel_clone"))
+    for query_rows in batches:
         for query_rank, row in enumerate(query_rows):
             merge_retrieval_row(rows_by_id, fusion_by_id, row, query_rank)
+    if (
+        PipelineSettings.read().adaptive
+        and plan.shape == "direct"
+        and not any(meaningful_terms(question) & meaningful_terms(row.get("content", "")) for row in rows_by_id.values())
+    ):
+        extra_query = question + " governing provision requirements conditions exceptions"
+        with stage("retrieval_expansion"):
+            for rank, row in enumerate(repository.match_chunks(embed_query(extra_query), extra_query, plan.candidate_count)):
+                merge_retrieval_row(rows_by_id, fusion_by_id, row, rank)
+        event("retrieval_expanded", reason="no_lexically_related_candidate", rounds=1)
     # An amendment may use the rule identifier rather than the user's wording.
     # Search for updates as well before truncating to the final context window.
     identifiers = extract_legal_identifiers(question)
@@ -188,16 +246,18 @@ def retrieve(
             merge_retrieval_row(rows_by_id, fusion_by_id, row, update_rank)
     candidates = rerank_candidates(
         question,
-        [
-            context_from_row(row, fusion_by_id[row_id]["best_rank"], fusion_by_id[row_id])
-            for row_id, row in rows_by_id.items()
-        ],
+        [context_from_row(row, fusion_by_id[row_id]["best_rank"], fusion_by_id[row_id]) for row_id, row in rows_by_id.items()],
     )
     minimum_score = float(options.get("min_context_score", min_context_score()))
     candidates = [candidate for candidate in candidates if candidate_strength(candidate) >= minimum_score]
     from jev_policy import rerank
 
-    candidates = rerank(question, candidates)
+    with stage("semantic_rerank"):
+        candidates = rerank(question, candidates)
+    if PipelineSettings.read().evidence == "v2":
+        from evidence_policy import protect_qualifications
+
+        candidates = protect_qualifications(question, candidates)
     anchors = diversify_contexts(
         candidates,
         plan.anchor_count,
@@ -211,7 +271,15 @@ def retrieve(
         plan.context_count,
         enabled=bool(options.get("expand_neighbors", env_bool("RETRIEVAL_EXPAND_NEIGHBORS", True))),
     )
-    return pack_contexts(expanded, plan.context_count, plan.context_token_budget)
+    from evidence_policy import diagnostics, prioritize
+
+    if PipelineSettings.read().evidence == "v2":
+        expanded = prioritize(expanded)
+    with stage("evidence_packing"):
+        packed = pack_contexts(expanded, plan.context_count, plan.context_token_budget)
+    event("evidence_selection", chunk_ids=[str(c["id"]) for c in packed])
+    event("evidence_diagnostics", **diagnostics(question, packed), omitted_candidates=max(0, len(candidates) - len(packed)))
+    return packed
 
 
 def merge_retrieval_row(
@@ -262,12 +330,14 @@ def is_narrow_lookup(question: str) -> bool:
         return False
     if re.search(r"\b(?:and|why|explain|analy[sz]e|relationship|implications?|detail(?:ed)?|all)\b", normalized):
         return False
-    return bool(re.match(
-        r"(?:how (?:much|many|long|often|old|far|soon)\b|who\b|when\b|where\b|"
-        r"what (?:is|are) (?:the )?(?:application )?(?:fee|fees|rate|amount|deadline|duration|"
-        r"validity|date|authority|form|definition|meaning)\b|define\b)",
-        normalized,
-    ))
+    return bool(
+        re.match(
+            r"(?:how (?:much|many|long|often|old|far|soon)\b|who\b|when\b|where\b|"
+            r"what (?:is|are) (?:the )?(?:application )?(?:fee|fees|rate|amount|deadline|duration|"
+            r"validity|date|authority|form|definition|meaning)\b|define\b)",
+            normalized,
+        )
+    )
 
 
 def retrieval_queries(question: str, *, enabled: bool = True) -> list[str]:
@@ -313,6 +383,7 @@ def context_from_row(row: dict, rank: int | None = None, fusion: dict | None = N
     }
 
 
+@measured("deterministic_rerank")
 def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
     query_terms = meaningful_terms(question)
     query_identifiers = identifier_keys(extract_legal_identifiers(question))
@@ -343,9 +414,7 @@ def rerank_candidates(question: str, candidates: list[dict]) -> list[dict]:
                 *extract_legal_identifiers(f"{candidate.get('section_heading') or ''}\n{candidate.get('text') or ''}"),
             ]
         )
-        identifier_match = (
-            len(query_identifiers & candidate_identifiers) / len(query_identifiers) if query_identifiers else 0.0
-        )
+        identifier_match = len(query_identifiers & candidate_identifiers) / len(query_identifiers) if query_identifiers else 0.0
         candidate_years = set(metadata.get("years") or re.findall(r"\b(?:19|20)\d{2}\b", searchable))
         year_match = len(query_years & candidate_years) / len(query_years) if query_years else 0.0
         intent_match = 1.0 if intent and candidate.get("chunk_type") == intent else 0.0
@@ -407,11 +476,7 @@ def diversify_contexts(
     selected = []
     source_counts: Counter[str] = Counter()
     max_per_source = int(os.getenv("RETRIEVAL_MAX_PER_SOURCE", "0")) if max_per_source is None else max_per_source
-    duplicate_threshold = (
-        float(os.getenv("RETRIEVAL_DUPLICATE_THRESHOLD", "0.82"))
-        if duplicate_threshold is None
-        else duplicate_threshold
-    )
+    duplicate_threshold = float(os.getenv("RETRIEVAL_DUPLICATE_THRESHOLD", "0.82")) if duplicate_threshold is None else duplicate_threshold
     deferred = []
     selective = env_bool("RAG_COST_OPTIMIZATIONS", True) and env_bool("RAG_SELECTIVE_EVIDENCE", True)
 
@@ -476,10 +541,19 @@ def expand_neighbors(
     if selective and len(pool) >= limit:
         return pool[:limit]
     seen_ids = {context["id"] for context in pool}
+    batched = None
+    if PipelineSettings.read().batch_neighbors and hasattr(repository, "neighbor_chunks_many"):
+        with stage("neighbor_batch"):
+            batched = repository.neighbor_chunks_many(anchors[:anchor_limit])
     for anchor in anchors[:anchor_limit]:
         revision_id = (anchor.get("metadata") or {}).get("index_revision_id")
         revision_options = {"revision_id": revision_id} if revision_id else {}
-        for row in repository.neighbor_chunks(anchor["document_id"], anchor["chunk_index"], radius=1, **revision_options):
+        rows = (
+            batched.get(str(anchor["id"]), [])
+            if batched is not None
+            else repository.neighbor_chunks(anchor["document_id"], anchor["chunk_index"], radius=1, **revision_options)
+        )
+        for row in rows:
             if row["id"] in seen_ids or row["chunk_index"] == anchor["chunk_index"]:
                 continue
             neighbor = context_from_row({**row, "similarity": anchor["base_score"] * 0.82}, rank=None)
@@ -501,12 +575,21 @@ def expand_neighbors(
     if selective:
         # All direct matches retain priority. Among adjacent passages, protect
         # qualifications before spending the remaining slots on generic context.
-        neighbors = pool[len(anchors):]
-        neighbors.sort(key=lambda item: (
-            bool(re.search(r"\b(?:except|exception|unless|provided|notwithstanding|exempt|subject to|"
-                           r"amend(?:ed|ment)?|supersed(?:ed|es)?|repeal(?:ed)?)\b", item["text"], re.I)),
-            item["score"],
-        ), reverse=True)
+        neighbors = pool[len(anchors) :]
+        neighbors.sort(
+            key=lambda item: (
+                bool(
+                    re.search(
+                        r"\b(?:except|exception|unless|provided|notwithstanding|exempt|subject to|"
+                        r"amend(?:ed|ment)?|supersed(?:ed|es)?|repeal(?:ed)?)\b",
+                        item["text"],
+                        re.I,
+                    )
+                ),
+                item["score"],
+            ),
+            reverse=True,
+        )
         pool = [*anchors, *neighbors]
     return pool[:limit]
 
@@ -550,11 +633,11 @@ def candidate_strength(context: dict) -> float:
 
 
 def meaningful_terms(text: str) -> set[str]:
-    return {
-        token
-        for token in re.findall(r"[a-z0-9]+(?:\.[a-z0-9]+)*", text.lower())
-        if len(token) > 1 and token not in STOP_WORDS
-    }
+    if PipelineSettings.read().evidence == "v2":
+        from evidence_policy import unicode_terms
+
+        return unicode_terms(text, STOP_WORDS)
+    return {token for token in re.findall(r"[a-z0-9]+(?:\.[a-z0-9]+)*", text.lower()) if len(token) > 1 and token not in STOP_WORDS}
 
 
 def identifier_keys(identifiers: list[str]) -> set[str]:

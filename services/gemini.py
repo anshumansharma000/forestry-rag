@@ -10,9 +10,11 @@ from typing import Any, Literal
 import requests
 
 from errors import AppError, ErrorCode
-from generation_cost import generation_cost
+from generation_cost import generation_cost, normalized_usage
+from pipeline_network import post as pooled_post
+from pipeline_trace import event, measured
 from settings import embedding_dimensions, env_int, gemini_api_key
-from token_usage import record_embedding, record_generation, record_unmetered_attempt
+from token_usage import record_attempt, record_embedding, record_generation, record_unmetered_attempt
 
 logger = logging.getLogger(__name__)
 
@@ -60,67 +62,107 @@ class GenerationProfile:
 
 GENERATION_PROFILES: dict[str, GenerationProfile] = {
     "rewrite_context": GenerationProfile(
-        "GEMINI_UTILITY_MODEL", "gemini-3.5-flash-lite",
-        "GEMINI_REWRITE_TEMPERATURE", 0.0,
-        "GEMINI_CONTEXT_REWRITE_MAX_OUTPUT_TOKENS", 600,
-        "GEMINI_REWRITE_THINKING_LEVEL", "minimal",
-        "GEMINI_UTILITY_TIMEOUT_SECONDS", 30,
+        "GEMINI_UTILITY_MODEL",
+        "gemini-3.5-flash-lite",
+        "GEMINI_REWRITE_TEMPERATURE",
+        0.0,
+        "GEMINI_CONTEXT_REWRITE_MAX_OUTPUT_TOKENS",
+        600,
+        "GEMINI_REWRITE_THINKING_LEVEL",
+        "minimal",
+        "GEMINI_UTILITY_TIMEOUT_SECONDS",
+        30,
         "utility",
     ),
     "rewrite": GenerationProfile(
-        "GEMINI_UTILITY_MODEL", "gemini-3.5-flash-lite",
-        "GEMINI_REWRITE_TEMPERATURE", 0.0,
-        "GEMINI_REWRITE_MAX_OUTPUT_TOKENS", 200,
-        "GEMINI_REWRITE_THINKING_LEVEL", "minimal",
-        "GEMINI_UTILITY_TIMEOUT_SECONDS", 30,
+        "GEMINI_UTILITY_MODEL",
+        "gemini-3.5-flash-lite",
+        "GEMINI_REWRITE_TEMPERATURE",
+        0.0,
+        "GEMINI_REWRITE_MAX_OUTPUT_TOKENS",
+        200,
+        "GEMINI_REWRITE_THINKING_LEVEL",
+        "minimal",
+        "GEMINI_UTILITY_TIMEOUT_SECONDS",
+        30,
         "utility",
     ),
     "plan": GenerationProfile(
-        "GEMINI_UTILITY_MODEL", "gemini-3.5-flash-lite",
-        "GEMINI_PLAN_TEMPERATURE", 0.0,
-        "GEMINI_PLAN_MAX_OUTPUT_TOKENS", 1200,
-        "GEMINI_PLAN_THINKING_LEVEL", "low",
-        "GEMINI_UTILITY_TIMEOUT_SECONDS", 45,
+        "GEMINI_UTILITY_MODEL",
+        "gemini-3.5-flash-lite",
+        "GEMINI_PLAN_TEMPERATURE",
+        0.0,
+        "GEMINI_PLAN_MAX_OUTPUT_TOKENS",
+        1200,
+        "GEMINI_PLAN_THINKING_LEVEL",
+        "low",
+        "GEMINI_UTILITY_TIMEOUT_SECONDS",
+        45,
         "utility",
     ),
     "answer_direct": GenerationProfile(
-        "GEMINI_DIRECT_MODEL", "gemini-3.5-flash-lite",
-        "GEMINI_DIRECT_TEMPERATURE", 0.1,
-        "GEMINI_DIRECT_MAX_OUTPUT_TOKENS", 1800,
-        "GEMINI_DIRECT_THINKING_LEVEL", "minimal",
-        "GEMINI_DIRECT_TIMEOUT_SECONDS", 60,
+        "GEMINI_DIRECT_MODEL",
+        "gemini-3.5-flash-lite",
+        "GEMINI_DIRECT_TEMPERATURE",
+        0.1,
+        "GEMINI_DIRECT_MAX_OUTPUT_TOKENS",
+        1800,
+        "GEMINI_DIRECT_THINKING_LEVEL",
+        "minimal",
+        "GEMINI_DIRECT_TIMEOUT_SECONDS",
+        60,
         "direct",
     ),
     "answer_complex": GenerationProfile(
-        "GEMINI_COMPLEX_MODEL", "gemini-3.8-flash",
-        "GEMINI_COMPLEX_TEMPERATURE", 0.1,
-        "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS", 4000,
-        "GEMINI_COMPLEX_THINKING_LEVEL", "medium",
-        "GEMINI_COMPLEX_TIMEOUT_SECONDS", 120,
+        "GEMINI_COMPLEX_MODEL",
+        "gemini-3.8-flash",
+        "GEMINI_COMPLEX_TEMPERATURE",
+        0.1,
+        "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS",
+        4000,
+        "GEMINI_COMPLEX_THINKING_LEVEL",
+        "medium",
+        "GEMINI_COMPLEX_TIMEOUT_SECONDS",
+        120,
         "complex",
     ),
     "answer_complex_high": GenerationProfile(
-        "GEMINI_COMPLEX_MODEL", "gemini-3.8-flash",
-        "GEMINI_COMPLEX_TEMPERATURE", 0.1,
-        "GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS", 8192,
-        "GEMINI_COMPLEX_HIGH_THINKING_LEVEL", "high",
-        "GEMINI_COMPLEX_TIMEOUT_SECONDS", 120,
+        "GEMINI_COMPLEX_MODEL",
+        "gemini-3.8-flash",
+        "GEMINI_COMPLEX_TEMPERATURE",
+        0.1,
+        "GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS",
+        8192,
+        "GEMINI_COMPLEX_HIGH_THINKING_LEVEL",
+        "high",
+        "GEMINI_COMPLEX_TIMEOUT_SECONDS",
+        120,
         "complex",
     ),
     "verify": GenerationProfile(
-        "GEMINI_VERIFICATION_MODEL", "gemini-3.5-flash-lite",
-        "GEMINI_VERIFY_TEMPERATURE", 0.0,
-        "GEMINI_VERIFY_MAX_OUTPUT_TOKENS", 3000,
-        "GEMINI_VERIFY_THINKING_LEVEL", "low",
-        "GEMINI_VERIFICATION_TIMEOUT_SECONDS", 60,
+        "GEMINI_VERIFICATION_MODEL",
+        "gemini-3.5-flash-lite",
+        "GEMINI_VERIFY_TEMPERATURE",
+        0.0,
+        "GEMINI_VERIFY_MAX_OUTPUT_TOKENS",
+        3000,
+        "GEMINI_VERIFY_THINKING_LEVEL",
+        "low",
+        "GEMINI_VERIFICATION_TIMEOUT_SECONDS",
+        60,
         "verification",
     ),
     "verify_complex": GenerationProfile(
-        "GEMINI_COMPLEX_MODEL", "gemini-3.8-flash",
-        "GEMINI_VERIFY_TEMPERATURE", 0.0,
-        "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS", 4000,
-        "GEMINI_COMPLEX_THINKING_LEVEL", "medium",
-        "GEMINI_COMPLEX_TIMEOUT_SECONDS", 120,
+        "GEMINI_COMPLEX_MODEL",
+        "gemini-3.8-flash",
+        "GEMINI_VERIFY_TEMPERATURE",
+        0.0,
+        "GEMINI_VERIFY_COMPLEX_MAX_OUTPUT_TOKENS",
+        4000,
+        "GEMINI_VERIFY_COMPLEX_THINKING_LEVEL",
+        "medium",
+        "GEMINI_COMPLEX_TIMEOUT_SECONDS",
+        120,
         "complex",
     ),
 }
@@ -211,10 +253,11 @@ class GeminiClient:
         last_exception: Exception | None = None
 
         for attempt in range(max_retries + 1):
+            record_attempt(operation or action, action, attempt + 1)
             self._pace_requests(rate_bucket)
             response = None
             try:
-                response = requests.post(
+                response = pooled_post(
                     url,
                     params={"key": gemini_api_key()},
                     json=payload,
@@ -222,19 +265,24 @@ class GeminiClient:
                 )
                 if response.status_code < 400:
                     data = response.json()
+                    if not isinstance(data, dict):
+                        raise ValueError("Provider response must be an object")
                     if rate_bucket == "embedding":
-                        record_embedding(model, data.get("usageMetadata"), items=len(payload.get("requests", [payload])))
+                        record_embedding(model, data.get("usageMetadata"), items=len(payload.get("requests", [payload])),
+                                         operation=operation or action, attempt=attempt + 1)
                     return data
-                if action == "generateContent" and (response.status_code == 408 or response.status_code >= 500):
-                    record_unmetered_attempt()
-                if rate_bucket == "embedding":
-                    record_embedding(model, None, items=len(payload.get("requests", [payload])))
-                retryable = response.status_code in RETRYABLE_STATUS_CODES
-            except requests.RequestException as exc:
-                if rate_bucket == "embedding":
-                    record_embedding(model, None, items=len(payload.get("requests", [payload])))
                 if action == "generateContent":
-                    record_unmetered_attempt()
+                    record_unmetered_attempt(operation or action, model, attempt + 1)
+                if rate_bucket == "embedding":
+                    record_embedding(model, None, items=len(payload.get("requests", [payload])),
+                                     operation=operation or action, attempt=attempt + 1)
+                retryable = response.status_code in RETRYABLE_STATUS_CODES
+            except (requests.RequestException, ValueError) as exc:
+                if rate_bucket == "embedding":
+                    record_embedding(model, None, items=len(payload.get("requests", [payload])),
+                                     operation=operation or action, attempt=attempt + 1)
+                if action == "generateContent":
+                    record_unmetered_attempt(operation or action, model, attempt + 1)
                 last_exception = exc
                 retryable = True
 
@@ -374,6 +422,7 @@ class GeminiClient:
         configured = os.getenv(profile.model_env, "").strip()
         return configured or profile.default_model
 
+    @measured("generation")
     def generate_result(
         self,
         prompt: str,
@@ -428,8 +477,11 @@ class GeminiClient:
                 bucket=profile.rate_bucket,
                 operation=operation,
             )
-            usage_metadata = data.get("usageMetadata") or {}
-            query_id = record_generation(operation, model, usage_metadata)
+            usage_metadata = data.get("usageMetadata") if isinstance(data.get("usageMetadata"), dict) else {}
+            normalized = normalized_usage(usage_metadata)
+            query_id = record_generation(operation, model, usage_metadata, attempt=attempt + 1,
+                                         max_output_tokens=generation_config["maxOutputTokens"], thinking_level=thinking_level,
+                                         elapsed_ms=round((time.perf_counter() - started) * 1000, 2))
             candidates = data.get("candidates")
             first_candidate = candidates[0] if isinstance(candidates, list) and candidates else None
             logged_finish_reason = first_candidate.get("finishReason") if isinstance(first_candidate, dict) else None
@@ -446,8 +498,9 @@ class GeminiClient:
                     "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                     "prompt_tokens": usage_metadata.get("promptTokenCount"),
                     "output_tokens": usage_metadata.get("candidatesTokenCount"),
-                    "thinking_tokens": usage_metadata.get("thoughtsTokenCount"),
-                    "cached_tokens": usage_metadata.get("cachedContentTokenCount"),
+                    "thinking_tokens": normalized.get("thoughtsTokenCount"),
+                    "cached_tokens": normalized.get("cachedContentTokenCount"),
+                    "raw_usage": usage_metadata,
                     "total_tokens": usage_metadata.get("totalTokenCount"),
                     **generation_cost(model, usage_metadata),
                 },
@@ -457,11 +510,18 @@ class GeminiClient:
             previous_limit = generation_config["maxOutputTokens"]
             next_limit = min(previous_limit * 2, recovery_ceiling)
             if attempt == 0 and recovery_enabled and next_limit > previous_limit:
-                logger.warning("gemini_truncation_retrying", extra={
-                    "query_id": query_id, "operation": operation, "model": model,
-                    "previous_max_output_tokens": previous_limit, "max_output_tokens": next_limit,
-                    "thinking_level": thinking_level,
-                })
+                logger.warning(
+                    "gemini_truncation_retrying",
+                    extra={
+                        "query_id": query_id,
+                        "operation": operation,
+                        "model": model,
+                        "previous_max_output_tokens": previous_limit,
+                        "max_output_tokens": next_limit,
+                        "thinking_level": thinking_level,
+                    },
+                )
+                event("truncation_regeneration", operation=operation)
                 generation_config["maxOutputTokens"] = next_limit
                 continue
             # Check before extracting content: reasoning can exhaust the budget
@@ -470,11 +530,15 @@ class GeminiClient:
                 "Gemini response was truncated before completion.",
                 code=ErrorCode.UPSTREAM_ERROR,
                 status_code=502,
-                details={"finish_reason": logged_finish_reason, "operation": operation,
-                         "model": model, "max_output_tokens": previous_limit,
-                         "generation_attempts": attempt + 1,
-                         "thinking_tokens": usage_metadata.get("thoughtsTokenCount"),
-                         "output_tokens": usage_metadata.get("candidatesTokenCount")},
+                details={
+                    "finish_reason": logged_finish_reason,
+                    "operation": operation,
+                    "model": model,
+                    "max_output_tokens": previous_limit,
+                    "generation_attempts": attempt + 1,
+                    "thinking_tokens": usage_metadata.get("thoughtsTokenCount"),
+                    "output_tokens": usage_metadata.get("candidatesTokenCount"),
+                },
             )
         try:
             candidate = data["candidates"][0]
@@ -519,6 +583,8 @@ class GeminiClient:
     ) -> dict:
         last_error: Exception | None = None
         for _attempt in range(parse_retries + 1):
+            if _attempt:
+                event("structured_regeneration", operation=operation)
             value = self.generate(
                 prompt,
                 operation=operation,

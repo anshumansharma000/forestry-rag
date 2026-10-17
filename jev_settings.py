@@ -72,6 +72,8 @@ def invalid_settings() -> list[str]:
     except ValueError:
         invalid.append("JEV_RAG_LAB_EXTRACTION_POLICY")
     for name, default, low, high in (("JEV_TIMEOUT_SECONDS", 8, .1, 30),
+                                    ("JEV_ROUTE_THRESHOLD", .8, .5, 1),
+                                    ("JEV_ROUTE_MARGIN", .2, .01, 1),
                                     ("JEV_APPROVAL_THRESHOLD", .99, .95, 1),
                                     ("JEV_INPUT_USD_PER_MILLION", .042, .000001, 100)):
         try:

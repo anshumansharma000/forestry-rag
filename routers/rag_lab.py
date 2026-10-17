@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, Query, Request, UploadFile, status
 
 from auth import CurrentUser, audit_event, require_roles
 from errors import AppError
+from query_cache import request_access
 from rag_lab_repository import RagLabRepository
 from rag_lab_service import create_publish_job, create_revision_job, query_revision, upload_files
 from repositories import IngestJobRepository
@@ -23,9 +24,7 @@ def create_experiment(
     body: CreateRagLabExperimentRequest,
     user: CurrentUser = Depends(require_roles("admin")),
 ):
-    experiment = RagLabRepository().create_experiment(
-        body.name, body.description, body.config.model_dump(mode="json"), user.id
-    )
+    experiment = RagLabRepository().create_experiment(body.name, body.description, body.config.model_dump(mode="json"), user.id)
     audit_event(request, user, "rag_lab.experiment.create", "rag_lab_experiment", str(experiment["id"]))
     return {"experiment": experiment}
 
@@ -120,6 +119,7 @@ def revision_chunks(
 
 
 @router.post("/revisions/{revision_id}/query")
+@request_access("user")
 def query_experiment_revision(
     revision_id: str,
     body: RagLabQueryRequest,

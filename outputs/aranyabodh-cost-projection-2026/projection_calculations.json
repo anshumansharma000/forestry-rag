@@ -1,0 +1,181 @@
+{
+  "fx": 100,
+  "fixed_monthly": 13725.0,
+  "months": [
+    {
+      "month": "Nov 2026",
+      "days": 30,
+      "queries": 27000.0,
+      "ai": 23100.0,
+      "other": 13725.0,
+      "tax": 6628.5,
+      "cash": 43453.5,
+      "reserve": 6518.025,
+      "protected": 49971.525,
+      "allocation": 55000.0
+    },
+    {
+      "month": "Dec 2026",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 23870.0,
+      "other": 13725.0,
+      "tax": 6767.1,
+      "cash": 44362.1,
+      "reserve": 6654.315,
+      "protected": 51016.415,
+      "allocation": 55000.0
+    },
+    {
+      "month": "Jan 2027",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 43562.75,
+      "other": 13725.0,
+      "tax": 10311.795,
+      "cash": 67599.545,
+      "reserve": 10139.93175,
+      "protected": 77739.47675,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Feb 2027",
+      "days": 28,
+      "queries": 25200.0,
+      "ai": 39347.0,
+      "other": 13725.0,
+      "tax": 9552.96,
+      "cash": 62624.96,
+      "reserve": 9393.744,
+      "protected": 72018.704,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Mar 2027",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 43562.75,
+      "other": 13725.0,
+      "tax": 10311.795,
+      "cash": 67599.545,
+      "reserve": 10139.93175,
+      "protected": 77739.47675,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Apr 2027",
+      "days": 30,
+      "queries": 27000.0,
+      "ai": 42157.5,
+      "other": 13725.0,
+      "tax": 10058.85,
+      "cash": 65941.35,
+      "reserve": 9891.2025,
+      "protected": 75832.5525,
+      "allocation": 78000.0
+    },
+    {
+      "month": "May 2027",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 43562.75,
+      "other": 13725.0,
+      "tax": 10311.795,
+      "cash": 67599.545,
+      "reserve": 10139.93175,
+      "protected": 77739.47675,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Jun 2027",
+      "days": 30,
+      "queries": 27000.0,
+      "ai": 42157.5,
+      "other": 13725.0,
+      "tax": 10058.85,
+      "cash": 65941.35,
+      "reserve": 9891.2025,
+      "protected": 75832.5525,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Jul 2027",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 43562.75,
+      "other": 13725.0,
+      "tax": 10311.795,
+      "cash": 67599.545,
+      "reserve": 10139.93175,
+      "protected": 77739.47675,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Aug 2027",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 43562.75,
+      "other": 13725.0,
+      "tax": 10311.795,
+      "cash": 67599.545,
+      "reserve": 10139.93175,
+      "protected": 77739.47675,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Sep 2027",
+      "days": 30,
+      "queries": 27000.0,
+      "ai": 42157.5,
+      "other": 13725.0,
+      "tax": 10058.85,
+      "cash": 65941.35,
+      "reserve": 9891.2025,
+      "protected": 75832.5525,
+      "allocation": 78000.0
+    },
+    {
+      "month": "Oct 2027",
+      "days": 31,
+      "queries": 27900.0,
+      "ai": 43562.75,
+      "other": 13725.0,
+      "tax": 10311.795,
+      "cash": 67599.545,
+      "reserve": 10139.93175,
+      "protected": 77739.47675,
+      "allocation": 78000.0
+    }
+  ],
+  "totals": {
+    "queries": 328500.0,
+    "ai": 474166.0,
+    "other": 164700.0,
+    "tax": 114995.88,
+    "cash": 753861.88,
+    "reserve": 113079.282,
+    "protected": 866941.162,
+    "allocation": 890000.0
+  },
+  "annual_allocation": 900000,
+  "scenarios": [
+    [
+      "Low",
+      "100",
+      "474,104",
+      "555,220"
+    ],
+    [
+      "Base",
+      "200",
+      "753,862",
+      "876,941"
+    ],
+    [
+      "High",
+      "350",
+      "1,173,499",
+      "1,359,524"
+    ]
+  ]
+}

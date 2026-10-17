@@ -1,4 +1,5 @@
 """Bounded TypeSafe API calls. Never log state, answers, keys or upstream bodies."""
+
 import logging
 import math
 import os
@@ -7,18 +8,22 @@ import time
 import requests
 
 from jev_settings import api_key, number
-from token_usage import current_query_id, record_decision
+from pipeline_network import post as pooled_post
+from pipeline_trace import measured
+from token_usage import current_query_id, record_attempt, record_decision
 
 logger = logging.getLogger(__name__)
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 
 
+@measured("jev_decision")
 def evaluate(state: dict, questions: dict, *, operation: str) -> dict | None:
     key = api_key()
     if not key:
         logger.info("jev_unavailable", extra={"operation": operation, "reason": "missing_key"})
         return None
     import json
+
     payload = {"model": os.getenv("JEV_MODEL", "jev-latest").strip(), "state": state, "questions": questions}
     # Skip oversized inputs intact, rather than silently losing legal evidence.
     if len(json.dumps(payload, ensure_ascii=False)) > 60000:
@@ -34,8 +39,10 @@ def evaluate(state: dict, questions: dict, *, operation: str) -> dict | None:
     try:
         # No retries or redirects: an optional decision must not amplify an outage
         # or forward the bearer token to an unexpected host.
-        with requests.post(ENDPOINT, json=payload, headers={"Authorization": f"Bearer {key}"},
-                           timeout=(min(3, timeout), timeout), allow_redirects=False) as response:
+        record_attempt(operation, "jev_evaluate", 1)
+        with pooled_post(
+            ENDPOINT, json=payload, headers={"Authorization": f"Bearer {key}"}, timeout=(min(3, timeout), timeout), allow_redirects=False
+        ) as response:
             if response.status_code != 200:
                 return None
             data = response.json()
@@ -59,5 +66,7 @@ def evaluate(state: dict, questions: dict, *, operation: str) -> dict | None:
         model = data.get("model") if isinstance(data, dict) else payload["model"]
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         cost = record_decision(operation, model, usage, elapsed_ms=elapsed, succeeded=success)
-        logger.info("jev_evaluation", extra={"query_id": current_query_id(), "operation": operation,
-                                            "succeeded": success, "duration_ms": elapsed, **cost})
+        logger.info(
+            "jev_evaluation",
+            extra={"query_id": current_query_id(), "operation": operation, "succeeded": success, "duration_ms": elapsed, **cost},
+        )

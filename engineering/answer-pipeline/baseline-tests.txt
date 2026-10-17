@@ -1,0 +1,13 @@
+.......sssssssssssss.................................................... [ 17%]
+........................................................................ [ 35%]
+........................................................................ [ 53%]
+........................................................................ [ 71%]
+........................................................................ [ 89%]
+.....sss...................................                              [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/supabase/__init__.py:1
+  /Users/anshumansharma/Documents/Playground/.venv/lib/python3.12/site-packages/supabase/__init__.py:1: DeprecationWarning: The `gotrue` package is deprecated, is not going to receive updates in the future. Please, use `supabase_auth` instead.
+    from gotrue.errors import (
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+387 passed, 16 skipped, 1 warning in 2.14s

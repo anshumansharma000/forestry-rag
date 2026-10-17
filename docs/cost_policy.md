@@ -1,5 +1,10 @@
 # Cost policy and rollout
 
+Current follow-up: [Query cost policies](../engineering/query-cost/README.md) documents
+opt-in Jev-led routing and independent audits, plus all-API accounting and text embedding
+pricing. The generation-only threshold remains compatible; use the new all-API target
+status to assess INR 1.20/1.50. Earlier evaluation figures and policies below are historical.
+
 `RAG_COST_OPTIMIZATIONS=true` enables selective planning and selection of verbatim conversation history. The model split
 remains Gemini 3.5 Flash-Lite for direct answers/utilities and Gemini 3.8 Flash for complex answers. High-risk reasoning,
 retrieval evidence, output ceilings, citations, full-evidence verification, and bounded verification escalation remain.

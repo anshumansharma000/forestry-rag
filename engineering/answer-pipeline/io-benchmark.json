@@ -1,0 +1,41 @@
+{
+  "scope": "Controlled 30ms fake service with isolated real Redis; no SQL version checks or model generation",
+  "limitations": "Timings demonstrate implementation overhead/reuse only; not production latency or cost estimates.",
+  "results": {
+    "uncached": {
+      "p50_ms": 34.209,
+      "p95_ms": 40.121,
+      "samples": 8,
+      "simulated_upstream_calls": 8
+    },
+    "cold": {
+      "p50_ms": 33.911,
+      "p95_ms": 40.801,
+      "samples": 8,
+      "simulated_upstream_calls": 8
+    },
+    "warm": {
+      "p50_ms": 0.526,
+      "p95_ms": 0.979,
+      "samples": 8,
+      "simulated_upstream_calls": 0
+    },
+    "coalesced": {
+      "p50_ms": 56.986,
+      "p95_ms": 61.245,
+      "samples": 8,
+      "simulated_upstream_calls": 1
+    },
+    "search_concurrency_1": {
+      "p50_ms": 143.183,
+      "p95_ms": 148.855,
+      "samples": 3
+    },
+    "search_concurrency_2": {
+      "p50_ms": 72.739,
+      "p95_ms": 78.549,
+      "samples": 3
+    }
+  },
+  "provider_calls": 0
+}

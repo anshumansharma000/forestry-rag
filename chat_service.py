@@ -3,7 +3,10 @@ from uuid import uuid4
 from consistency import OperationBusy
 from conversation_context import select_history, should_select_history
 from errors import AppError, ErrorCode
+from pipeline_settings import PipelineSettings
+from pipeline_trace import stage
 from prompts import answer_is_abstention, answer_outcome, answer_with_gemini, rewrite_question_for_retrieval
+from query_context import QueryContext, resolve_combined, use_context
 from rag_errors import RagError
 from repositories import ChatRepository, DocumentRepository
 from retrieval import cited_source_payload, retrieval_confidence, retrieve, source_payload
@@ -32,9 +35,7 @@ def get_chat_messages(
     return enrich_legacy_citations(messages, document_repository=document_repository)
 
 
-def enrich_legacy_citations(
-    messages: list[dict], document_repository: DocumentRepository | None = None
-) -> list[dict]:
+def enrich_legacy_citations(messages: list[dict], document_repository: DocumentRepository | None = None) -> list[dict]:
     """Add trusted document IDs to resolvable citations written by older releases."""
     unresolved_sources = {
         source.get("source")
@@ -93,26 +94,56 @@ def delete_chat_message(session_id: str, message_id: str, user_id: str, reposito
 
 
 @track_query_usage
-def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = None,
-             repository: ChatRepository | None = None, *, request_id: str | None = None) -> dict:
+def chat_ask(
+    session_id: str,
+    message: str,
+    user_id: str,
+    top_k: int | None = None,
+    repository: ChatRepository | None = None,
+    *,
+    request_id: str | None = None,
+) -> dict:
     if not message.strip():
         raise RagError("message is required")
     repository = repository or ChatRepository()
     request_id = request_id or str(uuid4())
     token = str(uuid4())
-    claim = repository.begin_turn(session_id, user_id, request_id, {'message': message, 'top_k': top_k}, token)
-    if claim['state'] == 'completed':
-        return claim['response']
-    if claim['state'] == 'not_found':
-        raise AppError('Chat session not found.', code=ErrorCode.NOT_FOUND, status_code=404)
-    if claim['state'] == 'gone':
-        raise AppError('This chat turn was deleted.', code=ErrorCode.NOT_FOUND, status_code=410)
-    if claim['state'] == 'conflict':
-        raise AppError('Request ID was already used with different input.', code=ErrorCode.CONFLICT, status_code=409)
-    if claim['state'] != 'claimed':
+    claim = repository.begin_turn(session_id, user_id, request_id, {"message": message, "top_k": top_k}, token)
+    if claim["state"] == "completed":
+        return claim["response"]
+    if claim["state"] == "not_found":
+        raise AppError("Chat session not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+    if claim["state"] == "gone":
+        raise AppError("This chat turn was deleted.", code=ErrorCode.NOT_FOUND, status_code=410)
+    if claim["state"] == "conflict":
+        raise AppError("Request ID was already used with different input.", code=ErrorCode.CONFLICT, status_code=409)
+    if claim["state"] != "claimed":
         raise OperationBusy()
     with repository.turn_lease(session_id, token) as lease:
-        previous_messages = get_chat_messages(session_id, user_id, repository=repository)
+        with stage("history_fetch"):
+            if hasattr(repository, "get_recent_messages_for_answer"):
+                previous_messages = repository.get_recent_messages_for_answer(session_id, user_id)
+            else:
+                previous_messages = get_chat_messages(session_id, user_id, repository=repository)
+        policy = PipelineSettings.read()
+        if policy.context_v2 and policy.resolver == "combined":
+            context = resolve_combined(previous_messages, message)
+            with use_context(context):
+                contexts = retrieve(context.resolved_question, top_k)
+                answer = answer_with_gemini(message, contexts, context.messages())
+            result = {
+                "session_id": session_id,
+                "request_id": request_id,
+                "search_query": context.resolved_question,
+                "answer": answer,
+                "outcome": answer_outcome(answer),
+                "sources": source_payload(contexts),
+                "cited_sources": cited_source_payload(answer, contexts),
+                "confidence": retrieval_confidence(contexts),
+                "abstained": answer_is_abstention(answer),
+            }
+            lease.check()
+            return repository.complete_turn(session_id, user_id, request_id, token, result)
         answer_history = previous_messages
         from jev_policy import enabled, standalone_question
         from jev_shadow import history_selection
@@ -128,13 +159,20 @@ def chat_ask(session_id: str, message: str, user_id: str, top_k: int | None = No
         else:
             search_query = rewrite_question_for_retrieval(previous_messages, message)
         answer_history = history_selection(previous_messages, message, answer_history)
-        contexts = retrieve(search_query, top_k)
-        answer = answer_with_gemini(message, contexts, answer_history)
+        context = QueryContext.create(message, resolved=search_query, history=answer_history) if policy.shared_context else None
+        with use_context(context):
+            contexts = retrieve(search_query, top_k)
+            answer = answer_with_gemini(message, contexts, answer_history)
         result = {
-            'session_id': session_id, 'request_id': request_id, 'search_query': search_query,
-            'answer': answer, 'outcome': answer_outcome(answer), 'sources': source_payload(contexts),
-            'cited_sources': cited_source_payload(answer, contexts), 'confidence': retrieval_confidence(contexts),
-            'abstained': answer_is_abstention(answer),
+            "session_id": session_id,
+            "request_id": request_id,
+            "search_query": search_query,
+            "answer": answer,
+            "outcome": answer_outcome(answer),
+            "sources": source_payload(contexts),
+            "cited_sources": cited_source_payload(answer, contexts),
+            "confidence": retrieval_confidence(contexts),
+            "abstained": answer_is_abstention(answer),
         }
         lease.check()
         return repository.complete_turn(session_id, user_id, request_id, token, result)

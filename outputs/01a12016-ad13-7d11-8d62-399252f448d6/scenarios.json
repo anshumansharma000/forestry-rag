@@ -1,0 +1,50 @@
+{
+  "Low": [
+    {
+      "queries": 90000,
+      "generationPerQuery": 0.4935,
+      "services": 72487.97919120001,
+      "people": 36285,
+      "budget": 119650.27711032002
+    },
+    {
+      "queries": 90000,
+      "generationPerQuery": 0.89775,
+      "services": 118467.45504120001,
+      "people": 36285,
+      "budget": 170227.70054532003
+    }
+  ],
+  "Base": [
+    {
+      "queries": 105000,
+      "generationPerQuery": 0.77,
+      "services": 119144.75085119999,
+      "people": 36285,
+      "budget": 170972.72593632
+    },
+    {
+      "queries": 105000,
+      "generationPerQuery": 1.40525,
+      "services": 203440.4565762,
+      "people": 36285,
+      "budget": 263698.00223382004
+    }
+  ],
+  "High": [
+    {
+      "queries": 120000,
+      "generationPerQuery": 1.35,
+      "services": 222311.44521119999,
+      "people": 36285,
+      "budget": 284456.08973232
+    },
+    {
+      "queries": 120000,
+      "generationPerQuery": 2.457,
+      "services": 390191.98041119997,
+      "people": 36285,
+      "budget": 469124.67845232
+    }
+  ]
+}

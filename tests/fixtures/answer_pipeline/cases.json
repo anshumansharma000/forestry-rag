@@ -1,0 +1,274 @@
+{
+  "version": "synthetic-v1",
+  "scope": "Programmed branch/evidence smoke fixtures, not expert quality labels",
+  "cases": [
+    {
+      "id": "fact",
+      "category": "lookup",
+      "question": "What is the permit fee?",
+      "evidence": [
+        {
+          "id": "rules",
+          "text": "The permit fee is INR 100. Approval is required before transport."
+        }
+      ],
+      "replay_answer": "The permit fee is INR 100 [1].",
+      "required_terms": [
+        "100",
+        "[1]"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "procedure",
+      "category": "procedure",
+      "question": "How do I apply for a permit?",
+      "evidence": [
+        {
+          "id": "rules",
+          "text": "Apply using Form A with ownership proof. Obtain approval before transport."
+        }
+      ],
+      "replay_answer": "Submit Form A with ownership proof and obtain approval before transport [1].",
+      "required_terms": [
+        "Form A",
+        "approval"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "exception",
+      "category": "procedure",
+      "question": "How do I apply for bamboo transport?",
+      "evidence": [
+        {
+          "id": "rules",
+          "text": "Submit Form A. Bamboo is fee-exempt but requires approval before transport."
+        }
+      ],
+      "replay_answer": "Submit Form A. Bamboo is fee-exempt; obtain approval before transport [1].",
+      "required_terms": [
+        "exempt",
+        "approval"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "rules"
+      ],
+      "forbidden_terms": [
+        "without approval"
+      ]
+    },
+    {
+      "id": "overview",
+      "category": "synthesis",
+      "question": "Give an overview of permit requirements.",
+      "evidence": [
+        {
+          "id": "rules",
+          "text": "Permit requirements: submit Form A with proof of ownership. Obtain approval before transport."
+        }
+      ],
+      "replay_answer": "Permit requirements are Form A, proof of ownership and approval before transport [1].",
+      "required_terms": [
+        "ownership",
+        "approval"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "comparison",
+      "category": "synthesis",
+      "question": "Compare timber and bamboo permit fees.",
+      "evidence": [
+        {
+          "id": "rules",
+          "text": "Timber permit fee is INR 100. Bamboo is fee-exempt but requires approval."
+        }
+      ],
+      "replay_answer": "Timber costs INR 100; bamboo is fee-exempt but requires approval [1].",
+      "required_terms": [
+        "100",
+        "exempt",
+        "approval"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "current",
+      "category": "applicability",
+      "question": "What permit fee applies currently after the amendment?",
+      "evidence": [
+        {
+          "id": "amendment",
+          "text": "Effective from 2026-01-01, this amendment sets the permit fee at INR 200.",
+          "metadata": {
+            "effective_date": "2026-01-01",
+            "amendment_references": [
+              "amends the fee"
+            ]
+          }
+        }
+      ],
+      "replay_answer": "The supplied amendment sets the permit fee at INR 200 effective 2026-01-01 [1].",
+      "required_terms": [
+        "200",
+        "2026"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "amendment"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "historical",
+      "category": "applicability",
+      "question": "What permit fee applied as of 2020?",
+      "evidence": [
+        {
+          "id": "old-rules",
+          "text": "Effective from 2019-01-01, the permit fee is INR 50."
+        }
+      ],
+      "replay_answer": "The supplied 2019 provision sets the permit fee at INR 50 [1].",
+      "required_terms": [
+        "50"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "old-rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "followup",
+      "category": "conversation",
+      "question": "How do I apply for that?",
+      "resolved_question": "How do I apply for a Goa timber permit as of 2020?",
+      "history": [
+        {
+          "role": "user",
+          "content": "Use Goa timber permit rules as of 2020. Exclude bamboo."
+        },
+        {
+          "role": "assistant",
+          "content": "The timber permit requires approval."
+        }
+      ],
+      "evidence": [
+        {
+          "id": "goa-rules",
+          "text": "Goa timber permit: submit Form A and obtain approval before transport."
+        }
+      ],
+      "replay_answer": "For the supplied Goa timber procedure, submit Form A and obtain approval before transport [1].",
+      "required_terms": [
+        "Goa",
+        "Form A",
+        "approval"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "goa-rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "correction",
+      "category": "conversation",
+      "question": "Correction: use Goa. Which permit form?",
+      "resolved_question": "Which permit form is required in Goa?",
+      "history": [
+        {
+          "role": "user",
+          "content": "Use Delhi permit rules."
+        }
+      ],
+      "evidence": [
+        {
+          "id": "goa-rules",
+          "text": "For the Goa permit, submit Form G."
+        }
+      ],
+      "replay_answer": "The supplied Goa permit provision requires Form G [1].",
+      "required_terms": [
+        "Goa",
+        "Form G"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "goa-rules"
+      ],
+      "forbidden_terms": []
+    },
+    {
+      "id": "absent",
+      "category": "insufficient",
+      "question": "What is the spaceship licensing penalty?",
+      "evidence": [
+        {
+          "id": "rules",
+          "text": "Bamboo transport requires forest approval."
+        }
+      ],
+      "replay_answer": "The provided documents do not contain enough reliable information to answer this question.",
+      "required_terms": [
+        "not contain enough"
+      ],
+      "expected_outcome": "insufficient_evidence",
+      "required_source_ids": [],
+      "forbidden_terms": []
+    },
+    {
+      "id": "unrelated",
+      "category": "insufficient",
+      "question": "What is the mining lease tax?",
+      "evidence": [],
+      "replay_answer": "The provided documents do not contain enough reliable information to answer this question.",
+      "required_terms": [
+        "not contain enough"
+      ],
+      "expected_outcome": "insufficient_evidence",
+      "required_source_ids": [],
+      "forbidden_terms": []
+    },
+    {
+      "id": "hindi",
+      "category": "lookup",
+      "question": "वन परिवहन अनुमति शुल्क क्या है?",
+      "evidence": [
+        {
+          "id": "hindi-rules",
+          "text": "वन परिवहन अनुमति शुल्क 100 रुपये है।"
+        }
+      ],
+      "replay_answer": "वन परिवहन अनुमति शुल्क 100 रुपये है [1]।",
+      "required_terms": [
+        "100",
+        "[1]"
+      ],
+      "expected_outcome": "answered",
+      "required_source_ids": [
+        "hindi-rules"
+      ],
+      "forbidden_terms": []
+    }
+  ]
+}

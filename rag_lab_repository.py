@@ -48,8 +48,8 @@ class RagLabRepository:
         self.get_experiment(experiment_id)
         updates = {**updates, "updated_at": now_iso()}
         query = self.client.table("rag_lab_experiments").update(updates).eq("id", experiment_id)
-        if updates.get('status') == 'draft':
-            query = query.in_('status', ['draft', 'ready', 'failed', 'published'])
+        if updates.get("status") == "draft":
+            query = query.in_("status", ["draft", "ready", "failed", "published"])
         result = query.execute()
         return result.data[0] if result.data else self.get_experiment(experiment_id)
 
@@ -57,15 +57,7 @@ class RagLabRepository:
         return self.client.table("rag_lab_files").insert(row).execute().data[0]
 
     def list_files(self, experiment_id: str) -> list[dict]:
-        return (
-            self.client.table("rag_lab_files")
-            .select("*")
-            .eq("experiment_id", experiment_id)
-            .order("created_at")
-            .execute()
-            .data
-            or []
-        )
+        return self.client.table("rag_lab_files").select("*").eq("experiment_id", experiment_id).order("created_at").execute().data or []
 
     def update_file_extraction(self, file_id: str, extraction_key: str, metadata: dict) -> None:
         self.client.table("rag_lab_files").update(
@@ -73,9 +65,18 @@ class RagLabRepository:
         ).eq("id", file_id).execute()
 
     def create_revision_job(self, experiment_id, config, actor_user_id):
-        return self.client.rpc('create_consistent_lab_revision', {
-            'p_experiment': experiment_id, 'p_config': config, 'p_actor': actor_user_id,
-        }).execute().data
+        return (
+            self.client.rpc(
+                "create_consistent_lab_revision",
+                {
+                    "p_experiment": experiment_id,
+                    "p_config": config,
+                    "p_actor": actor_user_id,
+                },
+            )
+            .execute()
+            .data
+        )
 
     def create_revision(self, experiment_id: str, config: dict, created_by: str) -> dict:
         self.get_experiment(experiment_id)
@@ -130,8 +131,16 @@ class RagLabRepository:
         profiles: dict[str, str] = {}
         offset = 0
         while True:
-            rows = (self.client.table("rag_lab_chunks").select("file_id,metadata")
-                    .eq("revision_id", revision_id).order("id").range(offset, offset + 499).execute().data or [])
+            rows = (
+                self.client.table("rag_lab_chunks")
+                .select("file_id,metadata")
+                .eq("revision_id", revision_id)
+                .order("id")
+                .range(offset, offset + 499)
+                .execute()
+                .data
+                or []
+            )
             for row in rows:
                 profile = (row.get("metadata") or {}).get("profile", "auto")
                 if profile not in {"auto", "section", "procedure", "faq"}:
@@ -202,8 +211,34 @@ class RagLabRepository:
         return result.data or []
 
     def for_revision(self, revision_id: str):
-        self.revision_id = revision_id
-        return self
+        from copy import copy
+
+        adapter = copy(self)
+        adapter.revision_id = revision_id
+        return adapter
+
+    def parallel_clone(self):
+        from services.storage import thread_supabase_client
+
+        return RagLabRepository(thread_supabase_client()).for_revision(self.revision_id)
+
+    def cache_versions(self, namespace="", revision=""):
+        return (
+            self.client.rpc("answer_cache_versions", {"p_namespace": namespace, "p_revision": revision or self.revision_id}).execute().data
+        )
+
+    def neighbor_chunks_many(self, anchors):
+        payload = [{"anchor_id": str(a["id"]), "document_id": str(a["document_id"]), "chunk_index": a["chunk_index"]} for a in anchors]
+        try:
+            rows = self.client.rpc("rag_lab_neighbors_batch", {"p_revision": self.revision_id, "p_anchors": payload}).execute().data or []
+        except Exception as exc:
+            if getattr(exc, "code", None) not in ("PGRST202", "42883"):
+                raise
+            return {str(a["id"]): self.neighbor_chunks(a["document_id"], a["chunk_index"]) for a in anchors}
+        return {
+            str(a["id"]): [{k: v for k, v in r.items() if k != "anchor_id"} for r in rows if r["anchor_id"] == str(a["id"])]
+            for a in anchors
+        }
 
     def neighbor_chunks(self, file_id: str, chunk_index: int, radius: int = 1) -> list[dict]:
         rows = (
@@ -236,9 +271,7 @@ class RagLabRepository:
         )
 
     def publish_revision(self, revision_id: str, published_by: str | None) -> dict:
-        result = self.client.rpc(
-            "publish_rag_lab_revision", {"p_revision_id": revision_id, "p_published_by": published_by}
-        ).execute()
+        result = self.client.rpc("publish_rag_lab_revision", {"p_revision_id": revision_id, "p_published_by": published_by}).execute()
         return result.data or {}
 
 
@@ -248,23 +281,34 @@ def now_iso() -> str:
 
 class FencedLabRepository(RagLabRepository):
     """Worker mutations include both job and revision ownership in their transaction."""
+
     def __init__(self, client, job_id, token):
         super().__init__(client)
         self.job_id, self.token = job_id, token
 
     def mutate(self, revision_id, action, payload):
-        return self.client.rpc('mutate_lab_revision', {
-            'p_job': self.job_id, 'p_token': self.token, 'p_revision': revision_id,
-            'p_action': action, 'p_payload': payload,
-        }).execute().data
+        return (
+            self.client.rpc(
+                "mutate_lab_revision",
+                {
+                    "p_job": self.job_id,
+                    "p_token": self.token,
+                    "p_revision": revision_id,
+                    "p_action": action,
+                    "p_payload": payload,
+                },
+            )
+            .execute()
+            .data
+        )
 
     def update_revision(self, revision_id, *, status, chunk_count=None, error=None):
-        return self.mutate(revision_id, 'status', {'status': status, 'chunk_count': chunk_count, 'error': error})
+        return self.mutate(revision_id, "status", {"status": status, "chunk_count": chunk_count, "error": error})
 
     def update_experiment(self, experiment_id, updates):
         # Status is committed with update_revision, never in a later unfenced write.
-        if set(updates) != {'status'}:
-            raise ValueError('Unsupported worker experiment update')
+        if set(updates) != {"status"}:
+            raise ValueError("Unsupported worker experiment update")
 
     def delete_revision_chunks(self, revision_id):
         # Retry batches use a uniqueness constraint; previously committed chunks survive.
@@ -272,8 +316,8 @@ class FencedLabRepository(RagLabRepository):
 
     def insert_chunk_batch(self, rows):
         if rows:
-            self.mutate(rows[0]['revision_id'], 'chunks', {'rows': rows})
+            self.mutate(rows[0]["revision_id"], "chunks", {"rows": rows})
         return len(rows)
 
     def publish_revision(self, revision_id, published_by):
-        return self.mutate(revision_id, 'publish', {'published_by': published_by})
+        return self.mutate(revision_id, "publish", {"published_by": published_by})

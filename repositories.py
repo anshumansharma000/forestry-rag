@@ -25,13 +25,7 @@ class DocumentRepository:
         }
 
     def get_document(self, document_id: str) -> dict[str, Any] | None:
-        result = (
-            self.client.table("documents")
-            .select("id,source,kind,title,metadata")
-            .eq("id", document_id)
-            .limit(1)
-            .execute()
-        )
+        result = self.client.table("documents").select("id,source,kind,title,metadata").eq("id", document_id).limit(1).execute()
         return result.data[0] if result.data else None
 
     def document_ids_by_sources(self, sources: set[str]) -> dict[str, str]:
@@ -54,9 +48,7 @@ class DocumentRepository:
         limit: int = 25,
     ) -> dict[str, Any]:
         fields = "id,source,kind,title,page_count,metadata,created_at,updated_at"
-        query = self.client.table("documents").select(fields, count="exact").eq(
-            "metadata->>ingest_status", ingest_status
-        )
+        query = self.client.table("documents").select(fields, count="exact").eq("metadata->>ingest_status", ingest_status)
 
         if search:
             value = postgrest_quoted_ilike(search)
@@ -84,7 +76,7 @@ class DocumentRepository:
         }
 
     def index_lease(self):
-        return DatabaseLease(self.client, 'documents:ingest')
+        return DatabaseLease(self.client, "documents:ingest")
 
     def begin_revision(self, doc: dict) -> dict:
         snapshot = {key: doc.get(key) for key in ("source", "kind", "title", "page_count")}
@@ -97,20 +89,77 @@ class DocumentRepository:
         return len(rows)
 
     def publish_revision(self, revision_id: str, expected_chunks: int, *, token: str) -> dict:
-        return self.client.rpc("publish_consistent_revision", {
-            "p_revision_id": revision_id, "p_expected_chunks": expected_chunks, "p_token": token,
-        }).execute().data
+        return (
+            self.client.rpc(
+                "publish_consistent_revision",
+                {
+                    "p_revision_id": revision_id,
+                    "p_expected_chunks": expected_chunks,
+                    "p_token": token,
+                },
+            )
+            .execute()
+            .data
+        )
 
     def fail_revision(self, revision_id: str, error: str, *, token: str) -> None:
-        self.client.rpc("fail_consistent_revision", {
-            "p_revision_id": revision_id, "p_error": error, "p_token": token,
-        }).execute()
+        self.client.rpc(
+            "fail_consistent_revision",
+            {
+                "p_revision_id": revision_id,
+                "p_error": error,
+                "p_token": token,
+            },
+        ).execute()
 
     def record_ingest_failure(self, source: str, error: str, *, token: str) -> None:
         # A failed refresh must never hide the last successfully published index.
-        self.client.rpc("record_consistent_ingest_failure", {
-            "p_source": source, "p_error": error, "p_token": token,
-        }).execute()
+        self.client.rpc(
+            "record_consistent_ingest_failure",
+            {
+                "p_source": source,
+                "p_error": error,
+                "p_token": token,
+            },
+        ).execute()
+
+    def parallel_clone(self):
+        from services.storage import thread_supabase_client
+
+        return DocumentRepository(thread_supabase_client())
+
+    def cache_versions(self, namespace="", revision=""):
+        return self.client.rpc("answer_cache_versions", {"p_namespace": namespace, "p_revision": revision or None}).execute().data
+
+    def neighbor_chunks_many(self, anchors):
+        payload = [
+            {
+                "anchor_id": str(a["id"]),
+                "document_id": str(a["document_id"]),
+                "chunk_index": a["chunk_index"],
+                "revision_id": (a.get("metadata") or {}).get("index_revision_id"),
+            }
+            for a in anchors
+        ]
+        try:
+            rows = self.client.rpc("document_chunk_neighbors_batch", {"p_anchors": payload}).execute().data or []
+        except Exception as exc:
+            # Only a missing additive RPC permits fallback; do not mask outages.
+            if getattr(exc, "code", None) not in ("PGRST202", "42883"):
+                raise
+            return {
+                str(a["id"]): self.neighbor_chunks(
+                    a["document_id"],
+                    a["chunk_index"],
+                    radius=1,
+                    **({"revision_id": a["metadata"]["index_revision_id"]} if a.get("metadata", {}).get("index_revision_id") else {}),
+                )
+                for a in anchors
+            }
+        return {
+            str(a["id"]): [{k: v for k, v in r.items() if k != "anchor_id"} for r in rows if r["anchor_id"] == str(a["id"])]
+            for a in anchors
+        }
 
     def match_chunks(self, query_embedding: list[float], query_text: str, match_count: int) -> list[dict]:
         result = self.client.rpc(
@@ -120,10 +169,15 @@ class DocumentRepository:
         return result.data or []
 
     def neighbor_chunks(self, document_id: str, chunk_index: int, radius: int = 1, revision_id: str | None = None) -> list[dict]:
-        result = self.client.rpc("document_chunk_neighbors", {
-            "p_document_id": document_id, "p_chunk_index": chunk_index,
-            "p_radius": radius, "p_revision_id": revision_id,
-        }).execute()
+        result = self.client.rpc(
+            "document_chunk_neighbors",
+            {
+                "p_document_id": document_id,
+                "p_chunk_index": chunk_index,
+                "p_radius": radius,
+                "p_revision_id": revision_id,
+            },
+        ).execute()
         return result.data or []
 
 
@@ -153,9 +207,7 @@ def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
         "status": ingest_status,
         "ingest_error": metadata.get("ingest_error"),
         "retryable": ingest_status == "failed",
-        "ingested_at": (metadata.get("ingest_updated_at") or row.get("updated_at"))
-        if ingest_status == "indexed"
-        else None,
+        "ingested_at": (metadata.get("ingest_updated_at") or row.get("updated_at")) if ingest_status == "indexed" else None,
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }
@@ -166,19 +218,39 @@ class ChatRepository:
         self.client = client or supabase_client()
 
     def begin_turn(self, session_id, user_id, request_id, request, token):
-        return self.client.rpc('begin_chat_turn', {
-            'p_session': session_id, 'p_user': user_id, 'p_request_id': request_id,
-            'p_request': request, 'p_token': token,
-        }).execute().data
+        return (
+            self.client.rpc(
+                "begin_chat_turn",
+                {
+                    "p_session": session_id,
+                    "p_user": user_id,
+                    "p_request_id": request_id,
+                    "p_request": request,
+                    "p_token": token,
+                },
+            )
+            .execute()
+            .data
+        )
 
     def turn_lease(self, session_id, token):
-        return DatabaseLease(self.client, 'chat:' + session_id, token=token, claimed=True)
+        return DatabaseLease(self.client, "chat:" + session_id, token=token, claimed=True)
 
     def complete_turn(self, session_id, user_id, request_id, token, response):
-        return self.client.rpc('complete_chat_turn', {
-            'p_session': session_id, 'p_user': user_id, 'p_request_id': request_id,
-            'p_token': token, 'p_response': response,
-        }).execute().data
+        return (
+            self.client.rpc(
+                "complete_chat_turn",
+                {
+                    "p_session": session_id,
+                    "p_user": user_id,
+                    "p_request_id": request_id,
+                    "p_token": token,
+                    "p_response": response,
+                },
+            )
+            .execute()
+            .data
+        )
 
     def create_session(self, title: str | None, user_id: str | None) -> dict:
         row = {"title": title or "New chat", "user_id": user_id, "metadata": {}}
@@ -197,14 +269,7 @@ class ChatRepository:
         return result.data
 
     def assert_session_owner(self, session_id: str, user_id: str) -> None:
-        session = (
-            self.client.table("chat_sessions")
-            .select("id")
-            .eq("id", session_id)
-            .eq("user_id", user_id)
-            .limit(1)
-            .execute()
-        )
+        session = self.client.table("chat_sessions").select("id").eq("id", session_id).eq("user_id", user_id).limit(1).execute()
         if not session.data:
             raise RagError(f"Chat session not found: {session_id}")
 
@@ -219,6 +284,21 @@ class ChatRepository:
         if limit:
             query = query.limit(limit)
         return query.execute().data
+
+    def get_recent_messages_for_answer(self, session_id: str, user_id: str, limit: int = 10) -> list[dict]:
+        self.assert_session_owner(session_id, user_id)
+        rows = (
+            self.client.table("chat_messages")
+            .select("id,role,content,created_at")
+            .eq("session_id", session_id)
+            .order("created_at", desc=True)
+            .order("id", desc=True)
+            .limit(limit)
+            .execute()
+            .data
+            or []
+        )
+        return list(reversed(rows))
 
     def save_message(
         self,
@@ -279,16 +359,33 @@ class IngestJobRepository:
         return result.data[0] if result.data else None
 
     def lease(self, job_id):
-        return DatabaseLease(self.client, 'job:' + job_id)
+        return DatabaseLease(self.client, "job:" + job_id)
 
     def recover(self):
-        return self.client.rpc('recover_ingest_jobs').execute().data or []
+        return self.client.rpc("recover_ingest_jobs").execute().data or []
 
     def update(
-        self, job_id: str, *, status: str, result: dict | None = None, error: str | None = None,
-        metadata: dict | None = None, token: str | None = None,
+        self,
+        job_id: str,
+        *,
+        status: str,
+        result: dict | None = None,
+        error: str | None = None,
+        metadata: dict | None = None,
+        token: str | None = None,
     ) -> dict | None:
-        return self.client.rpc('transition_ingest_job', {
-            'p_id': job_id, 'p_status': status, 'p_token': token,
-            'p_result': result, 'p_error': error, 'p_metadata': metadata or {},
-        }).execute().data
+        return (
+            self.client.rpc(
+                "transition_ingest_job",
+                {
+                    "p_id": job_id,
+                    "p_status": status,
+                    "p_token": token,
+                    "p_result": result,
+                    "p_error": error,
+                    "p_metadata": metadata or {},
+                },
+            )
+            .execute()
+            .data
+        )

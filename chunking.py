@@ -97,9 +97,7 @@ def clean_heading(line: str) -> str:
 
 
 def is_clause_start(line: str) -> bool:
-    return bool(
-        re.match(r"^(\d+(\.\d+)*|[a-zA-Z]\)|\([a-zA-Z0-9ivx]+\)|[IVX]+\.)\s+", line.strip())
-    )
+    return bool(re.match(r"^(\d+(\.\d+)*|[a-zA-Z]\)|\([a-zA-Z0-9ivx]+\)|[IVX]+\.)\s+", line.strip()))
 
 
 def strip_faq_question_number(line: str) -> str:
@@ -147,11 +145,7 @@ def split_sentences(text: str) -> list[str]:
 
 
 def split_subclauses(text: str) -> list[str]:
-    parts = [
-        part.strip()
-        for part in re.split(r"\s+(?=(?:\([a-zA-Z0-9ivx]+\)|[a-zA-Z]\)|\d+\.)\s+)", text.strip())
-        if part.strip()
-    ]
+    parts = [part.strip() for part in re.split(r"\s+(?=(?:\([a-zA-Z0-9ivx]+\)|[a-zA-Z]\)|\d+\.)\s+)", text.strip()) if part.strip()]
     return parts or ([text.strip()] if text.strip() else [])
 
 
@@ -227,6 +221,8 @@ def table_context_lines(table: dict, active_heading: str | None) -> list[str]:
     if active_heading:
         context.append(f"Section: {active_heading}")
     context.append(f"Table {table_number}")
+    if table.get("caption"):
+        context.append(f"Caption: {table['caption']}")
 
     headers = [header.strip() for header in table.get("headers", []) if header.strip()]
     if headers:
@@ -242,9 +238,7 @@ def format_table_row(table: dict, row: list[str], row_index: int) -> str:
             if not cell:
                 continue
             header = (
-                headers[cell_index].strip()
-                if cell_index < len(headers) and headers[cell_index].strip()
-                else f"Column {cell_index + 1}"
+                headers[cell_index].strip() if cell_index < len(headers) and headers[cell_index].strip() else f"Column {cell_index + 1}"
             )
             values.append(f"{header}: {cell}")
         row_text = "; ".join(values) if values else "empty row"
@@ -313,11 +307,7 @@ def faq_document_units(doc: dict, chunk_token_limit: int | None = None) -> list[
     for page in doc["pages"]:
         raw_blocks = [b.strip() for b in re.split(r"\n\s*\n", page["text"]) if b.strip()]
         for block in raw_blocks:
-            lines = [
-                line.strip()
-                for line in block.splitlines()
-                if line.strip() and not is_boilerplate_line(line)
-            ]
+            lines = [line.strip() for line in block.splitlines() if line.strip() and not is_boilerplate_line(line)]
             for i, line in enumerate(lines):
                 next_line = lines[i + 1] if i + 1 < len(lines) else ""
                 numbered_question = is_numbered_faq_line(line) and is_answer_start(next_line)
@@ -354,11 +344,7 @@ def page_units(
             units.extend(table_units(block, page_number, active_heading, max_unit_tokens))
             continue
 
-        lines = [
-            line.strip()
-            for line in block.get("text", "").splitlines()
-            if line.strip() and not is_boilerplate_line(line)
-        ]
+        lines = [line.strip() for line in block.get("text", "").splitlines() if line.strip() and not is_boilerplate_line(line)]
         if not lines:
             continue
         if len(lines) == 1 and is_heading(lines[0]):
@@ -520,6 +506,7 @@ def chunk_from_units(doc: dict, profile: str, units: list[dict], chunk_index: in
             "profile": profile,
             "unit_types": sorted(types),
             "table_indexes": table_indexes,
+            "section_ancestry": [unit_heading(units)] if unit_heading(units) else [],
             **document_metadata,
             "document_identifiers": document_identifiers,
             "identifiers": extract_legal_identifiers(f"{unit_heading(units) or ''}\n{text}"),
@@ -540,26 +527,28 @@ def iter_document_chunks(
     max_tokens, overlap_tokens = chunk_settings(profile, max_tokens, overlap_tokens)
 
     chunk_index = 0
+    observed_headings: list[str] = []
     current_units: list[dict] = []
 
     if max_chunks is not None and max_chunks <= 0:
         return
 
     for unit in iter_document_units(doc, profile, max_tokens):
+        if unit.get("heading") and unit["heading"] not in observed_headings:
+            observed_headings.append(unit["heading"])
         current_tokens = chunk_token_count(current_units)
         unit_tokens = count_tokens(unit["text"])
         active_heading = unit_heading(current_units)
         heading_flush_ratio = 0.25 if profile == FAQ_PROFILE else 0.45
         heading_changed = (
-            active_heading
-            and unit["heading"]
-            and unit["heading"] != active_heading
-            and current_tokens >= max_tokens * heading_flush_ratio
+            active_heading and unit["heading"] and unit["heading"] != active_heading and current_tokens >= max_tokens * heading_flush_ratio
         )
 
         if current_units and (current_tokens + unit_tokens > max_tokens or heading_changed):
             previous_units = current_units
-            yield chunk_from_units(doc, profile, previous_units, chunk_index)
+            chunk = chunk_from_units(doc, profile, previous_units, chunk_index)
+            chunk["metadata"]["section_ancestry"] = known_section_ancestry(chunk["section_heading"], observed_headings)
+            yield chunk
             chunk_index += 1
             if max_chunks is not None and chunk_index >= max_chunks:
                 return
@@ -569,7 +558,9 @@ def iter_document_chunks(
         current_units.append(unit)
 
     if current_units and (max_chunks is None or chunk_index < max_chunks):
-        yield chunk_from_units(doc, profile, current_units, chunk_index)
+        chunk = chunk_from_units(doc, profile, current_units, chunk_index)
+        chunk["metadata"]["section_ancestry"] = known_section_ancestry(chunk["section_heading"], observed_headings)
+        yield chunk
 
 
 def chunk_document(
@@ -588,3 +579,22 @@ def chunk_document(
             profile=profile,
         )
     )
+
+
+def known_section_ancestry(heading: str | None, observed: list[str]) -> list[str]:
+    """Only include numbered parents actually observed in this document."""
+    if not heading:
+        return []
+    number = re.match(r"^(\d+(?:\.\d+)*)(?:[.)]|\s)", heading)
+    if not number:
+        return [heading]
+    parts = number.group(1).split(".")
+    result = []
+    for level in range(1, len(parts)):
+        prefix = ".".join(parts[:level])
+        for candidate in reversed(observed):
+            match = re.match(r"^(\d+(?:\.\d+)*)(?:[.)]|\s)", candidate)
+            if match and match.group(1) == prefix:
+                result.append(candidate)
+                break
+    return [*result, heading]

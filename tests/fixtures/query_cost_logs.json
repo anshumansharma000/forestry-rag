@@ -1,0 +1,770 @@
+{
+  "scope": "Sanitized 2026-10-17 supplied logs. Historical logged prices; embedding totals remain unknown. No questions or evidence supplied.",
+  "events": [
+    {
+      "query_id": "query-1",
+      "event": "query_generation_usage",
+      "query_outcome": "failed",
+      "estimated_cost_inr": 0,
+      "decision_cost_inr": 0,
+      "embedding_cost_inr": 0,
+      "generation_calls": 0,
+      "embedding_stages": [],
+      "decision_stages": []
+    },
+    {
+      "query_id": "query-1",
+      "event": "query_answer_cost",
+      "query_outcome": "failed",
+      "succeeded": false,
+      "total_api_cost_inr": 0,
+      "known_api_cost_inr": 0,
+      "total_api_cost_complete": true,
+      "unpriced_calls": 0
+    },
+    {
+      "query_id": "query-2",
+      "event": "answer_route_selected",
+      "operation": "answer_direct",
+      "question_shape": "procedure",
+      "context_count": 8,
+      "source_tokens_estimate": 4337,
+      "history_tokens_estimate": 4,
+      "amendment_context_count": 0
+    },
+    {
+      "query_id": "query-2",
+      "event": "gemini_generation_received",
+      "operation": "answer_direct",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 1800,
+      "thinking_level": "minimal",
+      "prompt_tokens": 5121,
+      "output_tokens": 961,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 6082,
+      "estimated_cost_usd": 0.0039388,
+      "estimated_cost_inr": 0.35449200000000003
+    },
+    {
+      "query_id": "query-2",
+      "event": "gemini_generation_received",
+      "operation": "verify",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 3000,
+      "thinking_level": "low",
+      "prompt_tokens": 5836,
+      "output_tokens": 30,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 5866,
+      "estimated_cost_usd": 0.0018258,
+      "estimated_cost_inr": 0.164322
+    },
+    {
+      "query_id": "query-3",
+      "event": "query_generation_usage",
+      "query_outcome": "failed",
+      "estimated_cost_inr": 0,
+      "decision_cost_inr": 0,
+      "embedding_cost_inr": 0,
+      "generation_calls": 0,
+      "embedding_stages": [],
+      "decision_stages": []
+    },
+    {
+      "query_id": "query-3",
+      "event": "query_answer_cost",
+      "query_outcome": "failed",
+      "succeeded": false,
+      "total_api_cost_inr": 0,
+      "known_api_cost_inr": 0,
+      "total_api_cost_complete": true,
+      "unpriced_calls": 0
+    },
+    {
+      "query_id": "query-4",
+      "event": "query_generation_usage",
+      "query_outcome": "failed",
+      "estimated_cost_inr": 0,
+      "decision_cost_inr": 0,
+      "embedding_cost_inr": 0,
+      "generation_calls": 0,
+      "embedding_stages": [],
+      "decision_stages": []
+    },
+    {
+      "query_id": "query-4",
+      "event": "query_answer_cost",
+      "query_outcome": "failed",
+      "succeeded": false,
+      "total_api_cost_inr": 0,
+      "known_api_cost_inr": 0,
+      "total_api_cost_complete": true,
+      "unpriced_calls": 0
+    },
+    {
+      "query_id": "query-5",
+      "event": "answer_route_selected",
+      "operation": "answer_direct",
+      "question_shape": "procedure",
+      "context_count": 8,
+      "source_tokens_estimate": 4337,
+      "history_tokens_estimate": 4,
+      "amendment_context_count": 0
+    },
+    {
+      "query_id": "query-5",
+      "event": "gemini_generation_received",
+      "operation": "answer_direct",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 1800,
+      "thinking_level": "minimal",
+      "prompt_tokens": 5121,
+      "output_tokens": 785,
+      "thinking_tokens": null,
+      "cached_tokens": 2035,
+      "total_tokens": 5906,
+      "estimated_cost_usd": 0.00294935,
+      "estimated_cost_inr": 0.2654415
+    },
+    {
+      "query_id": "query-5",
+      "event": "gemini_generation_received",
+      "operation": "verify",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 3000,
+      "thinking_level": "low",
+      "prompt_tokens": 5660,
+      "output_tokens": 30,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 5690,
+      "estimated_cost_usd": 0.001773,
+      "estimated_cost_inr": 0.15957000000000002
+    },
+    {
+      "query_id": "query-5",
+      "event": "query_generation_usage",
+      "query_outcome": "answered",
+      "estimated_cost_inr": 0.4250115,
+      "decision_cost_inr": 0.0677754,
+      "embedding_cost_inr": null,
+      "generation_calls": 2,
+      "embedding_stages": [
+        {
+          "model": "gemini-embedding-2",
+          "items": 1,
+          "prompt_tokens": 16,
+          "estimated_cost_usd": null,
+          "estimated_cost_inr": null
+        }
+      ],
+      "decision_stages": [
+        {
+          "operation": "jev_rerank",
+          "model": "jev-1.13.0",
+          "input_tokens": 12928,
+          "elapsed_ms": 626.44,
+          "succeeded": true,
+          "estimated_cost_usd": 0.000542976,
+          "estimated_cost_inr": 0.04886784
+        },
+        {
+          "operation": "jev_answer_policy",
+          "model": "jev-1.13.0",
+          "input_tokens": 5002,
+          "elapsed_ms": 596.97,
+          "succeeded": true,
+          "estimated_cost_usd": 0.000210084,
+          "estimated_cost_inr": 0.01890756
+        }
+      ]
+    },
+    {
+      "query_id": "query-5",
+      "event": "query_answer_cost",
+      "query_outcome": "answered",
+      "succeeded": true,
+      "total_api_cost_inr": null,
+      "known_api_cost_inr": 0.4927869,
+      "total_api_cost_complete": false,
+      "unpriced_calls": 1
+    },
+    {
+      "query_id": "query-6",
+      "event": "gemini_generation_received",
+      "operation": "rewrite",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 200,
+      "thinking_level": "minimal",
+      "prompt_tokens": 940,
+      "output_tokens": 37,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 977,
+      "estimated_cost_usd": 0.0003745,
+      "estimated_cost_inr": 0.033705
+    },
+    {
+      "query_id": "query-6",
+      "event": "answer_route_selected",
+      "operation": "answer_complex",
+      "question_shape": "direct",
+      "context_count": 12,
+      "source_tokens_estimate": 6055,
+      "history_tokens_estimate": 791,
+      "amendment_context_count": 0
+    },
+    {
+      "query_id": "query-6",
+      "event": "gemini_generation_received",
+      "operation": "answer_complex",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 4000,
+      "thinking_level": "medium",
+      "prompt_tokens": 7591,
+      "output_tokens": 316,
+      "thinking_tokens": 675,
+      "cached_tokens": null,
+      "total_tokens": 8582,
+      "estimated_cost_usd": 0.0094095,
+      "estimated_cost_inr": 0.8468549999999999
+    },
+    {
+      "query_id": "query-6",
+      "event": "query_generation_usage",
+      "query_outcome": "answered",
+      "estimated_cost_inr": 0.8805599999999999,
+      "decision_cost_inr": 0.08101296000000001,
+      "embedding_cost_inr": null,
+      "generation_calls": 2,
+      "embedding_stages": [
+        {
+          "model": "gemini-embedding-2",
+          "items": 1,
+          "prompt_tokens": 46,
+          "estimated_cost_usd": null,
+          "estimated_cost_inr": null
+        }
+      ],
+      "decision_stages": [
+        {
+          "operation": "jev_rewrite_gate",
+          "model": "jev-1.13.0",
+          "input_tokens": 1196,
+          "elapsed_ms": 475.63,
+          "succeeded": true,
+          "estimated_cost_usd": 5.023200000000001e-05,
+          "estimated_cost_inr": 0.0045208800000000006
+        },
+        {
+          "operation": "jev_rerank",
+          "model": "jev-1.13.0",
+          "input_tokens": 12688,
+          "elapsed_ms": 739.64,
+          "succeeded": true,
+          "estimated_cost_usd": 0.000532896,
+          "estimated_cost_inr": 0.047960640000000006
+        },
+        {
+          "operation": "jev_answer_policy",
+          "model": "jev-1.13.0",
+          "input_tokens": 7548,
+          "elapsed_ms": 712.35,
+          "succeeded": true,
+          "estimated_cost_usd": 0.00031701600000000004,
+          "estimated_cost_inr": 0.028531440000000005
+        }
+      ]
+    },
+    {
+      "query_id": "query-6",
+      "event": "query_answer_cost",
+      "query_outcome": "answered",
+      "succeeded": true,
+      "total_api_cost_inr": null,
+      "known_api_cost_inr": 0.9615729599999999,
+      "total_api_cost_complete": false,
+      "unpriced_calls": 1
+    },
+    {
+      "query_id": "query-7",
+      "event": "gemini_generation_received",
+      "operation": "rewrite",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 200,
+      "thinking_level": "minimal",
+      "prompt_tokens": 1285,
+      "output_tokens": 28,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 1313,
+      "estimated_cost_usd": 0.0004555,
+      "estimated_cost_inr": 0.040995000000000004
+    },
+    {
+      "query_id": "query-7",
+      "event": "answer_route_selected",
+      "operation": "answer_complex_high",
+      "question_shape": "direct",
+      "context_count": 12,
+      "source_tokens_estimate": 6217,
+      "history_tokens_estimate": 1128,
+      "amendment_context_count": 0
+    },
+    {
+      "query_id": "query-7",
+      "event": "gemini_generation_received",
+      "operation": "answer_complex_high",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 8192,
+      "thinking_level": "high",
+      "prompt_tokens": 8176,
+      "output_tokens": 336,
+      "thinking_tokens": 2102,
+      "cached_tokens": null,
+      "total_tokens": 10614,
+      "estimated_cost_usd": 0.0152745,
+      "estimated_cost_inr": 1.374705
+    },
+    {
+      "query_id": "query-7",
+      "event": "gemini_generation_received",
+      "operation": "verify_complex",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 4000,
+      "thinking_level": "medium",
+      "prompt_tokens": 7129,
+      "output_tokens": 30,
+      "thinking_tokens": 788,
+      "cached_tokens": null,
+      "total_tokens": 7947,
+      "estimated_cost_usd": 0.00841425,
+      "estimated_cost_inr": 0.7572825
+    },
+    {
+      "query_id": "query-7",
+      "event": "query_generation_usage",
+      "query_outcome": "answered",
+      "estimated_cost_inr": 2.1729825,
+      "decision_cost_inr": 0.08559054,
+      "embedding_cost_inr": null,
+      "generation_calls": 3,
+      "embedding_stages": [
+        {
+          "model": "gemini-embedding-2",
+          "items": 1,
+          "prompt_tokens": 37,
+          "estimated_cost_usd": null,
+          "estimated_cost_inr": null
+        }
+      ],
+      "decision_stages": [
+        {
+          "operation": "jev_rewrite_gate",
+          "model": "jev-1.13.0",
+          "input_tokens": 1571,
+          "elapsed_ms": 720.51,
+          "succeeded": true,
+          "estimated_cost_usd": 6.598199999999999e-05,
+          "estimated_cost_inr": 0.005938379999999999
+        },
+        {
+          "operation": "jev_rerank",
+          "model": "jev-1.13.0",
+          "input_tokens": 13031,
+          "elapsed_ms": 750.76,
+          "succeeded": true,
+          "estimated_cost_usd": 0.000547302,
+          "estimated_cost_inr": 0.049257180000000005
+        },
+        {
+          "operation": "jev_answer_policy",
+          "model": "jev-1.13.0",
+          "input_tokens": 8041,
+          "elapsed_ms": 581.51,
+          "succeeded": true,
+          "estimated_cost_usd": 0.00033772200000000004,
+          "estimated_cost_inr": 0.030394980000000005
+        }
+      ]
+    },
+    {
+      "query_id": "query-7",
+      "event": "query_answer_cost",
+      "query_outcome": "answered",
+      "succeeded": true,
+      "total_api_cost_inr": null,
+      "known_api_cost_inr": 2.25857304,
+      "total_api_cost_complete": false,
+      "unpriced_calls": 1
+    },
+    {
+      "query_id": "query-8",
+      "event": "gemini_generation_received",
+      "operation": "rewrite",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 200,
+      "thinking_level": "minimal",
+      "prompt_tokens": 1638,
+      "output_tokens": 18,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 1656,
+      "estimated_cost_usd": 0.0005364,
+      "estimated_cost_inr": 0.048276
+    },
+    {
+      "query_id": "query-8",
+      "event": "answer_route_selected",
+      "operation": "answer_complex_high",
+      "question_shape": "direct",
+      "context_count": 5,
+      "source_tokens_estimate": 2983,
+      "history_tokens_estimate": 1488,
+      "amendment_context_count": 1
+    },
+    {
+      "query_id": "query-8",
+      "event": "gemini_generation_received",
+      "operation": "answer_complex_high",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 8192,
+      "thinking_level": "high",
+      "prompt_tokens": 5196,
+      "output_tokens": 1035,
+      "thinking_tokens": 3897,
+      "cached_tokens": null,
+      "total_tokens": 10128,
+      "estimated_cost_usd": 0.022392,
+      "estimated_cost_inr": 2.0152799999999997
+    },
+    {
+      "query_id": "query-8",
+      "event": "gemini_generation_received",
+      "operation": "verify_complex",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 4000,
+      "thinking_level": "medium",
+      "prompt_tokens": 4483,
+      "output_tokens": 30,
+      "thinking_tokens": 2770,
+      "cached_tokens": null,
+      "total_tokens": 7283,
+      "estimated_cost_usd": 0.01386225,
+      "estimated_cost_inr": 1.2476025
+    },
+    {
+      "query_id": "query-8",
+      "event": "query_generation_usage",
+      "query_outcome": "answered",
+      "estimated_cost_inr": 3.3111585,
+      "decision_cost_inr": 0.07947449999999999,
+      "embedding_cost_inr": null,
+      "generation_calls": 3,
+      "embedding_stages": [
+        {
+          "model": "gemini-embedding-2",
+          "items": 1,
+          "prompt_tokens": 26,
+          "estimated_cost_usd": null,
+          "estimated_cost_inr": null
+        }
+      ],
+      "decision_stages": [
+        {
+          "operation": "jev_rewrite_gate",
+          "model": "jev-1.13.0",
+          "input_tokens": 1961,
+          "elapsed_ms": 737.12,
+          "succeeded": true,
+          "estimated_cost_usd": 8.236200000000001e-05,
+          "estimated_cost_inr": 0.007412580000000001
+        },
+        {
+          "operation": "jev_rerank",
+          "model": "jev-1.13.0",
+          "input_tokens": 13807,
+          "elapsed_ms": 741.39,
+          "succeeded": true,
+          "estimated_cost_usd": 0.000579894,
+          "estimated_cost_inr": 0.052190459999999994
+        },
+        {
+          "operation": "jev_answer_policy",
+          "model": "jev-1.13.0",
+          "input_tokens": 5257,
+          "elapsed_ms": 692.1,
+          "succeeded": true,
+          "estimated_cost_usd": 0.00022079400000000001,
+          "estimated_cost_inr": 0.01987146
+        }
+      ]
+    },
+    {
+      "query_id": "query-8",
+      "event": "query_answer_cost",
+      "query_outcome": "answered",
+      "succeeded": true,
+      "total_api_cost_inr": null,
+      "known_api_cost_inr": 3.390633,
+      "total_api_cost_complete": false,
+      "unpriced_calls": 1
+    },
+    {
+      "query_id": "query-9",
+      "event": "gemini_generation_received",
+      "operation": "plan",
+      "model": "gemini-3.5-flash-lite",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 1200,
+      "thinking_level": "low",
+      "prompt_tokens": 6874,
+      "output_tokens": 677,
+      "thinking_tokens": null,
+      "cached_tokens": null,
+      "total_tokens": 7551,
+      "estimated_cost_usd": 0.0037546999999999997,
+      "estimated_cost_inr": 0.337923
+    },
+    {
+      "query_id": "query-9",
+      "event": "answer_route_selected",
+      "operation": "answer_complex_high",
+      "question_shape": "overview",
+      "context_count": 12,
+      "source_tokens_estimate": 6725,
+      "history_tokens_estimate": 4,
+      "amendment_context_count": 1
+    },
+    {
+      "query_id": "query-9",
+      "event": "gemini_generation_received",
+      "operation": "answer_complex_high",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 8192,
+      "thinking_level": "high",
+      "prompt_tokens": 8003,
+      "output_tokens": 898,
+      "thinking_tokens": 4211,
+      "cached_tokens": null,
+      "total_tokens": 13112,
+      "estimated_cost_usd": 0.025161,
+      "estimated_cost_inr": 2.26449
+    },
+    {
+      "query_id": "query-9",
+      "event": "gemini_generation_received",
+      "operation": "verify_complex",
+      "model": "gemini-3.8-flash",
+      "finish_reason": "STOP",
+      "generation_attempt": 1,
+      "max_output_tokens": 4000,
+      "thinking_level": "medium",
+      "prompt_tokens": 8098,
+      "output_tokens": 30,
+      "thinking_tokens": 3838,
+      "cached_tokens": null,
+      "total_tokens": 11966,
+      "estimated_cost_usd": 0.0205785,
+      "estimated_cost_inr": 1.852065
+    },
+    {
+      "query_id": "query-9",
+      "event": "query_generation_usage",
+      "query_outcome": "answered",
+      "estimated_cost_inr": 4.454478,
+      "decision_cost_inr": 0.08179542000000001,
+      "embedding_cost_inr": null,
+      "generation_calls": 3,
+      "embedding_stages": [
+        {
+          "model": "gemini-embedding-2",
+          "items": 4,
+          "prompt_tokens": 85,
+          "estimated_cost_usd": null,
+          "estimated_cost_inr": null
+        }
+      ],
+      "decision_stages": [
+        {
+          "operation": "jev_rerank",
+          "model": "jev-1.13.0",
+          "input_tokens": 13908,
+          "elapsed_ms": 723.43,
+          "succeeded": true,
+          "estimated_cost_usd": 0.0005841360000000001,
+          "estimated_cost_inr": 0.052572240000000006
+        },
+        {
+          "operation": "jev_answer_policy",
+          "model": "jev-1.13.0",
+          "input_tokens": 7731,
+          "elapsed_ms": 553.86,
+          "succeeded": true,
+          "estimated_cost_usd": 0.000324702,
+          "estimated_cost_inr": 0.02922318
+        }
+      ]
+    },
+    {
+      "query_id": "query-9",
+      "event": "query_answer_cost",
+      "query_outcome": "answered",
+      "succeeded": true,
+      "total_api_cost_inr": null,
+      "known_api_cost_inr": 4.53627342,
+      "total_api_cost_complete": false,
+      "unpriced_calls": 1
+    },
+    {
+      "query_id": "query-2",
+      "event": "jev_evaluation",
+      "operation": "jev_rerank",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000542976,
+      "estimated_cost_inr": 0.04886784
+    },
+    {
+      "query_id": "query-2",
+      "event": "jev_evaluation",
+      "operation": "jev_answer_policy",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000210084,
+      "estimated_cost_inr": 0.01890756
+    },
+    {
+      "query_id": "query-5",
+      "event": "jev_evaluation",
+      "operation": "jev_rerank",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000542976,
+      "estimated_cost_inr": 0.04886784
+    },
+    {
+      "query_id": "query-5",
+      "event": "jev_evaluation",
+      "operation": "jev_answer_policy",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000210084,
+      "estimated_cost_inr": 0.01890756
+    },
+    {
+      "query_id": "query-6",
+      "event": "jev_evaluation",
+      "operation": "jev_rewrite_gate",
+      "succeeded": true,
+      "estimated_cost_usd": 5.023200000000001e-05,
+      "estimated_cost_inr": 0.0045208800000000006
+    },
+    {
+      "query_id": "query-6",
+      "event": "jev_evaluation",
+      "operation": "jev_rerank",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000532896,
+      "estimated_cost_inr": 0.047960640000000006
+    },
+    {
+      "query_id": "query-6",
+      "event": "jev_evaluation",
+      "operation": "jev_answer_policy",
+      "succeeded": true,
+      "estimated_cost_usd": 0.00031701600000000004,
+      "estimated_cost_inr": 0.028531440000000005
+    },
+    {
+      "query_id": "query-7",
+      "event": "jev_evaluation",
+      "operation": "jev_rewrite_gate",
+      "succeeded": true,
+      "estimated_cost_usd": 6.598199999999999e-05,
+      "estimated_cost_inr": 0.005938379999999999
+    },
+    {
+      "query_id": "query-7",
+      "event": "jev_evaluation",
+      "operation": "jev_rerank",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000547302,
+      "estimated_cost_inr": 0.049257180000000005
+    },
+    {
+      "query_id": "query-7",
+      "event": "jev_evaluation",
+      "operation": "jev_answer_policy",
+      "succeeded": true,
+      "estimated_cost_usd": 0.00033772200000000004,
+      "estimated_cost_inr": 0.030394980000000005
+    },
+    {
+      "query_id": "query-8",
+      "event": "jev_evaluation",
+      "operation": "jev_rewrite_gate",
+      "succeeded": true,
+      "estimated_cost_usd": 8.236200000000001e-05,
+      "estimated_cost_inr": 0.007412580000000001
+    },
+    {
+      "query_id": "query-8",
+      "event": "jev_evaluation",
+      "operation": "jev_rerank",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000579894,
+      "estimated_cost_inr": 0.052190459999999994
+    },
+    {
+      "query_id": "query-8",
+      "event": "jev_evaluation",
+      "operation": "jev_answer_policy",
+      "succeeded": true,
+      "estimated_cost_usd": 0.00022079400000000001,
+      "estimated_cost_inr": 0.01987146
+    },
+    {
+      "query_id": "query-9",
+      "event": "jev_evaluation",
+      "operation": "jev_rerank",
+      "succeeded": true,
+      "estimated_cost_usd": 0.0005841360000000001,
+      "estimated_cost_inr": 0.052572240000000006
+    },
+    {
+      "query_id": "query-9",
+      "event": "jev_evaluation",
+      "operation": "jev_answer_policy",
+      "succeeded": true,
+      "estimated_cost_usd": 0.000324702,
+      "estimated_cost_inr": 0.02922318
+    }
+  ]
+}

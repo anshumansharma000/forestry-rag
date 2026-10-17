@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 
 from auth import CurrentUser, audit_event, require_roles
+from query_cache import request_access
 from rag import (
     chat_ask,
     create_chat_session,
@@ -62,10 +63,16 @@ def remove_message(
 
 
 @router.post("/sessions/{session_id}/ask", response_model=ChatAskResponse)
+@request_access("user")
 def ask_in_session(
     session_id: str,
     request_body: ChatAskRequest,
     user: CurrentUser = Depends(require_roles("viewer")),
 ):
-    return chat_ask(session_id, request_body.message, user.id, request_body.top_k,
-                    request_id=str(request_body.request_id) if request_body.request_id else None)
+    return chat_ask(
+        session_id,
+        request_body.message,
+        user.id,
+        request_body.top_k,
+        request_id=str(request_body.request_id) if request_body.request_id else None,
+    )

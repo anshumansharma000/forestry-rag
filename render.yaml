@@ -64,6 +64,8 @@ services:
         value: gemini-3.5-flash-lite
       - key: GEMINI_COMPLEX_MODEL
         value: gemini-3.8-flash
+      - key: RAG_LITE_FIRST
+        value: "true"
       - key: GEMINI_UTILITY_MODEL
         value: gemini-3.5-flash-lite
       - key: GEMINI_VERIFICATION_MODEL
@@ -250,3 +252,57 @@ services:
         value: true
       - key: CELERY_WORKER_PING_TIMEOUT_SECONDS
         value: 2
+
+      # Independent, default-off pipeline candidates; see engineering/answer-pipeline/README.md.
+      - key: RAG_QUERY_CONTEXT_V2
+        value: "false"
+      - key: RAG_CONTEXT_RESOLVER
+        value: "legacy"
+      - key: RAG_PRUNE_INEFFECTIVE_DECISIONS
+        value: "false"
+      - key: JEV_SHADOW_SAMPLE_RATE
+        value: "1"
+      - key: RAG_PLANNING_POLICY
+        value: "legacy"
+      - key: RAG_ROUTE_POLICY
+        value: "legacy"
+      - key: RAG_EVIDENCE_POLICY
+        value: "legacy"
+      - key: RAG_ADAPTIVE_RETRIEVAL
+        value: "false"
+      - key: RAG_VERIFICATION_POLICY
+        value: "legacy"
+      - key: RAG_EMBEDDING_CACHE
+        value: "false"
+      - key: RAG_RETRIEVAL_CACHE
+        value: "false"
+      - key: RAG_ANSWER_CACHE
+        value: "false"
+      - key: RAG_RETRIEVAL_CONCURRENCY
+        value: "1"
+      - key: RAG_BATCH_NEIGHBORS
+        value: "false"
+      - key: RAG_HTTP_POOLING
+        value: "false"
+      - key: RAG_OPTIONAL_FOLLOWUP
+        value: "false"
+      - key: RAG_EXTRACTION_DIAGNOSTICS
+        value: "false"
+      - key: RAG_CACHE_EPOCH
+        value: "1"
+      - key: RAG_CACHE_WAIT_MS
+        value: "100"
+      - key: RAG_CACHE_LOCK_SECONDS
+        value: "60"
+      - key: RAG_CACHE_MAX_ENTRIES
+        value: "512"
+      - key: RAG_CACHE_MAX_VALUE_BYTES
+        value: "524288"
+      - key: RAG_RETRIEVAL_CACHE_TTL_SECONDS
+        value: "300"
+      - key: RAG_ANSWER_CACHE_TTL_SECONDS
+        value: "300"
+      - key: RAG_CACHE_REDIS_URL
+        sync: false
+      - key: RAG_CACHE_HMAC_KEY
+        sync: false

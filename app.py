@@ -109,6 +109,14 @@ async def lifespan(_app: FastAPI):
         recovery.cancel()
         with suppress(asyncio.CancelledError):
             await recovery
+        from pipeline_network import close_sessions, shutdown_searches
+        from query_cache import close_cache_connections
+        from services.storage import close_thread_clients
+
+        await run_in_threadpool(shutdown_searches)
+        await run_in_threadpool(close_sessions)
+        await run_in_threadpool(close_cache_connections)
+        await run_in_threadpool(close_thread_clients)
         logger.info("application_stopped")
 
 

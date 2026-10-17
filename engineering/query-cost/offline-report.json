@@ -1,0 +1,389 @@
+{
+  "scope": "Offline only. Historical subtotals reconcile supplied logs. Candidate answers, scores, thinking and token usage are scripted fixtures; no demonstrated quality parity or live savings.",
+  "pricing_as_of": "2026-10-17",
+  "historical": [
+    {
+      "query_id": "query-1",
+      "completion_recorded": true,
+      "outcome": "failed",
+      "known_api_cost_inr": 0,
+      "logged_known_api_cost_inr": 0,
+      "total_api_cost_inr": 0,
+      "embedding_cost_inr": 0,
+      "generation_operations": [],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-2",
+      "completion_recorded": false,
+      "outcome": "interrupted_or_missing_completion",
+      "known_api_cost_inr": 0.5865894,
+      "logged_known_api_cost_inr": null,
+      "total_api_cost_inr": null,
+      "embedding_cost_inr": null,
+      "generation_operations": [
+        "answer_direct",
+        "verify"
+      ],
+      "reconciled": null
+    },
+    {
+      "query_id": "query-3",
+      "completion_recorded": true,
+      "outcome": "failed",
+      "known_api_cost_inr": 0,
+      "logged_known_api_cost_inr": 0,
+      "total_api_cost_inr": 0,
+      "embedding_cost_inr": 0,
+      "generation_operations": [],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-4",
+      "completion_recorded": true,
+      "outcome": "failed",
+      "known_api_cost_inr": 0,
+      "logged_known_api_cost_inr": 0,
+      "total_api_cost_inr": 0,
+      "embedding_cost_inr": 0,
+      "generation_operations": [],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-5",
+      "completion_recorded": true,
+      "outcome": "answered",
+      "known_api_cost_inr": 0.4927869,
+      "logged_known_api_cost_inr": 0.4927869,
+      "total_api_cost_inr": null,
+      "embedding_cost_inr": null,
+      "generation_operations": [
+        "answer_direct",
+        "verify"
+      ],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-6",
+      "completion_recorded": true,
+      "outcome": "answered",
+      "known_api_cost_inr": 0.9615729599999999,
+      "logged_known_api_cost_inr": 0.9615729599999999,
+      "total_api_cost_inr": null,
+      "embedding_cost_inr": null,
+      "generation_operations": [
+        "rewrite",
+        "answer_complex"
+      ],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-7",
+      "completion_recorded": true,
+      "outcome": "answered",
+      "known_api_cost_inr": 2.25857304,
+      "logged_known_api_cost_inr": 2.25857304,
+      "total_api_cost_inr": null,
+      "embedding_cost_inr": null,
+      "generation_operations": [
+        "rewrite",
+        "answer_complex_high",
+        "verify_complex"
+      ],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-8",
+      "completion_recorded": true,
+      "outcome": "answered",
+      "known_api_cost_inr": 3.390633,
+      "logged_known_api_cost_inr": 3.390633,
+      "total_api_cost_inr": null,
+      "embedding_cost_inr": null,
+      "generation_operations": [
+        "rewrite",
+        "answer_complex_high",
+        "verify_complex"
+      ],
+      "reconciled": true
+    },
+    {
+      "query_id": "query-9",
+      "completion_recorded": true,
+      "outcome": "answered",
+      "known_api_cost_inr": 4.53627342,
+      "logged_known_api_cost_inr": 4.53627342,
+      "total_api_cost_inr": null,
+      "embedding_cost_inr": null,
+      "generation_operations": [
+        "plan",
+        "answer_complex_high",
+        "verify_complex"
+      ],
+      "reconciled": true
+    }
+  ],
+  "scripted_comparison": [
+    {
+      "case": "amended_fact_lookup",
+      "mode": "baseline",
+      "operations": [
+        "answer_complex_high",
+        "verify_complex"
+      ],
+      "audit_owner": "verify_complex",
+      "simulated_api_cost_inr": 0.4844699999999999,
+      "input_tokens_estimate": 1486,
+      "scripted_output_tokens": 38,
+      "scripted_thinking_tokens": 1100,
+      "compaction": [],
+      "decisions": [],
+      "target_status": "within_target"
+    },
+    {
+      "case": "amended_fact_lookup",
+      "mode": "candidate",
+      "operations": [
+        "answer_direct",
+        "verify"
+      ],
+      "audit_owner": "verify",
+      "simulated_api_cost_inr": 0.04944294,
+      "input_tokens_estimate": 1501,
+      "scripted_output_tokens": 38,
+      "scripted_thinking_tokens": 0,
+      "compaction": [
+        {
+          "code": "evidence_compaction",
+          "version": "exact-v1",
+          "before_tokens": 45,
+          "after_tokens": 45,
+          "aliases": 0
+        }
+      ],
+      "decisions": [
+        {
+          "code": "route_decision",
+          "policy_version": "jev-led-v1",
+          "owner": "jev",
+          "reason": "confident_bounded",
+          "safeguards": [],
+          "baseline_route": "answer_complex_high",
+          "proposed_route": "answer_direct",
+          "applied_route": "answer_direct",
+          "probabilities": {
+            "bounded": 0.95,
+            "complex": 0.1,
+            "reconciliation": 0.05
+          },
+          "routing_status": "jev_confident"
+        },
+        {
+          "code": "independent_verification",
+          "policy_version": "independent-v1",
+          "owner": "verify",
+          "reason": "bounded_support_audit"
+        }
+      ],
+      "target_status": "within_target"
+    },
+    {
+      "case": "medium_direct_audit_gap",
+      "mode": "baseline",
+      "operations": [
+        "answer_complex"
+      ],
+      "audit_owner": null,
+      "simulated_api_cost_inr": 0.1924335,
+      "input_tokens_estimate": 1259,
+      "scripted_output_tokens": 18,
+      "scripted_thinking_tokens": 300,
+      "compaction": [],
+      "decisions": [],
+      "target_status": "within_target"
+    },
+    {
+      "case": "medium_direct_audit_gap",
+      "mode": "candidate",
+      "operations": [
+        "answer_complex",
+        "verify"
+      ],
+      "audit_owner": "verify",
+      "simulated_api_cost_inr": 0.23284404,
+      "input_tokens_estimate": 2487,
+      "scripted_output_tokens": 38,
+      "scripted_thinking_tokens": 300,
+      "compaction": [
+        {
+          "code": "evidence_compaction",
+          "version": "exact-v1",
+          "before_tokens": 517,
+          "after_tokens": 517,
+          "aliases": 0
+        }
+      ],
+      "decisions": [
+        {
+          "code": "route_decision",
+          "policy_version": "jev-led-v1",
+          "owner": "jev",
+          "reason": "confident_complex",
+          "safeguards": [],
+          "baseline_route": "answer_complex",
+          "proposed_route": "answer_complex",
+          "applied_route": "answer_complex",
+          "probabilities": {
+            "bounded": 0.1,
+            "complex": 0.95,
+            "reconciliation": 0.05
+          },
+          "routing_status": "jev_confident"
+        },
+        {
+          "code": "independent_verification",
+          "policy_version": "independent-v1",
+          "owner": "verify",
+          "reason": "bounded_support_audit"
+        }
+      ],
+      "target_status": "within_target"
+    },
+    {
+      "case": "confirmed_conflict",
+      "mode": "baseline",
+      "operations": [
+        "answer_direct",
+        "verify"
+      ],
+      "audit_owner": "verify",
+      "simulated_api_cost_inr": 0.05678999999999999,
+      "input_tokens_estimate": 1782,
+      "scripted_output_tokens": 38,
+      "scripted_thinking_tokens": 0,
+      "compaction": [],
+      "decisions": [],
+      "target_status": "within_target"
+    },
+    {
+      "case": "confirmed_conflict",
+      "mode": "candidate",
+      "operations": [
+        "answer_complex_high",
+        "verify_complex"
+      ],
+      "audit_owner": "verify_complex",
+      "simulated_api_cost_inr": 0.5063376599999999,
+      "input_tokens_estimate": 1797,
+      "scripted_output_tokens": 38,
+      "scripted_thinking_tokens": 1100,
+      "compaction": [
+        {
+          "code": "evidence_compaction",
+          "version": "exact-v1",
+          "before_tokens": 188,
+          "after_tokens": 188,
+          "aliases": 0
+        }
+      ],
+      "decisions": [
+        {
+          "code": "route_decision",
+          "policy_version": "jev-led-v1",
+          "owner": "safeguard",
+          "reason": "applicability_reconciliation",
+          "safeguards": [
+            "applicability_reconciliation",
+            "confirmed_evidence_conflict"
+          ],
+          "baseline_route": "answer_direct",
+          "proposed_route": "answer_direct",
+          "applied_route": "answer_complex_high",
+          "probabilities": {
+            "bounded": 0.95,
+            "complex": 0.1,
+            "reconciliation": 0.05
+          },
+          "routing_status": "jev_confident"
+        },
+        {
+          "code": "independent_verification",
+          "policy_version": "independent-v1",
+          "owner": "verify_complex",
+          "reason": "applicability_reconciliation"
+        }
+      ],
+      "target_status": "within_target"
+    },
+    {
+      "case": "contained_evidence_overview",
+      "mode": "baseline",
+      "operations": [
+        "plan",
+        "answer_complex_high",
+        "verify_complex"
+      ],
+      "audit_owner": "verify_complex",
+      "simulated_api_cost_inr": 0.586629,
+      "input_tokens_estimate": 2941,
+      "scripted_output_tokens": 192,
+      "scripted_thinking_tokens": 1100,
+      "compaction": [],
+      "decisions": [],
+      "target_status": "within_target"
+    },
+    {
+      "case": "contained_evidence_overview",
+      "mode": "candidate",
+      "operations": [
+        "plan",
+        "answer_direct",
+        "verify"
+      ],
+      "audit_owner": "verify",
+      "simulated_api_cost_inr": 0.11422314000000001,
+      "input_tokens_estimate": 2589,
+      "scripted_output_tokens": 192,
+      "scripted_thinking_tokens": 0,
+      "compaction": [
+        {
+          "code": "evidence_compaction",
+          "version": "exact-v1",
+          "before_tokens": 315,
+          "after_tokens": 230,
+          "aliases": 1
+        },
+        {
+          "code": "plan_compaction",
+          "before_tokens": 154,
+          "after_tokens": 43
+        }
+      ],
+      "decisions": [
+        {
+          "code": "route_decision",
+          "policy_version": "jev-led-v1",
+          "owner": "jev",
+          "reason": "confident_bounded",
+          "safeguards": [],
+          "baseline_route": "answer_complex_high",
+          "proposed_route": "answer_direct",
+          "applied_route": "answer_direct",
+          "probabilities": {
+            "bounded": 0.95,
+            "complex": 0.1,
+            "reconciliation": 0.05
+          },
+          "routing_status": "jev_confident"
+        },
+        {
+          "code": "independent_verification",
+          "policy_version": "independent-v1",
+          "owner": "verify",
+          "reason": "bounded_support_audit"
+        }
+      ],
+      "target_status": "within_target"
+    }
+  ]
+}

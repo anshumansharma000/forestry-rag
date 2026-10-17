@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import CurrentUser, require_roles
 from prompts import answer_outcome
+from query_cache import answer_cached, request_access
+from query_context import request_context
 from rag import answer_is_abstention, answer_with_gemini, cited_source_payload, retrieval_confidence, retrieve, source_payload
 from schemas import AskRequest, AskResponse
 from token_usage import track_query_usage
@@ -11,10 +13,16 @@ router = APIRouter(tags=["qa"])
 
 @router.post("/ask", response_model=AskResponse)
 @track_query_usage
+@request_access("_user")
+@request_context("request_body")
 def ask(request_body: AskRequest, _user: CurrentUser = Depends(require_roles("viewer"))):
     if not request_body.question.strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="question is required")
 
+    return answer_cached(request_body.question, request_body.top_k, lambda: _generate(request_body))
+
+
+def _generate(request_body):
     contexts = retrieve(request_body.question, request_body.top_k)
     answer = answer_with_gemini(request_body.question, contexts)
     return {

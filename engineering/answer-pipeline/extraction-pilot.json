@@ -1,0 +1,75 @@
+{
+  "scope": "Synthetic known-content extraction checks; not a production-document review",
+  "results": [
+    {
+      "method": "docx",
+      "checks": {
+        "Timber": true,
+        "1,000": true,
+        "Bamboo": true,
+        "approval before transport": true,
+        "वन परिवहन अनुमति आवश्यक है।": true
+      },
+      "chunk_count": 1,
+      "table_units": 1,
+      "diagnostics": {
+        "version": "extraction-diagnostics-v1",
+        "pages": [
+          {
+            "page": null,
+            "flags": [],
+            "review_required": false,
+            "method": "unknown"
+          }
+        ],
+        "scope": "Heuristic text diagnostics only; inspect original pages and table reading order."
+      }
+    },
+    {
+      "method": "pdf-native",
+      "checks": {
+        "Timber": true,
+        "1,000": true,
+        "Bamboo": true,
+        "approval before transport": true
+      },
+      "chunk_count": 1,
+      "table_units": 0,
+      "diagnostics": {
+        "version": "extraction-diagnostics-v1",
+        "pages": [
+          {
+            "page": 1,
+            "flags": [],
+            "review_required": false,
+            "method": "unknown"
+          }
+        ],
+        "scope": "Heuristic text diagnostics only; inspect original pages and table reading order."
+      }
+    },
+    {
+      "method": "pdf-table-aware",
+      "checks": {
+        "Timber": true,
+        "1,000": true,
+        "Bamboo": true,
+        "approval before transport": true
+      },
+      "chunk_count": 1,
+      "table_units": 1,
+      "diagnostics": {
+        "version": "extraction-diagnostics-v1",
+        "pages": [
+          {
+            "page": 1,
+            "flags": [],
+            "review_required": false,
+            "method": "unknown"
+          }
+        ],
+        "scope": "Heuristic text diagnostics only; inspect original pages and table reading order."
+      }
+    }
+  ]
+}

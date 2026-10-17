@@ -11,6 +11,7 @@ from jev_policy import enabled
 from jev_settings import rag_lab_extraction_policy
 from jev_shadow import document_policy
 from prompts import answer_is_abstention, answer_outcome, answer_with_gemini
+from query_context import request_context
 from rag_lab_repository import FencedLabRepository, RagLabRepository
 from redaction import safe_failure
 from repositories import IngestJobRepository
@@ -31,8 +32,7 @@ def compatible_document_chunks(doc: dict, config: dict, profile: str, fallback_p
         # but structurally incompatible Jev label cannot make the file unsearchable.
         proposed = list(iter_document_chunks(doc, profile=profile, **kwargs))
         usable = bool(proposed) and (
-            profile != "faq"
-            or any("faq" in (chunk.get("metadata") or {}).get("unit_types", []) for chunk in proposed)
+            profile != "faq" or any("faq" in (chunk.get("metadata") or {}).get("unit_types", []) for chunk in proposed)
         )
         if usable:
             return iter(proposed), doc, False
@@ -91,13 +91,13 @@ def upload_files(experiment_id: str, uploads: list, repository=None, storage=Non
 def create_revision_job(experiment_id: str, config: dict | None, actor_user_id: str, repository=None) -> tuple[dict, dict]:
     repository = repository or RagLabRepository()
     result = repository.create_revision_job(experiment_id, config, actor_user_id)
-    if result['state'] == 'not_found':
-        raise AppError('RAG Lab experiment not found.', code=ErrorCode.NOT_FOUND, status_code=404)
-    if result['state'] == 'empty':
-        raise AppError('Upload at least one file before building a revision.', code=ErrorCode.INVALID_INPUT)
-    if result['state'] != 'created':
-        raise AppError('A revision cannot be created in the experiment’s current state.', code=ErrorCode.CONFLICT, status_code=409)
-    return result['revision'], result['job']
+    if result["state"] == "not_found":
+        raise AppError("RAG Lab experiment not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+    if result["state"] == "empty":
+        raise AppError("Upload at least one file before building a revision.", code=ErrorCode.INVALID_INPUT)
+    if result["state"] != "created":
+        raise AppError("A revision cannot be created in the experiment’s current state.", code=ErrorCode.CONFLICT, status_code=409)
+    return result["revision"], result["job"]
 
 
 def build_revision(revision_id: str, repository=None, storage: RagLabStorage | None = None) -> dict:
@@ -105,11 +105,11 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
     storage = storage or rag_lab_storage()
     revision = repository.get_revision(revision_id)
     files = repository.list_files(revision["experiment_id"])
-    if revision.get('file_ids') is not None:
-        expected = set(revision['file_ids'])
-        files = [file for file in files if file['id'] in expected]
+    if revision.get("file_ids") is not None:
+        expected = set(revision["file_ids"])
+        files = [file for file in files if file["id"] in expected]
         if len(files) != len(expected):
-            raise AppError('A revision input file is missing.', code=ErrorCode.CONFLICT, status_code=409)
+            raise AppError("A revision input file is missing.", code=ErrorCode.CONFLICT, status_code=409)
     if revision["status"] in {"ready", "published"}:
         return {"revision_id": revision_id, "documents": len(files), "chunks": revision.get("chunk_count", 0)}
     config = revision["config"]["chunking"]
@@ -128,23 +128,29 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
             doc = extracted_document(file, storage, repository)
             configured_profile = config.get("profile", "auto")
             baseline_profile = frozen_profiles.get(file["id"], configured_profile) if configured_profile == "auto" else configured_profile
-            proposal = document_policy(doc, baseline_profile=baseline_profile,
-                                       document_ref=file["id"], origin="rag_lab")
+            proposal = document_policy(doc, baseline_profile=baseline_profile, document_ref=file["id"], origin="rag_lab")
             if proposal.get("review_required"):
                 if rag_lab_extraction_policy() == "block":
-                    raise AppError("Extracted text needs review before indexing. Check the original document and retry.",
-                                   code=ErrorCode.INVALID_INPUT)
+                    raise AppError(
+                        "Extracted text needs review before indexing. Check the original document and retry.", code=ErrorCode.INVALID_INPUT
+                    )
                 pages = proposal.get("extraction_review_pages") or []
-                warnings.append({"file_id": file["id"], "filename": file["filename"],
-                                 "code": "jev_extraction_review", "pages": pages})
-                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
-                       "jev_extraction_review_required": True, "jev_extraction_review_pages": pages}}
+                warnings.append({"file_id": file["id"], "filename": file["filename"], "code": "jev_extraction_review", "pages": pages})
+                doc = {
+                    **doc,
+                    "metadata": {
+                        **(doc.get("metadata") or {}),
+                        "jev_extraction_review_required": True,
+                        "jev_extraction_review_pages": pages,
+                    },
+                }
             if proposal.get("instrument_type_suggestion"):
-                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
-                       "jev_instrument_type_suggestion": proposal["instrument_type_suggestion"]}}
+                doc = {
+                    **doc,
+                    "metadata": {**(doc.get("metadata") or {}), "jev_instrument_type_suggestion": proposal["instrument_type_suggestion"]},
+                }
             if proposal.get("profile"):
-                doc = {**doc, "metadata": {**(doc.get("metadata") or {}),
-                       "jev_chunk_profile_suggestion": proposal["profile"]}}
+                doc = {**doc, "metadata": {**(doc.get("metadata") or {}), "jev_chunk_profile_suggestion": proposal["profile"]}}
             effective_profile = configured_profile
             fallback_profile = None
             if configured_profile == "auto" and file["id"] in frozen_profiles:
@@ -160,13 +166,17 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
                     effective_profile = proposal.get("profile", document_profile(doc))
                     if proposal.get("profile"):
                         fallback_profile = "auto"
-            chunks, doc, profile_fallback = compatible_document_chunks(
-                doc, config, effective_profile, fallback_profile=fallback_profile
-            )
+            chunks, doc, profile_fallback = compatible_document_chunks(doc, config, effective_profile, fallback_profile=fallback_profile)
             if profile_fallback:
-                warnings.append({"file_id": file["id"], "filename": file["filename"],
-                                 "code": "jev_chunk_profile_fallback",
-                                 "suggested_profile": effective_profile, "applied_profile": "auto"})
+                warnings.append(
+                    {
+                        "file_id": file["id"],
+                        "filename": file["filename"],
+                        "code": "jev_chunk_profile_fallback",
+                        "suggested_profile": effective_profile,
+                        "applied_profile": "auto",
+                    }
+                )
             batch: list[tuple[dict, str]] = []
             file_has_chunks = any(key[0] == file["id"] for key in existing_chunk_keys)
             for chunk in chunks:
@@ -175,19 +185,22 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
                 if chunk_key in existing_chunk_keys:
                     continue
                 batch.append(
-                    ({
-                        "revision_id": revision_id,
-                        "file_id": file["id"],
-                        "source": file["filename"],
-                        "chunk_index": chunk["chunk_index"],
-                        "chunk_type": chunk["chunk_type"],
-                        "section_heading": chunk["section_heading"],
-                        "page_start": chunk["page_start"],
-                        "page_end": chunk["page_end"],
-                        "content": chunk["content"],
-                        "token_estimate": chunk["token_estimate"],
-                        "metadata": {**chunk["metadata"], "file_id": file["id"], "display_source": file["filename"]},
-                    }, embedding_text(chunk))
+                    (
+                        {
+                            "revision_id": revision_id,
+                            "file_id": file["id"],
+                            "source": file["filename"],
+                            "chunk_index": chunk["chunk_index"],
+                            "chunk_type": chunk["chunk_type"],
+                            "section_heading": chunk["section_heading"],
+                            "page_start": chunk["page_start"],
+                            "page_end": chunk["page_end"],
+                            "content": chunk["content"],
+                            "token_estimate": chunk["token_estimate"],
+                            "metadata": {**chunk["metadata"], "file_id": file["id"], "display_source": file["filename"]},
+                        },
+                        embedding_text(chunk),
+                    )
                 )
                 if len(batch) >= embedding_batch_size:
                     inserted += insert_embedded_batch(repository, batch)
@@ -197,8 +210,9 @@ def build_revision(revision_id: str, repository=None, storage: RagLabStorage | N
                 inserted += insert_embedded_batch(repository, batch)
                 existing_chunk_keys.update((row["file_id"], row["chunk_index"]) for row, _ in batch)
             if not file_has_chunks:
-                raise AppError("Document produced no searchable chunks.", code=ErrorCode.INVALID_INPUT,
-                               details={"filename": file["filename"]})
+                raise AppError(
+                    "Document produced no searchable chunks.", code=ErrorCode.INVALID_INPUT, details={"filename": file["filename"]}
+                )
         if not inserted:
             raise AppError("Revision produced no searchable chunks.", code=ErrorCode.INVALID_INPUT)
         repository.update_revision(revision_id, status="ready", chunk_count=inserted)
@@ -218,7 +232,17 @@ def insert_embedded_batch(repository: RagLabRepository, batch: list[tuple[dict, 
 
 def extracted_document(file: dict, storage: RagLabStorage, repository: RagLabRepository) -> dict:
     if file.get("extraction_key"):
-        return storage.load_json(file["extraction_key"])
+        cached = storage.load_json(file["extraction_key"])
+        from pipeline_settings import PipelineSettings
+
+        if PipelineSettings.read().extraction_diagnostics:
+            from extraction_quality import document_diagnostics
+
+            cached = {
+                **cached,
+                "metadata": {**(cached.get("metadata") or {}), "extraction_quality": document_diagnostics(cached.get("pages") or [])},
+            }
+        return cached
     with storage.document_file(file["storage_key"], file["filename"]) as document_file:
         doc = read_document(document_file)
     if not doc:
@@ -242,6 +266,7 @@ def extracted_document(file: dict, storage: RagLabStorage, repository: RagLabRep
 
 
 @track_query_usage
+@request_context("question")
 def query_revision(revision_id: str, question: str, actor_user_id: str, retrieval_config: dict | None = None, repository=None) -> dict:
     repository = repository or RagLabRepository()
     revision = repository.get_revision(revision_id)
@@ -303,39 +328,38 @@ def publish_revision(revision_id: str, actor_user_id: str | None, repository=Non
     return repository.publish_revision(revision_id, actor_user_id)
 
 
-def run_rag_lab_job(job_id: str, *, raise_on_failure: bool = False, retryable: bool = False,
-                    retry_delay_seconds: int = 0) -> None:
+def run_rag_lab_job(job_id: str, *, raise_on_failure: bool = False, retryable: bool = False, retry_delay_seconds: int = 0) -> None:
     jobs = IngestJobRepository()
     with jobs.lease(job_id) as lease:
         job = jobs.get(job_id)
         if not job:
-            raise AppError('RAG Lab job not found.', code=ErrorCode.NOT_FOUND, status_code=404)
-        if job['status'] in {'succeeded', 'failed'}:
+            raise AppError("RAG Lab job not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+        if job["status"] in {"succeeded", "failed"}:
             return
         check_job_schedule(job)
-        jobs.update(job_id, status='running', token=lease.token)
+        jobs.update(job_id, status="running", token=lease.token)
         try:
-            revision_id = job['metadata']['revision_id']
-            with DatabaseLease(jobs.client, 'lab:' + revision_id, token=lease.token):
+            revision_id = job["metadata"]["revision_id"]
+            with DatabaseLease(jobs.client, "lab:" + revision_id, token=lease.token):
                 repository = FencedLabRepository(jobs.client, job_id, lease.token)
-                if job['kind'] == 'rag_lab.build':
+                if job["kind"] == "rag_lab.build":
                     result = build_revision(revision_id, repository=repository)
-                elif job['kind'] == 'rag_lab.publish':
-                    result = publish_revision(revision_id, job.get('actor_user_id'), repository=repository)
+                elif job["kind"] == "rag_lab.publish":
+                    result = publish_revision(revision_id, job.get("actor_user_id"), repository=repository)
                 else:
-                    raise AppError('Unsupported RAG Lab job kind.', code=ErrorCode.INVALID_INPUT)
+                    raise AppError("Unsupported RAG Lab job kind.", code=ErrorCode.INVALID_INPUT)
         except Exception as exc:
             jobs.update(
                 job_id,
-                status='queued' if retryable or isinstance(exc, OperationBusy) else 'failed',
+                status="queued" if retryable or isinstance(exc, OperationBusy) else "failed",
                 error=safe_failure(exc),
                 token=lease.token,
                 metadata={
-                    'capacity_wait': isinstance(exc, OperationBusy),
-                    'retry_delay_seconds': 5 if isinstance(exc, OperationBusy) else retry_delay_seconds,
+                    "capacity_wait": isinstance(exc, OperationBusy),
+                    "retry_delay_seconds": 5 if isinstance(exc, OperationBusy) else retry_delay_seconds,
                 },
             )
             if raise_on_failure:
                 raise
             return
-        jobs.update(job_id, status='succeeded', result=result, token=lease.token)
+        jobs.update(job_id, status="succeeded", result=result, token=lease.token)

@@ -1,0 +1,6494 @@
+{
+  "audit_date": "2026-10-15",
+  "timezone": "Asia/Kolkata",
+  "root": "/Users/anshumansharma/Documents/Playground",
+  "commit": "6d2cf3a971f9299b217dd29a4341aa8393e807ee",
+  "scope": "Local code/configuration audit; no production access or new paid model evaluation",
+  "safe_local_configuration": {
+    "GEMINI_EMBEDDING_MODEL": "gemini-embedding-2",
+    "EMBEDDING_DIMENSIONS": "768",
+    "CHUNK_TOKENS": "600",
+    "CHUNK_OVERLAP_TOKENS": "100",
+    "DOCUMENT_STORAGE_BACKEND": "r2",
+    "PDF_EXTRACT_TABLES": "false",
+    "INGEST_BATCH_SIZE": "24",
+    "DOCUMENT_AI_OCR_ENABLED": "true",
+    "GEMINI_ANSWER_TEMPERATURE": "0.25",
+    "GEMINI_MAX_OUTPUT_TOKENS": "3500",
+    "RAG_MULTI_QUERY": "true",
+    "RAG_MULTI_QUERY_MAX": "4",
+    "RAG_OVERVIEW_TOP_K": "8",
+    "RAG_EVIDENCE_PLANNING": "true",
+    "RAG_ANSWER_VERIFICATION": "true",
+    "GEMINI_DIRECT_MODEL": "gemini-3.5-flash-lite",
+    "GEMINI_COMPLEX_MODEL": "gemini-3.8-flash",
+    "GEMINI_UTILITY_MODEL": "gemini-3.5-flash-lite",
+    "GEMINI_VERIFICATION_MODEL": "gemini-3.5-flash-lite",
+    "GEMINI_DIRECT_THINKING_LEVEL": "minimal",
+    "GEMINI_COMPLEX_THINKING_LEVEL": "medium",
+    "GEMINI_COMPLEX_HIGH_THINKING_LEVEL": "high",
+    "GEMINI_DIRECT_MAX_OUTPUT_TOKENS": "1800",
+    "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS": "4000",
+    "GEMINI_EMBEDDING_REQUEST_INTERVAL_MS": "250",
+    "GEMINI_GENERATION_REQUEST_INTERVAL_MS": "0",
+    "GEMINI_EMBEDDING_MAX_RETRIES": "7",
+    "GEMINI_EMBEDDING_RETRY_BASE_SECONDS": "2",
+    "GEMINI_EMBEDDING_RETRY_MAX_SECONDS": "60",
+    "GEMINI_EMBEDDING_DEADLINE_SECONDS": "300",
+    "GEMINI_GENERATION_MAX_RETRIES": "3",
+    "GEMINI_GENERATION_RETRY_BASE_SECONDS": "1",
+    "GEMINI_GENERATION_RETRY_MAX_SECONDS": "15",
+    "GEMINI_GENERATION_DEADLINE_SECONDS": "150",
+    "RAG_DIRECT_CANDIDATES": "50",
+    "RAG_DIRECT_ANCHORS": "4",
+    "RAG_DIRECT_CONTEXTS": "5",
+    "RAG_DIRECT_CONTEXT_TOKENS": "3000",
+    "RAG_PROCEDURE_CANDIDATES": "80",
+    "RAG_PROCEDURE_ANCHORS": "6",
+    "RAG_PROCEDURE_CONTEXTS": "8",
+    "RAG_PROCEDURE_CONTEXT_TOKENS": "5000",
+    "RAG_COMPARISON_CANDIDATES": "100",
+    "RAG_COMPARISON_ANCHORS": "8",
+    "RAG_COMPARISON_CONTEXTS": "10",
+    "RAG_COMPARISON_CONTEXT_TOKENS": "7000",
+    "RAG_OVERVIEW_CANDIDATES": "120",
+    "RAG_OVERVIEW_ANCHORS": "8",
+    "RAG_OVERVIEW_CONTEXTS": "12",
+    "RAG_OVERVIEW_CONTEXT_TOKENS": "8000",
+    "RAG_TEMPORAL_CANDIDATES": "120",
+    "RAG_TEMPORAL_ANCHORS": "8",
+    "RAG_TEMPORAL_CONTEXTS": "12",
+    "RAG_TEMPORAL_CONTEXT_TOKENS": "8000",
+    "RETRIEVAL_MAX_PER_SOURCE": "0",
+    "RETRIEVAL_DUPLICATE_THRESHOLD": "0.82",
+    "RETRIEVAL_EXPAND_NEIGHBORS": "true",
+    "RETRIEVAL_MIN_CONTEXT_SCORE": "0.0",
+    "RETRIEVAL_CONFIDENCE_THRESHOLD": "0.01",
+    "RAG_INDEX_VERSION": "4",
+    "PROCEDURE_CHUNK_TOKENS": "600",
+    "PROCEDURE_CHUNK_OVERLAP_TOKENS": "120",
+    "PROCEDURE_UNIT_TOKENS": "260",
+    "MAX_UNIT_TOKENS": "220",
+    "FAQ_CHUNK_TOKENS": "650",
+    "FAQ_CHUNK_OVERLAP_TOKENS": "80",
+    "FAQ_UNIT_TOKENS": "260",
+    "RAG_COST_OPTIMIZATIONS": "true",
+    "RAG_SELECTIVE_PLANNING": "true",
+    "RAG_SELECTIVE_HISTORY": "true",
+    "RAG_SELECTIVE_EVIDENCE": "true",
+    "RAG_SELECTIVE_REASONING": "true",
+    "RAG_SELECTIVE_VERIFICATION": "true",
+    "RAG_HISTORY_SELECTION_TOKENS": "1500",
+    "GEMINI_CONTEXT_REWRITE_MAX_OUTPUT_TOKENS": "600",
+    "COST_USD_TO_INR": "90",
+    "COST_QUERY_MAX_INR": "1.5",
+    "RAG_LITE_EXTRACTION": "true",
+    "RAG_RISK_BASED_VERIFICATION": "true",
+    "RAG_LEGAL_BATCH_EMBEDDINGS": "true",
+    "JEV_VERIFICATION_MODE": "active",
+    "JEV_RERANK_MODE": "active",
+    "JEV_REWRITE_MODE": "active",
+    "JEV_ROUTING_MODE": "active",
+    "JEV_PLANNING_MODE": "active",
+    "JEV_HISTORY_MODE": "active",
+    "JEV_CLASSIFICATION_MODE": "active",
+    "JEV_EXTRACTION_MODE": "active",
+    "JEV_ACTIVE_FAILURE_POLICY": "closed",
+    "JEV_RAG_LAB_EXTRACTION_POLICY": "warn"
+  },
+  "effective_answer_profiles": {
+    "rewrite_context": {
+      "model": "gemini-3.5-flash-lite",
+      "max_output_tokens": 600,
+      "temperature": 0.0,
+      "thinking": "minimal",
+      "timeout_seconds": 30,
+      "code_profile": {
+        "model_env": "GEMINI_UTILITY_MODEL",
+        "default_model": "gemini-3.5-flash-lite",
+        "temperature_env": "GEMINI_REWRITE_TEMPERATURE",
+        "default_temperature": 0.0,
+        "max_tokens_env": "GEMINI_CONTEXT_REWRITE_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 600,
+        "thinking_env": "GEMINI_REWRITE_THINKING_LEVEL",
+        "default_thinking": "minimal",
+        "timeout_env": "GEMINI_UTILITY_TIMEOUT_SECONDS",
+        "default_timeout": 30,
+        "rate_bucket": "utility"
+      }
+    },
+    "rewrite": {
+      "model": "gemini-3.5-flash-lite",
+      "max_output_tokens": 200,
+      "temperature": 0.0,
+      "thinking": "minimal",
+      "timeout_seconds": 30,
+      "code_profile": {
+        "model_env": "GEMINI_UTILITY_MODEL",
+        "default_model": "gemini-3.5-flash-lite",
+        "temperature_env": "GEMINI_REWRITE_TEMPERATURE",
+        "default_temperature": 0.0,
+        "max_tokens_env": "GEMINI_REWRITE_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 200,
+        "thinking_env": "GEMINI_REWRITE_THINKING_LEVEL",
+        "default_thinking": "minimal",
+        "timeout_env": "GEMINI_UTILITY_TIMEOUT_SECONDS",
+        "default_timeout": 30,
+        "rate_bucket": "utility"
+      }
+    },
+    "plan": {
+      "model": "gemini-3.5-flash-lite",
+      "max_output_tokens": 1200,
+      "temperature": 0.0,
+      "thinking": "low",
+      "timeout_seconds": 45,
+      "code_profile": {
+        "model_env": "GEMINI_UTILITY_MODEL",
+        "default_model": "gemini-3.5-flash-lite",
+        "temperature_env": "GEMINI_PLAN_TEMPERATURE",
+        "default_temperature": 0.0,
+        "max_tokens_env": "GEMINI_PLAN_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 1200,
+        "thinking_env": "GEMINI_PLAN_THINKING_LEVEL",
+        "default_thinking": "low",
+        "timeout_env": "GEMINI_UTILITY_TIMEOUT_SECONDS",
+        "default_timeout": 45,
+        "rate_bucket": "utility"
+      }
+    },
+    "answer_direct": {
+      "model": "gemini-3.5-flash-lite",
+      "max_output_tokens": 1800,
+      "temperature": 0.1,
+      "thinking": "minimal",
+      "timeout_seconds": 60,
+      "code_profile": {
+        "model_env": "GEMINI_DIRECT_MODEL",
+        "default_model": "gemini-3.5-flash-lite",
+        "temperature_env": "GEMINI_DIRECT_TEMPERATURE",
+        "default_temperature": 0.1,
+        "max_tokens_env": "GEMINI_DIRECT_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 1800,
+        "thinking_env": "GEMINI_DIRECT_THINKING_LEVEL",
+        "default_thinking": "minimal",
+        "timeout_env": "GEMINI_DIRECT_TIMEOUT_SECONDS",
+        "default_timeout": 60,
+        "rate_bucket": "direct"
+      }
+    },
+    "answer_complex": {
+      "model": "gemini-3.8-flash",
+      "max_output_tokens": 4000,
+      "temperature": 0.1,
+      "thinking": "medium",
+      "timeout_seconds": 120,
+      "code_profile": {
+        "model_env": "GEMINI_COMPLEX_MODEL",
+        "default_model": "gemini-3.8-flash",
+        "temperature_env": "GEMINI_COMPLEX_TEMPERATURE",
+        "default_temperature": 0.1,
+        "max_tokens_env": "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 4000,
+        "thinking_env": "GEMINI_COMPLEX_THINKING_LEVEL",
+        "default_thinking": "medium",
+        "timeout_env": "GEMINI_COMPLEX_TIMEOUT_SECONDS",
+        "default_timeout": 120,
+        "rate_bucket": "complex"
+      }
+    },
+    "answer_complex_high": {
+      "model": "gemini-3.8-flash",
+      "max_output_tokens": 8192,
+      "temperature": 0.1,
+      "thinking": "high",
+      "timeout_seconds": 120,
+      "code_profile": {
+        "model_env": "GEMINI_COMPLEX_MODEL",
+        "default_model": "gemini-3.8-flash",
+        "temperature_env": "GEMINI_COMPLEX_TEMPERATURE",
+        "default_temperature": 0.1,
+        "max_tokens_env": "GEMINI_COMPLEX_HIGH_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 8192,
+        "thinking_env": "GEMINI_COMPLEX_HIGH_THINKING_LEVEL",
+        "default_thinking": "high",
+        "timeout_env": "GEMINI_COMPLEX_TIMEOUT_SECONDS",
+        "default_timeout": 120,
+        "rate_bucket": "complex"
+      }
+    },
+    "verify": {
+      "model": "gemini-3.5-flash-lite",
+      "max_output_tokens": 3000,
+      "temperature": 0.0,
+      "thinking": "low",
+      "timeout_seconds": 60,
+      "code_profile": {
+        "model_env": "GEMINI_VERIFICATION_MODEL",
+        "default_model": "gemini-3.5-flash-lite",
+        "temperature_env": "GEMINI_VERIFY_TEMPERATURE",
+        "default_temperature": 0.0,
+        "max_tokens_env": "GEMINI_VERIFY_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 3000,
+        "thinking_env": "GEMINI_VERIFY_THINKING_LEVEL",
+        "default_thinking": "low",
+        "timeout_env": "GEMINI_VERIFICATION_TIMEOUT_SECONDS",
+        "default_timeout": 60,
+        "rate_bucket": "verification"
+      }
+    },
+    "verify_complex": {
+      "model": "gemini-3.8-flash",
+      "max_output_tokens": 4000,
+      "temperature": 0.0,
+      "thinking": "medium",
+      "timeout_seconds": 120,
+      "code_profile": {
+        "model_env": "GEMINI_COMPLEX_MODEL",
+        "default_model": "gemini-3.8-flash",
+        "temperature_env": "GEMINI_VERIFY_TEMPERATURE",
+        "default_temperature": 0.0,
+        "max_tokens_env": "GEMINI_COMPLEX_MAX_OUTPUT_TOKENS",
+        "default_max_tokens": 4000,
+        "thinking_env": "GEMINI_COMPLEX_THINKING_LEVEL",
+        "default_thinking": "medium",
+        "timeout_env": "GEMINI_COMPLEX_TIMEOUT_SECONDS",
+        "default_timeout": 120,
+        "rate_bucket": "complex"
+      }
+    }
+  },
+  "effective_flags": {
+    "legal_hierarchy": false,
+    "lite_extraction": true,
+    "risk_based_verification": true,
+    "jev_modes": {
+      "verification": "active",
+      "rerank": "active",
+      "rewrite": "active",
+      "routing": "active",
+      "planning": "active",
+      "history": "active",
+      "classification": "active",
+      "extraction": "active"
+    },
+    "jev_credential_present": true
+  },
+  "retrieval_defaults_columns": [
+    "candidates",
+    "anchors",
+    "contexts",
+    "excerpt_token_budget"
+  ],
+  "retrieval_defaults": {
+    "direct": [
+      50,
+      4,
+      5,
+      3000
+    ],
+    "procedure": [
+      80,
+      6,
+      8,
+      5000
+    ],
+    "comparison": [
+      100,
+      8,
+      10,
+      7000
+    ],
+    "overview": [
+      120,
+      8,
+      12,
+      8000
+    ],
+    "temporal": [
+      120,
+      8,
+      12,
+      8000
+    ]
+  },
+  "verification": {
+    "pytest": "387 passed, 16 skipped, 1 warning",
+    "skipped": "Opt-in isolated PostgreSQL and Redis integration tests",
+    "new_paid_model_calls": 0,
+    "production_db_access": false,
+    "runtime_code_modified": false
+  },
+  "python_file_count": 80,
+  "python_line_count": 15421,
+  "python_files": [
+    {
+      "path": "app.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/app.py",
+      "lines": 115,
+      "sha256": "c227eebe69edd027cef354797f8f8ee0566c21e1b9523619e7712c701b42271c",
+      "symbols": [
+        {
+          "name": "create_app",
+          "kind": "function",
+          "line": 25,
+          "end_line": 49
+        },
+        {
+          "name": "log_requests",
+          "kind": "function",
+          "line": 52,
+          "end_line": 79
+        },
+        {
+          "name": "allowed_cors_origins",
+          "kind": "function",
+          "line": 82,
+          "end_line": 89
+        },
+        {
+          "name": "lifespan",
+          "kind": "function",
+          "line": 93,
+          "end_line": 112
+        }
+      ]
+    },
+    {
+      "path": "auth.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/auth.py",
+      "lines": 524,
+      "sha256": "0f6da4d84acb8847112191facdffa7bf2b25bc5bdaa7de2e2ff5e7a98eb4e7a6",
+      "symbols": [
+        {
+          "name": "AuthError",
+          "kind": "class",
+          "line": 39,
+          "end_line": 41
+        },
+        {
+          "name": "AuthError.__init__",
+          "kind": "function",
+          "line": 40,
+          "end_line": 41
+        },
+        {
+          "name": "CurrentUser",
+          "kind": "class",
+          "line": 45,
+          "end_line": 52
+        },
+        {
+          "name": "_jwt_secret",
+          "kind": "function",
+          "line": 55,
+          "end_line": 56
+        },
+        {
+          "name": "_jwt_expires_minutes",
+          "kind": "function",
+          "line": 59,
+          "end_line": 67
+        },
+        {
+          "name": "_refresh_expires_days",
+          "kind": "function",
+          "line": 70,
+          "end_line": 78
+        },
+        {
+          "name": "_bootstrap_admin_token",
+          "kind": "function",
+          "line": 81,
+          "end_line": 82
+        },
+        {
+          "name": "_auth_disabled",
+          "kind": "function",
+          "line": 85,
+          "end_line": 86
+        },
+        {
+          "name": "_user_from_row",
+          "kind": "function",
+          "line": 89,
+          "end_line": 102
+        },
+        {
+          "name": "public_user",
+          "kind": "function",
+          "line": 105,
+          "end_line": 117
+        },
+        {
+          "name": "create_access_token",
+          "kind": "function",
+          "line": 120,
+          "end_line": 138
+        },
+        {
+          "name": "_user_from_jwt",
+          "kind": "function",
+          "line": 141,
+          "end_line": 177
+        },
+        {
+          "name": "_user_from_token",
+          "kind": "function",
+          "line": 180,
+          "end_line": 192
+        },
+        {
+          "name": "get_current_user",
+          "kind": "function",
+          "line": 195,
+          "end_line": 208
+        },
+        {
+          "name": "get_authenticated_user",
+          "kind": "function",
+          "line": 211,
+          "end_line": 222
+        },
+        {
+          "name": "require_exact_admin",
+          "kind": "function",
+          "line": 225,
+          "end_line": 235
+        },
+        {
+          "name": "require_roles",
+          "kind": "function",
+          "line": 238,
+          "end_line": 250
+        },
+        {
+          "name": "require_roles_allowing_password_change",
+          "kind": "function",
+          "line": 253,
+          "end_line": 263
+        },
+        {
+          "name": "hash_password",
+          "kind": "function",
+          "line": 266,
+          "end_line": 267
+        },
+        {
+          "name": "verify_password",
+          "kind": "function",
+          "line": 270,
+          "end_line": 274
+        },
+        {
+          "name": "hash_refresh_token",
+          "kind": "function",
+          "line": 277,
+          "end_line": 278
+        },
+        {
+          "name": "generate_refresh_token",
+          "kind": "function",
+          "line": 281,
+          "end_line": 282
+        },
+        {
+          "name": "validate_password",
+          "kind": "function",
+          "line": 285,
+          "end_line": 291
+        },
+        {
+          "name": "issue_refresh_token",
+          "kind": "function",
+          "line": 294,
+          "end_line": 311
+        },
+        {
+          "name": "auth_token_bundle",
+          "kind": "function",
+          "line": 314,
+          "end_line": 317
+        },
+        {
+          "name": "token_bundle",
+          "kind": "function",
+          "line": 320,
+          "end_line": 334
+        },
+        {
+          "name": "create_app_user",
+          "kind": "function",
+          "line": 337,
+          "end_line": 362
+        },
+        {
+          "name": "login_with_password",
+          "kind": "function",
+          "line": 365,
+          "end_line": 383
+        },
+        {
+          "name": "refresh_access_token",
+          "kind": "function",
+          "line": 386,
+          "end_line": 402
+        },
+        {
+          "name": "change_password",
+          "kind": "function",
+          "line": 405,
+          "end_line": 422
+        },
+        {
+          "name": "update_own_profile",
+          "kind": "function",
+          "line": 425,
+          "end_line": 433
+        },
+        {
+          "name": "update_app_user",
+          "kind": "function",
+          "line": 436,
+          "end_line": 463
+        },
+        {
+          "name": "reset_app_user_password",
+          "kind": "function",
+          "line": 466,
+          "end_line": 474
+        },
+        {
+          "name": "audit_event",
+          "kind": "function",
+          "line": 477,
+          "end_line": 509
+        },
+        {
+          "name": "list_audit_events",
+          "kind": "function",
+          "line": 512,
+          "end_line": 516
+        },
+        {
+          "name": "list_app_users",
+          "kind": "function",
+          "line": 519,
+          "end_line": 524
+        }
+      ]
+    },
+    {
+      "path": "auth_repository.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/auth_repository.py",
+      "lines": 76,
+      "sha256": "6274a09e293d04938246b25c0b546e2af04ab86699a69f1c65552d53bdd9622f",
+      "symbols": [
+        {
+          "name": "AuthRepository",
+          "kind": "class",
+          "line": 8,
+          "end_line": 76
+        },
+        {
+          "name": "AuthRepository.__init__",
+          "kind": "function",
+          "line": 9,
+          "end_line": 10
+        },
+        {
+          "name": "AuthRepository.get_user_for_auth",
+          "kind": "function",
+          "line": 12,
+          "end_line": 20
+        },
+        {
+          "name": "AuthRepository.get_user_by_id",
+          "kind": "function",
+          "line": 22,
+          "end_line": 26
+        },
+        {
+          "name": "AuthRepository.create_user",
+          "kind": "function",
+          "line": 28,
+          "end_line": 30
+        },
+        {
+          "name": "AuthRepository.update_user",
+          "kind": "function",
+          "line": 32,
+          "end_line": 34
+        },
+        {
+          "name": "AuthRepository.list_users",
+          "kind": "function",
+          "line": 36,
+          "end_line": 44
+        },
+        {
+          "name": "AuthRepository.issue_refresh_token",
+          "kind": "function",
+          "line": 46,
+          "end_line": 51
+        },
+        {
+          "name": "AuthRepository.rotate_refresh_token",
+          "kind": "function",
+          "line": 53,
+          "end_line": 57
+        },
+        {
+          "name": "AuthRepository.change_password",
+          "kind": "function",
+          "line": 59,
+          "end_line": 63
+        },
+        {
+          "name": "AuthRepository.insert_audit_event",
+          "kind": "function",
+          "line": 65,
+          "end_line": 66
+        },
+        {
+          "name": "AuthRepository.list_audit_events",
+          "kind": "function",
+          "line": 68,
+          "end_line": 76
+        }
+      ]
+    },
+    {
+      "path": "chat_service.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/chat_service.py",
+      "lines": 140,
+      "sha256": "599dc4113dd465d83714ec5e0023cfd23ec4d663e11275b3367e7ee0eba48d27",
+      "symbols": [
+        {
+          "name": "create_chat_session",
+          "kind": "function",
+          "line": 13,
+          "end_line": 15
+        },
+        {
+          "name": "list_chat_sessions",
+          "kind": "function",
+          "line": 18,
+          "end_line": 20
+        },
+        {
+          "name": "get_chat_messages",
+          "kind": "function",
+          "line": 23,
+          "end_line": 32
+        },
+        {
+          "name": "enrich_legacy_citations",
+          "kind": "function",
+          "line": 35,
+          "end_line": 70
+        },
+        {
+          "name": "save_chat_message",
+          "kind": "function",
+          "line": 73,
+          "end_line": 82
+        },
+        {
+          "name": "delete_chat_session",
+          "kind": "function",
+          "line": 85,
+          "end_line": 87
+        },
+        {
+          "name": "delete_chat_message",
+          "kind": "function",
+          "line": 90,
+          "end_line": 92
+        },
+        {
+          "name": "chat_ask",
+          "kind": "function",
+          "line": 96,
+          "end_line": 140
+        }
+      ]
+    },
+    {
+      "path": "chunking.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/chunking.py",
+      "lines": 590,
+      "sha256": "90f8d3c6691c38d34e39e6e0c9896d8d386250d765f061b8a61cd67db3618617",
+      "symbols": [
+        {
+          "name": "count_tokens",
+          "kind": "function",
+          "line": 15,
+          "end_line": 16
+        },
+        {
+          "name": "document_profile",
+          "kind": "function",
+          "line": 19,
+          "end_line": 30
+        },
+        {
+          "name": "chunk_settings",
+          "kind": "function",
+          "line": 33,
+          "end_line": 47
+        },
+        {
+          "name": "is_heading",
+          "kind": "function",
+          "line": 50,
+          "end_line": 62
+        },
+        {
+          "name": "is_boilerplate_line",
+          "kind": "function",
+          "line": 65,
+          "end_line": 89
+        },
+        {
+          "name": "clean_heading",
+          "kind": "function",
+          "line": 92,
+          "end_line": 96
+        },
+        {
+          "name": "is_clause_start",
+          "kind": "function",
+          "line": 99,
+          "end_line": 102
+        },
+        {
+          "name": "strip_faq_question_number",
+          "kind": "function",
+          "line": 105,
+          "end_line": 106
+        },
+        {
+          "name": "is_numbered_faq_line",
+          "kind": "function",
+          "line": 109,
+          "end_line": 110
+        },
+        {
+          "name": "is_faq_question",
+          "kind": "function",
+          "line": 113,
+          "end_line": 126
+        },
+        {
+          "name": "is_answer_start",
+          "kind": "function",
+          "line": 129,
+          "end_line": 130
+        },
+        {
+          "name": "token_chunks",
+          "kind": "function",
+          "line": 133,
+          "end_line": 141
+        },
+        {
+          "name": "split_sentences",
+          "kind": "function",
+          "line": 144,
+          "end_line": 146
+        },
+        {
+          "name": "split_subclauses",
+          "kind": "function",
+          "line": 149,
+          "end_line": 155
+        },
+        {
+          "name": "pack_text_parts",
+          "kind": "function",
+          "line": 158,
+          "end_line": 177
+        },
+        {
+          "name": "split_long_text",
+          "kind": "function",
+          "line": 180,
+          "end_line": 205
+        },
+        {
+          "name": "split_with_context",
+          "kind": "function",
+          "line": 208,
+          "end_line": 221
+        },
+        {
+          "name": "table_context_lines",
+          "kind": "function",
+          "line": 224,
+          "end_line": 234
+        },
+        {
+          "name": "format_table_row",
+          "kind": "function",
+          "line": 237,
+          "end_line": 254
+        },
+        {
+          "name": "table_units",
+          "kind": "function",
+          "line": 257,
+          "end_line": 274
+        },
+        {
+          "name": "faq_document_units",
+          "kind": "function",
+          "line": 277,
+          "end_line": 338
+        },
+        {
+          "name": "page_units",
+          "kind": "function",
+          "line": 341,
+          "end_line": 393
+        },
+        {
+          "name": "iter_document_units",
+          "kind": "function",
+          "line": 396,
+          "end_line": 416
+        },
+        {
+          "name": "document_units",
+          "kind": "function",
+          "line": 419,
+          "end_line": 420
+        },
+        {
+          "name": "chunk_token_count",
+          "kind": "function",
+          "line": 423,
+          "end_line": 424
+        },
+        {
+          "name": "overlap_units",
+          "kind": "function",
+          "line": 427,
+          "end_line": 441
+        },
+        {
+          "name": "fit_overlap",
+          "kind": "function",
+          "line": 444,
+          "end_line": 448
+        },
+        {
+          "name": "unit_pages",
+          "kind": "function",
+          "line": 451,
+          "end_line": 452
+        },
+        {
+          "name": "unit_heading",
+          "kind": "function",
+          "line": 455,
+          "end_line": 459
+        },
+        {
+          "name": "unit_types",
+          "kind": "function",
+          "line": 462,
+          "end_line": 463
+        },
+        {
+          "name": "unit_table_indexes",
+          "kind": "function",
+          "line": 466,
+          "end_line": 467
+        },
+        {
+          "name": "context_unit",
+          "kind": "function",
+          "line": 470,
+          "end_line": 475
+        },
+        {
+          "name": "add_context_unit",
+          "kind": "function",
+          "line": 478,
+          "end_line": 490
+        },
+        {
+          "name": "chunk_from_units",
+          "kind": "function",
+          "line": 493,
+          "end_line": 527
+        },
+        {
+          "name": "iter_document_chunks",
+          "kind": "function",
+          "line": 530,
+          "end_line": 572
+        },
+        {
+          "name": "chunk_document",
+          "kind": "function",
+          "line": 575,
+          "end_line": 590
+        }
+      ]
+    },
+    {
+      "path": "consistency.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/consistency.py",
+      "lines": 69,
+      "sha256": "5420c0946d4b5a8ed5828f5946cee12b16515bf40f8c9b861b6aefb771a92ecd",
+      "symbols": [
+        {
+          "name": "OperationBusy",
+          "kind": "class",
+          "line": 13,
+          "end_line": 16
+        },
+        {
+          "name": "OperationBusy.__init__",
+          "kind": "function",
+          "line": 14,
+          "end_line": 16
+        },
+        {
+          "name": "DatabaseLease",
+          "kind": "class",
+          "line": 19,
+          "end_line": 61
+        },
+        {
+          "name": "DatabaseLease.__init__",
+          "kind": "function",
+          "line": 20,
+          "end_line": 26
+        },
+        {
+          "name": "DatabaseLease.rpc",
+          "kind": "function",
+          "line": 28,
+          "end_line": 29
+        },
+        {
+          "name": "DatabaseLease.__enter__",
+          "kind": "function",
+          "line": 31,
+          "end_line": 36
+        },
+        {
+          "name": "DatabaseLease._heartbeat",
+          "kind": "function",
+          "line": 38,
+          "end_line": 47
+        },
+        {
+          "name": "DatabaseLease.check",
+          "kind": "function",
+          "line": 49,
+          "end_line": 52
+        },
+        {
+          "name": "DatabaseLease.__exit__",
+          "kind": "function",
+          "line": 54,
+          "end_line": 61
+        },
+        {
+          "name": "check_job_schedule",
+          "kind": "function",
+          "line": 64,
+          "end_line": 69
+        }
+      ]
+    },
+    {
+      "path": "conversation_context.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/conversation_context.py",
+      "lines": 84,
+      "sha256": "81d5464253c60dff15a4f0d67b08e9060fac15c6fbb373deabee5630baf17c2b",
+      "symbols": [
+        {
+          "name": "should_select_history",
+          "kind": "function",
+          "line": 26,
+          "end_line": 32
+        },
+        {
+          "name": "select_history",
+          "kind": "function",
+          "line": 35,
+          "end_line": 84
+        }
+      ]
+    },
+    {
+      "path": "documents.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/documents.py",
+      "lines": 588,
+      "sha256": "9a024dea1e1f923d6c417d9963a136a7d7ed7cacc275cf73c910ae4a6fac50fe",
+      "symbols": [
+        {
+          "name": "normalize_text",
+          "kind": "function",
+          "line": 34,
+          "end_line": 38
+        },
+        {
+          "name": "read_txt",
+          "kind": "function",
+          "line": 41,
+          "end_line": 43
+        },
+        {
+          "name": "read_pdf",
+          "kind": "function",
+          "line": 46,
+          "end_line": 61
+        },
+        {
+          "name": "mark_native_pdf_pages",
+          "kind": "function",
+          "line": 64,
+          "end_line": 65
+        },
+        {
+          "name": "useful_text_char_count",
+          "kind": "function",
+          "line": 68,
+          "end_line": 69
+        },
+        {
+          "name": "apply_pdf_ocr_fallback",
+          "kind": "function",
+          "line": 72,
+          "end_line": 111
+        },
+        {
+          "name": "single_page_pdf_bytes",
+          "kind": "function",
+          "line": 114,
+          "end_line": 119
+        },
+        {
+          "name": "read_pdf_with_pypdf",
+          "kind": "function",
+          "line": 122,
+          "end_line": 137
+        },
+        {
+          "name": "read_pdf_with_pdfplumber",
+          "kind": "function",
+          "line": 140,
+          "end_line": 171
+        },
+        {
+          "name": "enforce_pdf_page_limit",
+          "kind": "function",
+          "line": 174,
+          "end_line": 177
+        },
+        {
+          "name": "enforce_extracted_text_limit",
+          "kind": "function",
+          "line": 180,
+          "end_line": 183
+        },
+        {
+          "name": "iter_docx_blocks",
+          "kind": "function",
+          "line": 186,
+          "end_line": 191
+        },
+        {
+          "name": "clean_cell_text",
+          "kind": "function",
+          "line": 194,
+          "end_line": 195
+        },
+        {
+          "name": "table_block_from_rows",
+          "kind": "function",
+          "line": 198,
+          "end_line": 217
+        },
+        {
+          "name": "docx_table_block",
+          "kind": "function",
+          "line": 220,
+          "end_line": 221
+        },
+        {
+          "name": "read_docx",
+          "kind": "function",
+          "line": 224,
+          "end_line": 244
+        },
+        {
+          "name": "iter_pptx_shapes",
+          "kind": "function",
+          "line": 247,
+          "end_line": 252
+        },
+        {
+          "name": "read_pptx",
+          "kind": "function",
+          "line": 255,
+          "end_line": 285
+        },
+        {
+          "name": "iter_ppt_records",
+          "kind": "function",
+          "line": 288,
+          "end_line": 297
+        },
+        {
+          "name": "legacy_ppt_text",
+          "kind": "function",
+          "line": 300,
+          "end_line": 314
+        },
+        {
+          "name": "legacy_ppt_slide_lists",
+          "kind": "function",
+          "line": 317,
+          "end_line": 337
+        },
+        {
+          "name": "legacy_ppt_slide_containers",
+          "kind": "function",
+          "line": 340,
+          "end_line": 349
+        },
+        {
+          "name": "read_ppt",
+          "kind": "function",
+          "line": 352,
+          "end_line": 374
+        },
+        {
+          "name": "iter_documents",
+          "kind": "function",
+          "line": 377,
+          "end_line": 382
+        },
+        {
+          "name": "load_documents",
+          "kind": "function",
+          "line": 385,
+          "end_line": 386
+        },
+        {
+          "name": "read_document",
+          "kind": "function",
+          "line": 389,
+          "end_line": 427
+        },
+        {
+          "name": "infer_title",
+          "kind": "function",
+          "line": 430,
+          "end_line": 476
+        },
+        {
+          "name": "is_generic_title_line",
+          "kind": "function",
+          "line": 479,
+          "end_line": 491
+        },
+        {
+          "name": "extract_document_metadata",
+          "kind": "function",
+          "line": 494,
+          "end_line": 506
+        },
+        {
+          "name": "infer_document_type",
+          "kind": "function",
+          "line": 509,
+          "end_line": 524
+        },
+        {
+          "name": "infer_authority",
+          "kind": "function",
+          "line": 527,
+          "end_line": 532
+        },
+        {
+          "name": "extract_legal_identifiers",
+          "kind": "function",
+          "line": 535,
+          "end_line": 552
+        },
+        {
+          "name": "remove_repeated_margin_lines",
+          "kind": "function",
+          "line": 555,
+          "end_line": 588
+        }
+      ]
+    },
+    {
+      "path": "errors.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/errors.py",
+      "lines": 100,
+      "sha256": "1233e246cdf5e14a269c0dc1bb0aef7a8c4f199bbc04fbc867aa2744fe073310",
+      "symbols": [
+        {
+          "name": "ErrorCode",
+          "kind": "class",
+          "line": 13,
+          "end_line": 25
+        },
+        {
+          "name": "ApiError",
+          "kind": "class",
+          "line": 31,
+          "end_line": 34
+        },
+        {
+          "name": "ErrorResponse",
+          "kind": "class",
+          "line": 37,
+          "end_line": 38
+        },
+        {
+          "name": "AppError",
+          "kind": "class",
+          "line": 41,
+          "end_line": 57
+        },
+        {
+          "name": "AppError.__init__",
+          "kind": "function",
+          "line": 42,
+          "end_line": 57
+        },
+        {
+          "name": "error_response",
+          "kind": "function",
+          "line": 60,
+          "end_line": 67
+        },
+        {
+          "name": "app_error_handler",
+          "kind": "function",
+          "line": 70,
+          "end_line": 71
+        },
+        {
+          "name": "http_error_handler",
+          "kind": "function",
+          "line": 74,
+          "end_line": 77
+        },
+        {
+          "name": "validation_error_handler",
+          "kind": "function",
+          "line": 80,
+          "end_line": 88
+        },
+        {
+          "name": "unhandled_error_handler",
+          "kind": "function",
+          "line": 91,
+          "end_line": 100
+        }
+      ]
+    },
+    {
+      "path": "generation_cost.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/generation_cost.py",
+      "lines": 53,
+      "sha256": "a7075965fa467821b48265c74e7009e840412da9bf5f4c9c7b7f94614eb102e0",
+      "symbols": [
+        {
+          "name": "positive_setting",
+          "kind": "function",
+          "line": 15,
+          "end_line": 20
+        },
+        {
+          "name": "generation_cost",
+          "kind": "function",
+          "line": 23,
+          "end_line": 53
+        }
+      ]
+    },
+    {
+      "path": "ingest_service.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/ingest_service.py",
+      "lines": 319,
+      "sha256": "848c356afe893e204c4727de3b97c766a6e012b4b9d7e12281841e9487345060",
+      "symbols": [
+        {
+          "name": "build_index",
+          "kind": "function",
+          "line": 18,
+          "end_line": 30
+        },
+        {
+          "name": "content_fingerprint",
+          "kind": "function",
+          "line": 33,
+          "end_line": 43
+        },
+        {
+          "name": "_build_index",
+          "kind": "function",
+          "line": 46,
+          "end_line": 100
+        },
+        {
+          "name": "persist_document_chunks",
+          "kind": "function",
+          "line": 103,
+          "end_line": 127
+        },
+        {
+          "name": "positive_env_int",
+          "kind": "function",
+          "line": 130,
+          "end_line": 138
+        },
+        {
+          "name": "preview_chunks",
+          "kind": "function",
+          "line": 141,
+          "end_line": 204
+        },
+        {
+          "name": "preview_chunk",
+          "kind": "function",
+          "line": 207,
+          "end_line": 217
+        },
+        {
+          "name": "chunk_preview_response",
+          "kind": "function",
+          "line": 220,
+          "end_line": 246
+        },
+        {
+          "name": "create_ingest_job",
+          "kind": "function",
+          "line": 249,
+          "end_line": 256
+        },
+        {
+          "name": "get_ingest_job",
+          "kind": "function",
+          "line": 259,
+          "end_line": 261
+        },
+        {
+          "name": "mark_ingest_job_enqueued",
+          "kind": "function",
+          "line": 264,
+          "end_line": 273
+        },
+        {
+          "name": "mark_ingest_job_enqueue_failed",
+          "kind": "function",
+          "line": 276,
+          "end_line": 284
+        },
+        {
+          "name": "run_ingest_job",
+          "kind": "function",
+          "line": 287,
+          "end_line": 319
+        }
+      ]
+    },
+    {
+      "path": "jev_policy.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/jev_policy.py",
+      "lines": 112,
+      "sha256": "9746c122b6a06ee8743a504f909cc399c030651556f85e7abaaca3b028b3bc9b",
+      "symbols": [
+        {
+          "name": "enabled",
+          "kind": "function",
+          "line": 13,
+          "end_line": 17
+        },
+        {
+          "name": "decision_log",
+          "kind": "function",
+          "line": 20,
+          "end_line": 22
+        },
+        {
+          "name": "draft_verification_decision",
+          "kind": "function",
+          "line": 25,
+          "end_line": 55
+        },
+        {
+          "name": "approve_draft",
+          "kind": "function",
+          "line": 58,
+          "end_line": 63
+        },
+        {
+          "name": "rerank",
+          "kind": "function",
+          "line": 66,
+          "end_line": 97
+        },
+        {
+          "name": "standalone_question",
+          "kind": "function",
+          "line": 100,
+          "end_line": 112
+        }
+      ]
+    },
+    {
+      "path": "jev_settings.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/jev_settings.py",
+      "lines": 81,
+      "sha256": "6a6d86dd0455808628058a683bba3e92b265adff98a6b6711ca787157db7bb54",
+      "symbols": [
+        {
+          "name": "api_key",
+          "kind": "function",
+          "line": 9,
+          "end_line": 10
+        },
+        {
+          "name": "mode",
+          "kind": "function",
+          "line": 13,
+          "end_line": 17
+        },
+        {
+          "name": "active_failure_policy",
+          "kind": "function",
+          "line": 20,
+          "end_line": 30
+        },
+        {
+          "name": "rag_lab_extraction_policy",
+          "kind": "function",
+          "line": 33,
+          "end_line": 38
+        },
+        {
+          "name": "number",
+          "kind": "function",
+          "line": 41,
+          "end_line": 45
+        },
+        {
+          "name": "status",
+          "kind": "function",
+          "line": 48,
+          "end_line": 56
+        },
+        {
+          "name": "invalid_settings",
+          "kind": "function",
+          "line": 59,
+          "end_line": 81
+        }
+      ]
+    },
+    {
+      "path": "jev_shadow.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/jev_shadow.py",
+      "lines": 203,
+      "sha256": "add2da48d041b07c6a2c7c4b39d0cef67a3e5c729f23e2302ef2945d6084d730",
+      "symbols": [
+        {
+          "name": "ask",
+          "kind": "function",
+          "line": 10,
+          "end_line": 12
+        },
+        {
+          "name": "answer_policy",
+          "kind": "function",
+          "line": 15,
+          "end_line": 56
+        },
+        {
+          "name": "apply_planning",
+          "kind": "function",
+          "line": 59,
+          "end_line": 71
+        },
+        {
+          "name": "apply_route",
+          "kind": "function",
+          "line": 74,
+          "end_line": 88
+        },
+        {
+          "name": "history_selection",
+          "kind": "function",
+          "line": 91,
+          "end_line": 124
+        },
+        {
+          "name": "confident_label",
+          "kind": "function",
+          "line": 127,
+          "end_line": 130
+        },
+        {
+          "name": "document_policy",
+          "kind": "function",
+          "line": 133,
+          "end_line": 139
+        },
+        {
+          "name": "_document_policy",
+          "kind": "function",
+          "line": 143,
+          "end_line": 203
+        }
+      ]
+    },
+    {
+      "path": "job_recovery.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/job_recovery.py",
+      "lines": 33,
+      "sha256": "32465ac59418b8208993663dc43e332a268199611f93166348f434797a013f68",
+      "symbols": [
+        {
+          "name": "recover_jobs",
+          "kind": "function",
+          "line": 13,
+          "end_line": 24
+        },
+        {
+          "name": "recovery_loop",
+          "kind": "function",
+          "line": 27,
+          "end_line": 33
+        }
+      ]
+    },
+    {
+      "path": "legal_registry.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/legal_registry.py",
+      "lines": 109,
+      "sha256": "a7996c0289afc6cac6df5c6fdca824884e2b129109583ddfd75f4aa0c850f02f",
+      "symbols": [
+        {
+          "name": "LegalRelationship",
+          "kind": "class",
+          "line": 25,
+          "end_line": 31
+        },
+        {
+          "name": "LegalProfile",
+          "kind": "class",
+          "line": 34,
+          "end_line": 44
+        },
+        {
+          "name": "legal_namespace",
+          "kind": "function",
+          "line": 47,
+          "end_line": 51
+        },
+        {
+          "name": "LegalRegistryRepository",
+          "kind": "class",
+          "line": 54,
+          "end_line": 86
+        },
+        {
+          "name": "LegalRegistryRepository.__init__",
+          "kind": "function",
+          "line": 55,
+          "end_line": 57
+        },
+        {
+          "name": "LegalRegistryRepository.profiles",
+          "kind": "function",
+          "line": 59,
+          "end_line": 70
+        },
+        {
+          "name": "LegalRegistryRepository.save",
+          "kind": "function",
+          "line": 72,
+          "end_line": 78
+        },
+        {
+          "name": "LegalRegistryRepository.match",
+          "kind": "function",
+          "line": 80,
+          "end_line": 86
+        },
+        {
+          "name": "suggest_profile",
+          "kind": "function",
+          "line": 89,
+          "end_line": 109
+        }
+      ]
+    },
+    {
+      "path": "legal_retrieval.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/legal_retrieval.py",
+      "lines": 189,
+      "sha256": "c9e7c4f1031c0d064f9ecb09c4f2f7b5988ed62ff4a6f8bcae13ff9c21cf5902",
+      "symbols": [
+        {
+          "name": "related_documents",
+          "kind": "function",
+          "line": 31,
+          "end_line": 56
+        },
+        {
+          "name": "retrieve_legal",
+          "kind": "function",
+          "line": 59,
+          "end_line": 171
+        },
+        {
+          "name": "legal_prompt_context",
+          "kind": "function",
+          "line": 174,
+          "end_line": 189
+        }
+      ]
+    },
+    {
+      "path": "model_routing.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/model_routing.py",
+      "lines": 44,
+      "sha256": "e5ee015de7d262e7acab0f9c66b68c9d2a357ea58b7266d6ecaca2117de451d7",
+      "symbols": [
+        {
+          "name": "extraction_eligible",
+          "kind": "function",
+          "line": 8,
+          "end_line": 44
+        }
+      ]
+    },
+    {
+      "path": "prompts.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/prompts.py",
+      "lines": 553,
+      "sha256": "0fae5f2a44862372be9b7d31863ada1f01469d6a43d407633a6af41a3f6aa95b",
+      "symbols": [
+        {
+          "name": "format_history",
+          "kind": "function",
+          "line": 89,
+          "end_line": 95
+        },
+        {
+          "name": "format_contexts",
+          "kind": "function",
+          "line": 98,
+          "end_line": 130
+        },
+        {
+          "name": "env_enabled",
+          "kind": "function",
+          "line": 133,
+          "end_line": 137
+        },
+        {
+          "name": "parse_evidence_plan",
+          "kind": "function",
+          "line": 140,
+          "end_line": 152
+        },
+        {
+          "name": "build_evidence_plan",
+          "kind": "function",
+          "line": 155,
+          "end_line": 175
+        },
+        {
+          "name": "parse_verified_answer",
+          "kind": "function",
+          "line": 178,
+          "end_line": 188
+        },
+        {
+          "name": "verify_answer_with_gemini",
+          "kind": "function",
+          "line": 191,
+          "end_line": 251
+        },
+        {
+          "name": "accepted_verification",
+          "kind": "function",
+          "line": 254,
+          "end_line": 270
+        },
+        {
+          "name": "answer_generation_operation",
+          "kind": "function",
+          "line": 273,
+          "end_line": 304
+        },
+        {
+          "name": "simple_dated_amendment_lookup",
+          "kind": "function",
+          "line": 307,
+          "end_line": 330
+        },
+        {
+          "name": "lite_extraction_enabled",
+          "kind": "function",
+          "line": 333,
+          "end_line": 334
+        },
+        {
+          "name": "needs_evidence_plan",
+          "kind": "function",
+          "line": 337,
+          "end_line": 355
+        },
+        {
+          "name": "answer_with_gemini",
+          "kind": "function",
+          "line": 358,
+          "end_line": 483
+        },
+        {
+          "name": "validate_answer_citations",
+          "kind": "function",
+          "line": 486,
+          "end_line": 516
+        },
+        {
+          "name": "answer_outcome",
+          "kind": "function",
+          "line": 519,
+          "end_line": 526
+        },
+        {
+          "name": "answer_is_abstention",
+          "kind": "function",
+          "line": 529,
+          "end_line": 530
+        },
+        {
+          "name": "rewrite_question_for_retrieval",
+          "kind": "function",
+          "line": 533,
+          "end_line": 553
+        }
+      ]
+    },
+    {
+      "path": "rag.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/rag.py",
+      "lines": 81,
+      "sha256": "3328c5dbaabc743c216e306d851b5dab7a5ed1721a98767549c70c2d5a73fc66",
+      "symbols": [
+        {
+          "name": "indexed_sources",
+          "kind": "function",
+          "line": 80,
+          "end_line": 81
+        }
+      ]
+    },
+    {
+      "path": "rag_errors.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/rag_errors.py",
+      "lines": 6,
+      "sha256": "375f92d6d788e295c37871b878c53372e733146419caec43a9a2fd4e9048809c",
+      "symbols": [
+        {
+          "name": "RagError",
+          "kind": "class",
+          "line": 4,
+          "end_line": 6
+        },
+        {
+          "name": "RagError.__init__",
+          "kind": "function",
+          "line": 5,
+          "end_line": 6
+        }
+      ]
+    },
+    {
+      "path": "rag_lab_repository.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/rag_lab_repository.py",
+      "lines": 279,
+      "sha256": "8d8a4669fa32346c1bdfe0b2b37c60778378749fa9d5808a6dfe6be4e118e295",
+      "symbols": [
+        {
+          "name": "RagLabRepository",
+          "kind": "class",
+          "line": 8,
+          "end_line": 242
+        },
+        {
+          "name": "RagLabRepository.__init__",
+          "kind": "function",
+          "line": 9,
+          "end_line": 10
+        },
+        {
+          "name": "RagLabRepository.create_experiment",
+          "kind": "function",
+          "line": 12,
+          "end_line": 20
+        },
+        {
+          "name": "RagLabRepository.list_experiments",
+          "kind": "function",
+          "line": 22,
+          "end_line": 39
+        },
+        {
+          "name": "RagLabRepository.get_experiment",
+          "kind": "function",
+          "line": 41,
+          "end_line": 45
+        },
+        {
+          "name": "RagLabRepository.update_experiment",
+          "kind": "function",
+          "line": 47,
+          "end_line": 54
+        },
+        {
+          "name": "RagLabRepository.add_file",
+          "kind": "function",
+          "line": 56,
+          "end_line": 57
+        },
+        {
+          "name": "RagLabRepository.list_files",
+          "kind": "function",
+          "line": 59,
+          "end_line": 68
+        },
+        {
+          "name": "RagLabRepository.update_file_extraction",
+          "kind": "function",
+          "line": 70,
+          "end_line": 73
+        },
+        {
+          "name": "RagLabRepository.create_revision_job",
+          "kind": "function",
+          "line": 75,
+          "end_line": 78
+        },
+        {
+          "name": "RagLabRepository.create_revision",
+          "kind": "function",
+          "line": 80,
+          "end_line": 100
+        },
+        {
+          "name": "RagLabRepository.get_revision",
+          "kind": "function",
+          "line": 102,
+          "end_line": 106
+        },
+        {
+          "name": "RagLabRepository.list_revisions",
+          "kind": "function",
+          "line": 108,
+          "end_line": 117
+        },
+        {
+          "name": "RagLabRepository.update_revision",
+          "kind": "function",
+          "line": 119,
+          "end_line": 123
+        },
+        {
+          "name": "RagLabRepository.delete_revision_chunks",
+          "kind": "function",
+          "line": 125,
+          "end_line": 126
+        },
+        {
+          "name": "RagLabRepository.existing_chunk_profiles",
+          "kind": "function",
+          "line": 128,
+          "end_line": 145
+        },
+        {
+          "name": "RagLabRepository.existing_chunk_keys",
+          "kind": "function",
+          "line": 147,
+          "end_line": 163
+        },
+        {
+          "name": "RagLabRepository.insert_chunk_batch",
+          "kind": "function",
+          "line": 165,
+          "end_line": 168
+        },
+        {
+          "name": "RagLabRepository.list_chunks",
+          "kind": "function",
+          "line": 170,
+          "end_line": 188
+        },
+        {
+          "name": "RagLabRepository.match_chunks",
+          "kind": "function",
+          "line": 190,
+          "end_line": 202
+        },
+        {
+          "name": "RagLabRepository.for_revision",
+          "kind": "function",
+          "line": 204,
+          "end_line": 206
+        },
+        {
+          "name": "RagLabRepository.neighbor_chunks",
+          "kind": "function",
+          "line": 208,
+          "end_line": 221
+        },
+        {
+          "name": "RagLabRepository.save_trial",
+          "kind": "function",
+          "line": 223,
+          "end_line": 224
+        },
+        {
+          "name": "RagLabRepository.list_trials",
+          "kind": "function",
+          "line": 226,
+          "end_line": 236
+        },
+        {
+          "name": "RagLabRepository.publish_revision",
+          "kind": "function",
+          "line": 238,
+          "end_line": 242
+        },
+        {
+          "name": "now_iso",
+          "kind": "function",
+          "line": 245,
+          "end_line": 246
+        },
+        {
+          "name": "FencedLabRepository",
+          "kind": "class",
+          "line": 249,
+          "end_line": 279
+        },
+        {
+          "name": "FencedLabRepository.__init__",
+          "kind": "function",
+          "line": 251,
+          "end_line": 253
+        },
+        {
+          "name": "FencedLabRepository.mutate",
+          "kind": "function",
+          "line": 255,
+          "end_line": 259
+        },
+        {
+          "name": "FencedLabRepository.update_revision",
+          "kind": "function",
+          "line": 261,
+          "end_line": 262
+        },
+        {
+          "name": "FencedLabRepository.update_experiment",
+          "kind": "function",
+          "line": 264,
+          "end_line": 267
+        },
+        {
+          "name": "FencedLabRepository.delete_revision_chunks",
+          "kind": "function",
+          "line": 269,
+          "end_line": 271
+        },
+        {
+          "name": "FencedLabRepository.insert_chunk_batch",
+          "kind": "function",
+          "line": 273,
+          "end_line": 276
+        },
+        {
+          "name": "FencedLabRepository.publish_revision",
+          "kind": "function",
+          "line": 278,
+          "end_line": 279
+        }
+      ]
+    },
+    {
+      "path": "rag_lab_service.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/rag_lab_service.py",
+      "lines": 341,
+      "sha256": "0d64e22d454e70c7429b46f6f15647a942b55b79e3a686f8ba8216a986f57ff5",
+      "symbols": [
+        {
+          "name": "compatible_document_chunks",
+          "kind": "function",
+          "line": 25,
+          "end_line": 51
+        },
+        {
+          "name": "upload_files",
+          "kind": "function",
+          "line": 54,
+          "end_line": 88
+        },
+        {
+          "name": "create_revision_job",
+          "kind": "function",
+          "line": 91,
+          "end_line": 100
+        },
+        {
+          "name": "build_revision",
+          "kind": "function",
+          "line": 103,
+          "end_line": 210
+        },
+        {
+          "name": "insert_embedded_batch",
+          "kind": "function",
+          "line": 213,
+          "end_line": 216
+        },
+        {
+          "name": "extracted_document",
+          "kind": "function",
+          "line": 219,
+          "end_line": 241
+        },
+        {
+          "name": "query_revision",
+          "kind": "function",
+          "line": 245,
+          "end_line": 286
+        },
+        {
+          "name": "create_publish_job",
+          "kind": "function",
+          "line": 289,
+          "end_line": 298
+        },
+        {
+          "name": "publish_revision",
+          "kind": "function",
+          "line": 301,
+          "end_line": 303
+        },
+        {
+          "name": "run_rag_lab_job",
+          "kind": "function",
+          "line": 306,
+          "end_line": 341
+        }
+      ]
+    },
+    {
+      "path": "redaction.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/redaction.py",
+      "lines": 58,
+      "sha256": "5ca2d8dc56c3b251d8a90da8214bb1161f1aeb3b01634d742c0c51b41b279421",
+      "symbols": [
+        {
+          "name": "redact_text",
+          "kind": "function",
+          "line": 13,
+          "end_line": 33
+        },
+        {
+          "name": "redact",
+          "kind": "function",
+          "line": 36,
+          "end_line": 48
+        },
+        {
+          "name": "safe_failure",
+          "kind": "function",
+          "line": 51,
+          "end_line": 58
+        }
+      ]
+    },
+    {
+      "path": "repositories.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/repositories.py",
+      "lines": 294,
+      "sha256": "c55b167139384c98a3944ac24d80e82f133d4e37ff24d94940d3c1e0c4cbf4a4",
+      "symbols": [
+        {
+          "name": "DocumentRepository",
+          "kind": "class",
+          "line": 12,
+          "end_line": 127
+        },
+        {
+          "name": "DocumentRepository.__init__",
+          "kind": "function",
+          "line": 13,
+          "end_line": 14
+        },
+        {
+          "name": "DocumentRepository.indexed_sources",
+          "kind": "function",
+          "line": 16,
+          "end_line": 25
+        },
+        {
+          "name": "DocumentRepository.get_document",
+          "kind": "function",
+          "line": 27,
+          "end_line": 35
+        },
+        {
+          "name": "DocumentRepository.document_ids_by_sources",
+          "kind": "function",
+          "line": 37,
+          "end_line": 41
+        },
+        {
+          "name": "DocumentRepository.list_documents",
+          "kind": "function",
+          "line": 43,
+          "end_line": 84
+        },
+        {
+          "name": "DocumentRepository.index_lease",
+          "kind": "function",
+          "line": 86,
+          "end_line": 87
+        },
+        {
+          "name": "DocumentRepository.begin_revision",
+          "kind": "function",
+          "line": 89,
+          "end_line": 92
+        },
+        {
+          "name": "DocumentRepository.insert_revision_chunks",
+          "kind": "function",
+          "line": 94,
+          "end_line": 97
+        },
+        {
+          "name": "DocumentRepository.publish_revision",
+          "kind": "function",
+          "line": 99,
+          "end_line": 102
+        },
+        {
+          "name": "DocumentRepository.fail_revision",
+          "kind": "function",
+          "line": 104,
+          "end_line": 107
+        },
+        {
+          "name": "DocumentRepository.record_ingest_failure",
+          "kind": "function",
+          "line": 109,
+          "end_line": 113
+        },
+        {
+          "name": "DocumentRepository.match_chunks",
+          "kind": "function",
+          "line": 115,
+          "end_line": 120
+        },
+        {
+          "name": "DocumentRepository.neighbor_chunks",
+          "kind": "function",
+          "line": 122,
+          "end_line": 127
+        },
+        {
+          "name": "index_version",
+          "kind": "function",
+          "line": 130,
+          "end_line": 131
+        },
+        {
+          "name": "postgrest_quoted_ilike",
+          "kind": "function",
+          "line": 134,
+          "end_line": 136
+        },
+        {
+          "name": "document_library_item",
+          "kind": "function",
+          "line": 139,
+          "end_line": 161
+        },
+        {
+          "name": "ChatRepository",
+          "kind": "class",
+          "line": 164,
+          "end_line": 257
+        },
+        {
+          "name": "ChatRepository.__init__",
+          "kind": "function",
+          "line": 165,
+          "end_line": 166
+        },
+        {
+          "name": "ChatRepository.begin_turn",
+          "kind": "function",
+          "line": 168,
+          "end_line": 172
+        },
+        {
+          "name": "ChatRepository.turn_lease",
+          "kind": "function",
+          "line": 174,
+          "end_line": 175
+        },
+        {
+          "name": "ChatRepository.complete_turn",
+          "kind": "function",
+          "line": 177,
+          "end_line": 181
+        },
+        {
+          "name": "ChatRepository.create_session",
+          "kind": "function",
+          "line": 183,
+          "end_line": 186
+        },
+        {
+          "name": "ChatRepository.list_sessions",
+          "kind": "function",
+          "line": 188,
+          "end_line": 197
+        },
+        {
+          "name": "ChatRepository.assert_session_owner",
+          "kind": "function",
+          "line": 199,
+          "end_line": 209
+        },
+        {
+          "name": "ChatRepository.get_messages",
+          "kind": "function",
+          "line": 211,
+          "end_line": 221
+        },
+        {
+          "name": "ChatRepository.save_message",
+          "kind": "function",
+          "line": 223,
+          "end_line": 240
+        },
+        {
+          "name": "ChatRepository.delete_session",
+          "kind": "function",
+          "line": 242,
+          "end_line": 246
+        },
+        {
+          "name": "ChatRepository.delete_message",
+          "kind": "function",
+          "line": 248,
+          "end_line": 254
+        },
+        {
+          "name": "ChatRepository.touch_session",
+          "kind": "function",
+          "line": 256,
+          "end_line": 257
+        },
+        {
+          "name": "IngestJobRepository",
+          "kind": "class",
+          "line": 260,
+          "end_line": 294
+        },
+        {
+          "name": "IngestJobRepository.__init__",
+          "kind": "function",
+          "line": 261,
+          "end_line": 262
+        },
+        {
+          "name": "IngestJobRepository.create",
+          "kind": "function",
+          "line": 264,
+          "end_line": 275
+        },
+        {
+          "name": "IngestJobRepository.get",
+          "kind": "function",
+          "line": 277,
+          "end_line": 279
+        },
+        {
+          "name": "IngestJobRepository.lease",
+          "kind": "function",
+          "line": 281,
+          "end_line": 282
+        },
+        {
+          "name": "IngestJobRepository.recover",
+          "kind": "function",
+          "line": 284,
+          "end_line": 285
+        },
+        {
+          "name": "IngestJobRepository.update",
+          "kind": "function",
+          "line": 287,
+          "end_line": 294
+        }
+      ]
+    },
+    {
+      "path": "request_limits.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/request_limits.py",
+      "lines": 218,
+      "sha256": "069adc9c89c6ff8495dbe2f6823267f37fc833f9a091fca107961c59561447a8",
+      "symbols": [
+        {
+          "name": "bucket_for",
+          "kind": "function",
+          "line": 65,
+          "end_line": 81
+        },
+        {
+          "name": "redis_client",
+          "kind": "function",
+          "line": 85,
+          "end_line": 87
+        },
+        {
+          "name": "client",
+          "kind": "function",
+          "line": 90,
+          "end_line": 94
+        },
+        {
+          "name": "check_available",
+          "kind": "function",
+          "line": 97,
+          "end_line": 103
+        },
+        {
+          "name": "key",
+          "kind": "function",
+          "line": 106,
+          "end_line": 108
+        },
+        {
+          "name": "Lease",
+          "kind": "class",
+          "line": 112,
+          "end_line": 144
+        },
+        {
+          "name": "Lease.__post_init__",
+          "kind": "function",
+          "line": 118,
+          "end_line": 123
+        },
+        {
+          "name": "Lease._renew",
+          "kind": "function",
+          "line": 125,
+          "end_line": 134
+        },
+        {
+          "name": "Lease.close",
+          "kind": "function",
+          "line": 136,
+          "end_line": 144
+        },
+        {
+          "name": "acquire",
+          "kind": "function",
+          "line": 147,
+          "end_line": 187
+        },
+        {
+          "name": "user_limits",
+          "kind": "function",
+          "line": 191,
+          "end_line": 197
+        },
+        {
+          "name": "acquire_worker",
+          "kind": "function",
+          "line": 200,
+          "end_line": 218
+        }
+      ]
+    },
+    {
+      "path": "responses.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/responses.py",
+      "lines": 19,
+      "sha256": "5316e6d7cb3cad37d1c9189b7049be548c7cf6ca76ff73eb249480aeef019f82",
+      "symbols": [
+        {
+          "name": "StatusResponse",
+          "kind": "class",
+          "line": 8,
+          "end_line": 9
+        },
+        {
+          "name": "DataResponse",
+          "kind": "class",
+          "line": 12,
+          "end_line": 14
+        },
+        {
+          "name": "ListResponse",
+          "kind": "class",
+          "line": 17,
+          "end_line": 19
+        }
+      ]
+    },
+    {
+      "path": "retrieval.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/retrieval.py",
+      "lines": 677,
+      "sha256": "542e66a248b7e8cf543978a4a109c7351fca90a48c9959978a867cfc7f502f91",
+      "symbols": [
+        {
+          "name": "RetrievalPlan",
+          "kind": "class",
+          "line": 48,
+          "end_line": 55
+        },
+        {
+          "name": "uses_embedding_2",
+          "kind": "function",
+          "line": 67,
+          "end_line": 68
+        },
+        {
+          "name": "embedding_query_text",
+          "kind": "function",
+          "line": 71,
+          "end_line": 74
+        },
+        {
+          "name": "normalize_embedding",
+          "kind": "function",
+          "line": 77,
+          "end_line": 81
+        },
+        {
+          "name": "embed_text",
+          "kind": "function",
+          "line": 84,
+          "end_line": 85
+        },
+        {
+          "name": "embed_texts",
+          "kind": "function",
+          "line": 88,
+          "end_line": 89
+        },
+        {
+          "name": "embed_query",
+          "kind": "function",
+          "line": 92,
+          "end_line": 93
+        },
+        {
+          "name": "embed_queries",
+          "kind": "function",
+          "line": 96,
+          "end_line": 98
+        },
+        {
+          "name": "embedding_text",
+          "kind": "function",
+          "line": 101,
+          "end_line": 118
+        },
+        {
+          "name": "retrieval_plan",
+          "kind": "function",
+          "line": 121,
+          "end_line": 144
+        },
+        {
+          "name": "retrieval_shape",
+          "kind": "function",
+          "line": 147,
+          "end_line": 154
+        },
+        {
+          "name": "retrieve",
+          "kind": "function",
+          "line": 157,
+          "end_line": 214
+        },
+        {
+          "name": "merge_retrieval_row",
+          "kind": "function",
+          "line": 217,
+          "end_line": 230
+        },
+        {
+          "name": "classify_question_shape",
+          "kind": "function",
+          "line": 233,
+          "end_line": 255
+        },
+        {
+          "name": "is_narrow_lookup",
+          "kind": "function",
+          "line": 258,
+          "end_line": 270
+        },
+        {
+          "name": "retrieval_queries",
+          "kind": "function",
+          "line": 273,
+          "end_line": 283
+        },
+        {
+          "name": "context_from_row",
+          "kind": "function",
+          "line": 286,
+          "end_line": 313
+        },
+        {
+          "name": "rerank_candidates",
+          "kind": "function",
+          "line": 316,
+          "end_line": 398
+        },
+        {
+          "name": "diversify_contexts",
+          "kind": "function",
+          "line": 401,
+          "end_line": 439
+        },
+        {
+          "name": "evidence_contains",
+          "kind": "function",
+          "line": 442,
+          "end_line": 459
+        },
+        {
+          "name": "expand_neighbors",
+          "kind": "function",
+          "line": 462,
+          "end_line": 511
+        },
+        {
+          "name": "pack_contexts",
+          "kind": "function",
+          "line": 514,
+          "end_line": 526
+        },
+        {
+          "name": "retrieval_confidence",
+          "kind": "function",
+          "line": 529,
+          "end_line": 537
+        },
+        {
+          "name": "retrieval_is_confident",
+          "kind": "function",
+          "line": 540,
+          "end_line": 541
+        },
+        {
+          "name": "min_context_score",
+          "kind": "function",
+          "line": 544,
+          "end_line": 545
+        },
+        {
+          "name": "candidate_strength",
+          "kind": "function",
+          "line": 548,
+          "end_line": 549
+        },
+        {
+          "name": "meaningful_terms",
+          "kind": "function",
+          "line": 552,
+          "end_line": 557
+        },
+        {
+          "name": "identifier_keys",
+          "kind": "function",
+          "line": 560,
+          "end_line": 561
+        },
+        {
+          "name": "query_intent",
+          "kind": "function",
+          "line": 564,
+          "end_line": 572
+        },
+        {
+          "name": "looks_like_noise",
+          "kind": "function",
+          "line": 575,
+          "end_line": 578
+        },
+        {
+          "name": "text_similarity",
+          "kind": "function",
+          "line": 581,
+          "end_line": 586
+        },
+        {
+          "name": "env_bool",
+          "kind": "function",
+          "line": 589,
+          "end_line": 593
+        },
+        {
+          "name": "format_source",
+          "kind": "function",
+          "line": 596,
+          "end_line": 604
+        },
+        {
+          "name": "source_payload",
+          "kind": "function",
+          "line": 607,
+          "end_line": 623
+        },
+        {
+          "name": "cited_source_payload",
+          "kind": "function",
+          "line": 626,
+          "end_line": 633
+        },
+        {
+          "name": "chunk_row",
+          "kind": "function",
+          "line": 636,
+          "end_line": 649
+        },
+        {
+          "name": "generate_with_gemini",
+          "kind": "function",
+          "line": 652,
+          "end_line": 662
+        },
+        {
+          "name": "generate_structured_with_gemini",
+          "kind": "function",
+          "line": 665,
+          "end_line": 677
+        }
+      ]
+    },
+    {
+      "path": "routers/__init__.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/__init__.py",
+      "lines": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "symbols": []
+    },
+    {
+      "path": "routers/admin.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/admin.py",
+      "lines": 82,
+      "sha256": "480c30e2161c229858d9992e0375051d1bdaae3217b4d9ebc18e17d54c737e7b",
+      "symbols": [
+        {
+          "name": "create_user",
+          "kind": "function",
+          "line": 22,
+          "end_line": 37
+        },
+        {
+          "name": "admin_list_users",
+          "kind": "function",
+          "line": 41,
+          "end_line": 44
+        },
+        {
+          "name": "admin_update_user",
+          "kind": "function",
+          "line": 48,
+          "end_line": 63
+        },
+        {
+          "name": "admin_reset_password",
+          "kind": "function",
+          "line": 67,
+          "end_line": 75
+        },
+        {
+          "name": "audit_events",
+          "kind": "function",
+          "line": 79,
+          "end_line": 82
+        }
+      ]
+    },
+    {
+      "path": "routers/auth_routes.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/auth_routes.py",
+      "lines": 80,
+      "sha256": "f0f2fca0704af4de9b9e93e71bdfce2ac3871b5348230f32b97b15b34172892a",
+      "symbols": [
+        {
+          "name": "auth_me",
+          "kind": "function",
+          "line": 21,
+          "end_line": 29
+        },
+        {
+          "name": "login_limits",
+          "kind": "function",
+          "line": 32,
+          "end_line": 34
+        },
+        {
+          "name": "auth_login",
+          "kind": "function",
+          "line": 38,
+          "end_line": 48
+        },
+        {
+          "name": "auth_refresh",
+          "kind": "function",
+          "line": 52,
+          "end_line": 53
+        },
+        {
+          "name": "auth_change_password",
+          "kind": "function",
+          "line": 57,
+          "end_line": 69
+        },
+        {
+          "name": "auth_update_me",
+          "kind": "function",
+          "line": 73,
+          "end_line": 80
+        }
+      ]
+    },
+    {
+      "path": "routers/chat.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/chat.py",
+      "lines": 71,
+      "sha256": "800cb45b882b12c6f8aed450f05c58fc04f4c19b18dee54e5c078029d882bffb",
+      "symbols": [
+        {
+          "name": "create_session",
+          "kind": "function",
+          "line": 24,
+          "end_line": 28
+        },
+        {
+          "name": "sessions",
+          "kind": "function",
+          "line": 32,
+          "end_line": 33
+        },
+        {
+          "name": "session_messages",
+          "kind": "function",
+          "line": 37,
+          "end_line": 38
+        },
+        {
+          "name": "remove_session",
+          "kind": "function",
+          "line": 42,
+          "end_line": 49
+        },
+        {
+          "name": "remove_message",
+          "kind": "function",
+          "line": 53,
+          "end_line": 61
+        },
+        {
+          "name": "ask_in_session",
+          "kind": "function",
+          "line": 65,
+          "end_line": 71
+        }
+      ]
+    },
+    {
+      "path": "routers/documents.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/documents.py",
+      "lines": 577,
+      "sha256": "e8e05b9a1d1ed5a98d43e5b8637ee9be395e03c569db1744a27dde789596816f",
+      "symbols": [
+        {
+          "name": "list_documents",
+          "kind": "function",
+          "line": 61,
+          "end_line": 83
+        },
+        {
+          "name": "download_document",
+          "kind": "function",
+          "line": 99,
+          "end_line": 140
+        },
+        {
+          "name": "document_download_not_found",
+          "kind": "function",
+          "line": 143,
+          "end_line": 148
+        },
+        {
+          "name": "safe_download_filename",
+          "kind": "function",
+          "line": 151,
+          "end_line": 161
+        },
+        {
+          "name": "content_disposition",
+          "kind": "function",
+          "line": 164,
+          "end_line": 171
+        },
+        {
+          "name": "PendingUpload",
+          "kind": "class",
+          "line": 175,
+          "end_line": 178
+        },
+        {
+          "name": "PendingDirectUpload",
+          "kind": "class",
+          "line": 182,
+          "end_line": 185
+        },
+        {
+          "name": "CompletedDirectUpload",
+          "kind": "class",
+          "line": 189,
+          "end_line": 191
+        },
+        {
+          "name": "ingest",
+          "kind": "function",
+          "line": 195,
+          "end_line": 227
+        },
+        {
+          "name": "ingest_worker_status",
+          "kind": "function",
+          "line": 231,
+          "end_line": 232
+        },
+        {
+          "name": "ingest_job",
+          "kind": "function",
+          "line": 236,
+          "end_line": 240
+        },
+        {
+          "name": "upload_document",
+          "kind": "function",
+          "line": 244,
+          "end_line": 250
+        },
+        {
+          "name": "upload_documents",
+          "kind": "function",
+          "line": 254,
+          "end_line": 260
+        },
+        {
+          "name": "create_presigned_document_uploads",
+          "kind": "function",
+          "line": 264,
+          "end_line": 269
+        },
+        {
+          "name": "complete_presigned_document_uploads",
+          "kind": "function",
+          "line": 273,
+          "end_line": 279
+        },
+        {
+          "name": "prepare_uploads",
+          "kind": "function",
+          "line": 282,
+          "end_line": 321
+        },
+        {
+          "name": "prepare_direct_uploads",
+          "kind": "function",
+          "line": 324,
+          "end_line": 346
+        },
+        {
+          "name": "prepare_completed_direct_uploads",
+          "kind": "function",
+          "line": 349,
+          "end_line": 368
+        },
+        {
+          "name": "create_presigned_uploads",
+          "kind": "function",
+          "line": 371,
+          "end_line": 393
+        },
+        {
+          "name": "complete_direct_uploads",
+          "kind": "function",
+          "line": 396,
+          "end_line": 453
+        },
+        {
+          "name": "save_uploads",
+          "kind": "function",
+          "line": 456,
+          "end_line": 473
+        },
+        {
+          "name": "validate_upload_filename",
+          "kind": "function",
+          "line": 476,
+          "end_line": 482
+        },
+        {
+          "name": "raise_duplicate_filename",
+          "kind": "function",
+          "line": 485,
+          "end_line": 491
+        },
+        {
+          "name": "ensure_no_storage_conflicts",
+          "kind": "function",
+          "line": 494,
+          "end_line": 502
+        },
+        {
+          "name": "direct_upload_storage",
+          "kind": "function",
+          "line": 505,
+          "end_line": 514
+        },
+        {
+          "name": "ensure_direct_upload_prefix_is_isolated",
+          "kind": "function",
+          "line": 517,
+          "end_line": 531
+        },
+        {
+          "name": "document_replace_allowed",
+          "kind": "function",
+          "line": 534,
+          "end_line": 535
+        },
+        {
+          "name": "presigned_upload_expires_seconds",
+          "kind": "function",
+          "line": 538,
+          "end_line": 546
+        },
+        {
+          "name": "staging_key_for",
+          "kind": "function",
+          "line": 549,
+          "end_line": 550
+        },
+        {
+          "name": "normalized_staging_prefix",
+          "kind": "function",
+          "line": 553,
+          "end_line": 557
+        },
+        {
+          "name": "chunks_preview",
+          "kind": "function",
+          "line": 561,
+          "end_line": 577
+        }
+      ]
+    },
+    {
+      "path": "routers/legal.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/legal.py",
+      "lines": 88,
+      "sha256": "18d4928a1347c997b917f79d0fe430f8a4903696d23feb6119d3e780cdbcaaa6",
+      "symbols": [
+        {
+          "name": "LegalPreviewRequest",
+          "kind": "class",
+          "line": 21,
+          "end_line": 24
+        },
+        {
+          "name": "LegalPreviewResponse",
+          "kind": "class",
+          "line": 27,
+          "end_line": 29
+        },
+        {
+          "name": "LegalProfilesResponse",
+          "kind": "class",
+          "line": 32,
+          "end_line": 34
+        },
+        {
+          "name": "profiles",
+          "kind": "function",
+          "line": 38,
+          "end_line": 40
+        },
+        {
+          "name": "save_profile",
+          "kind": "function",
+          "line": 44,
+          "end_line": 56
+        },
+        {
+          "name": "preview",
+          "kind": "function",
+          "line": 61,
+          "end_line": 80
+        },
+        {
+          "name": "profile_suggestion",
+          "kind": "function",
+          "line": 84,
+          "end_line": 88
+        }
+      ]
+    },
+    {
+      "path": "routers/qa.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/qa.py",
+      "lines": 27,
+      "sha256": "8629b66f0f64812b41e610cb2129cb30122892a8ba722b32a68c3fbfb521bd31",
+      "symbols": [
+        {
+          "name": "ask",
+          "kind": "function",
+          "line": 14,
+          "end_line": 27
+        }
+      ]
+    },
+    {
+      "path": "routers/rag_lab.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/rag_lab.py",
+      "lines": 175,
+      "sha256": "eaad15e43ebc53c8d17c96f85503185bf22476f51e0d5d9d8beb687a1fbdfb21",
+      "symbols": [
+        {
+          "name": "create_experiment",
+          "kind": "function",
+          "line": 21,
+          "end_line": 30
+        },
+        {
+          "name": "list_experiments",
+          "kind": "function",
+          "line": 34,
+          "end_line": 39
+        },
+        {
+          "name": "get_experiment",
+          "kind": "function",
+          "line": 43,
+          "end_line": 49
+        },
+        {
+          "name": "update_experiment",
+          "kind": "function",
+          "line": 53,
+          "end_line": 64
+        },
+        {
+          "name": "add_experiment_files",
+          "kind": "function",
+          "line": 68,
+          "end_line": 83
+        },
+        {
+          "name": "create_revision",
+          "kind": "function",
+          "line": 87,
+          "end_line": 106
+        },
+        {
+          "name": "revision_chunks",
+          "kind": "function",
+          "line": 110,
+          "end_line": 119
+        },
+        {
+          "name": "query_experiment_revision",
+          "kind": "function",
+          "line": 123,
+          "end_line": 129
+        },
+        {
+          "name": "list_revision_queries",
+          "kind": "function",
+          "line": 133,
+          "end_line": 140
+        },
+        {
+          "name": "publish_experiment_revision",
+          "kind": "function",
+          "line": 144,
+          "end_line": 161
+        },
+        {
+          "name": "enqueue_job_or_fail",
+          "kind": "function",
+          "line": 164,
+          "end_line": 175
+        }
+      ]
+    },
+    {
+      "path": "routers/system.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/routers/system.py",
+      "lines": 25,
+      "sha256": "7c188dfa7bea0052af7eb98d5c48ba9115b8b817ff0004c7222660947a73b98e",
+      "symbols": [
+        {
+          "name": "health",
+          "kind": "function",
+          "line": 11,
+          "end_line": 12
+        },
+        {
+          "name": "runtime_config_status",
+          "kind": "function",
+          "line": 16,
+          "end_line": 17
+        },
+        {
+          "name": "runtime_config_validate",
+          "kind": "function",
+          "line": 21,
+          "end_line": 25
+        }
+      ]
+    },
+    {
+      "path": "schemas.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/schemas.py",
+      "lines": 295,
+      "sha256": "b9a2dc74afab4325ac00226c45aa41aa7a3b405376d0a683af89d9f5c4b62be2",
+      "symbols": [
+        {
+          "name": "AskRequest",
+          "kind": "class",
+          "line": 13,
+          "end_line": 15
+        },
+        {
+          "name": "CreateChatSessionRequest",
+          "kind": "class",
+          "line": 18,
+          "end_line": 19
+        },
+        {
+          "name": "ChatAskRequest",
+          "kind": "class",
+          "line": 22,
+          "end_line": 25
+        },
+        {
+          "name": "RagLabChunkingConfig",
+          "kind": "class",
+          "line": 28,
+          "end_line": 36
+        },
+        {
+          "name": "RagLabChunkingConfig.model_post_init",
+          "kind": "function",
+          "line": 34,
+          "end_line": 36
+        },
+        {
+          "name": "RagLabRetrievalConfig",
+          "kind": "class",
+          "line": 39,
+          "end_line": 45
+        },
+        {
+          "name": "RagLabConfig",
+          "kind": "class",
+          "line": 48,
+          "end_line": 50
+        },
+        {
+          "name": "CreateRagLabExperimentRequest",
+          "kind": "class",
+          "line": 53,
+          "end_line": 56
+        },
+        {
+          "name": "UpdateRagLabExperimentRequest",
+          "kind": "class",
+          "line": 59,
+          "end_line": 62
+        },
+        {
+          "name": "CreateRagLabRevisionRequest",
+          "kind": "class",
+          "line": 65,
+          "end_line": 66
+        },
+        {
+          "name": "RagLabQueryRequest",
+          "kind": "class",
+          "line": 69,
+          "end_line": 71
+        },
+        {
+          "name": "CreateUserRequest",
+          "kind": "class",
+          "line": 74,
+          "end_line": 80
+        },
+        {
+          "name": "LoginRequest",
+          "kind": "class",
+          "line": 83,
+          "end_line": 85
+        },
+        {
+          "name": "RefreshRequest",
+          "kind": "class",
+          "line": 88,
+          "end_line": 89
+        },
+        {
+          "name": "ChangePasswordRequest",
+          "kind": "class",
+          "line": 92,
+          "end_line": 94
+        },
+        {
+          "name": "UpdateOwnProfileRequest",
+          "kind": "class",
+          "line": 97,
+          "end_line": 98
+        },
+        {
+          "name": "UpdateUserRequest",
+          "kind": "class",
+          "line": 101,
+          "end_line": 106
+        },
+        {
+          "name": "ResetPasswordRequest",
+          "kind": "class",
+          "line": 109,
+          "end_line": 111
+        },
+        {
+          "name": "UserResponse",
+          "kind": "class",
+          "line": 114,
+          "end_line": 124
+        },
+        {
+          "name": "AuthTokenResponse",
+          "kind": "class",
+          "line": 127,
+          "end_line": 134
+        },
+        {
+          "name": "SourceResponse",
+          "kind": "class",
+          "line": 137,
+          "end_line": 148
+        },
+        {
+          "name": "AskResponse",
+          "kind": "class",
+          "line": 154,
+          "end_line": 160
+        },
+        {
+          "name": "IngestJobResponse",
+          "kind": "class",
+          "line": 163,
+          "end_line": 174
+        },
+        {
+          "name": "IngestJobEnvelope",
+          "kind": "class",
+          "line": 177,
+          "end_line": 178
+        },
+        {
+          "name": "IngestRequest",
+          "kind": "class",
+          "line": 181,
+          "end_line": 182
+        },
+        {
+          "name": "UploadDocumentResponse",
+          "kind": "class",
+          "line": 185,
+          "end_line": 188
+        },
+        {
+          "name": "UploadDocumentsResponse",
+          "kind": "class",
+          "line": 191,
+          "end_line": 193
+        },
+        {
+          "name": "DocumentLibraryItemResponse",
+          "kind": "class",
+          "line": 196,
+          "end_line": 211
+        },
+        {
+          "name": "DocumentLibraryPaginationResponse",
+          "kind": "class",
+          "line": 214,
+          "end_line": 218
+        },
+        {
+          "name": "DocumentLibraryResponse",
+          "kind": "class",
+          "line": 221,
+          "end_line": 223
+        },
+        {
+          "name": "DirectUploadFileRequest",
+          "kind": "class",
+          "line": 226,
+          "end_line": 229
+        },
+        {
+          "name": "CreatePresignedUploadsRequest",
+          "kind": "class",
+          "line": 232,
+          "end_line": 233
+        },
+        {
+          "name": "PresignedUploadResponse",
+          "kind": "class",
+          "line": 236,
+          "end_line": 243
+        },
+        {
+          "name": "PresignedUploadsResponse",
+          "kind": "class",
+          "line": 246,
+          "end_line": 248
+        },
+        {
+          "name": "CompleteDirectUploadFileRequest",
+          "kind": "class",
+          "line": 251,
+          "end_line": 253
+        },
+        {
+          "name": "CompleteDirectUploadsRequest",
+          "kind": "class",
+          "line": 256,
+          "end_line": 257
+        },
+        {
+          "name": "ChatSessionResponse",
+          "kind": "class",
+          "line": 260,
+          "end_line": 266
+        },
+        {
+          "name": "ChatMessageResponse",
+          "kind": "class",
+          "line": 269,
+          "end_line": 276
+        },
+        {
+          "name": "ChatAskResponse",
+          "kind": "class",
+          "line": 279,
+          "end_line": 290
+        },
+        {
+          "name": "ChatMessagesResponse",
+          "kind": "class",
+          "line": 293,
+          "end_line": 295
+        }
+      ]
+    },
+    {
+      "path": "scripts/evaluate_cost.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/scripts/evaluate_cost.py",
+      "lines": 123,
+      "sha256": "c0a55fdf020867d1becfc420b598fc7de86495b904a8ce6fbe33fb33d3d08720",
+      "symbols": [
+        {
+          "name": "MeteredClient",
+          "kind": "class",
+          "line": 51,
+          "end_line": 61
+        },
+        {
+          "name": "MeteredClient.__init__",
+          "kind": "function",
+          "line": 52,
+          "end_line": 54
+        },
+        {
+          "name": "MeteredClient._post",
+          "kind": "function",
+          "line": 56,
+          "end_line": 61
+        },
+        {
+          "name": "run_case",
+          "kind": "function",
+          "line": 64,
+          "end_line": 94
+        },
+        {
+          "name": "main",
+          "kind": "function",
+          "line": 97,
+          "end_line": 119
+        }
+      ]
+    },
+    {
+      "path": "scripts/evaluate_evidence_policy.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/scripts/evaluate_evidence_policy.py",
+      "lines": 84,
+      "sha256": "07870b4eeb0b65c56f3d6c55cf0388d548492e23e70fcaee06d3e77e201f547f",
+      "symbols": [
+        {
+          "name": "main",
+          "kind": "function",
+          "line": 30,
+          "end_line": 80
+        }
+      ]
+    },
+    {
+      "path": "scripts/evaluate_jev.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/scripts/evaluate_jev.py",
+      "lines": 82,
+      "sha256": "9c76e28363e10a3dc5c346879a2200a7f9b0916d1b98e011152c03ee01a32183",
+      "symbols": [
+        {
+          "name": "Capture",
+          "kind": "class",
+          "line": 12,
+          "end_line": 20
+        },
+        {
+          "name": "Capture.__init__",
+          "kind": "function",
+          "line": 13,
+          "end_line": 15
+        },
+        {
+          "name": "Capture.emit",
+          "kind": "function",
+          "line": 17,
+          "end_line": 20
+        },
+        {
+          "name": "main",
+          "kind": "function",
+          "line": 23,
+          "end_line": 78
+        }
+      ]
+    },
+    {
+      "path": "scripts/evaluate_jev_shadow.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/scripts/evaluate_jev_shadow.py",
+      "lines": 74,
+      "sha256": "9c3abc7ee61d07942dadef53d38f49e01dd4c0fadd603ab221ca1db39e4a4feb",
+      "symbols": [
+        {
+          "name": "Capture",
+          "kind": "class",
+          "line": 13,
+          "end_line": 28
+        },
+        {
+          "name": "Capture.__init__",
+          "kind": "function",
+          "line": 14,
+          "end_line": 17
+        },
+        {
+          "name": "Capture.emit",
+          "kind": "function",
+          "line": 19,
+          "end_line": 28
+        },
+        {
+          "name": "synthetic_queries",
+          "kind": "function",
+          "line": 32,
+          "end_line": 44
+        },
+        {
+          "name": "main",
+          "kind": "function",
+          "line": 47,
+          "end_line": 70
+        }
+      ]
+    },
+    {
+      "path": "scripts/evaluate_lite_routing.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/scripts/evaluate_lite_routing.py",
+      "lines": 45,
+      "sha256": "954d458b6f88a8abfd35657bf3d97cbc4586ce1d85d9a21cbad8eee796f850d7",
+      "symbols": [
+        {
+          "name": "main",
+          "kind": "function",
+          "line": 14,
+          "end_line": 41
+        }
+      ]
+    },
+    {
+      "path": "scripts/legal_backfill.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/scripts/legal_backfill.py",
+      "lines": 210,
+      "sha256": "7cba0b0b77db5f77d373435eeec1f83fb4182c6784052a1020b8952f66a602db",
+      "symbols": [
+        {
+          "name": "normalized",
+          "kind": "function",
+          "line": 25,
+          "end_line": 26
+        },
+        {
+          "name": "instrument_names",
+          "kind": "function",
+          "line": 29,
+          "end_line": 41
+        },
+        {
+          "name": "classify",
+          "kind": "function",
+          "line": 44,
+          "end_line": 81
+        },
+        {
+          "name": "prepare",
+          "kind": "function",
+          "line": 84,
+          "end_line": 161
+        },
+        {
+          "name": "apply",
+          "kind": "function",
+          "line": 164,
+          "end_line": 188
+        },
+        {
+          "name": "main",
+          "kind": "function",
+          "line": 191,
+          "end_line": 206
+        }
+      ]
+    },
+    {
+      "path": "security_middleware.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/security_middleware.py",
+      "lines": 100,
+      "sha256": "a78cf52caa1d7cb656360c9803f7f63dda2f5c7fa460ab264dad0968a5b8cebc",
+      "symbols": [
+        {
+          "name": "SecurityMiddleware",
+          "kind": "class",
+          "line": 14,
+          "end_line": 100
+        },
+        {
+          "name": "SecurityMiddleware.__init__",
+          "kind": "function",
+          "line": 15,
+          "end_line": 16
+        },
+        {
+          "name": "SecurityMiddleware.__call__",
+          "kind": "function",
+          "line": 18,
+          "end_line": 100
+        }
+      ]
+    },
+    {
+      "path": "security_settings.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/security_settings.py",
+      "lines": 75,
+      "sha256": "c636b8727b05dcfcee3a74b33dd2c847eeedb4b0f03409a076e33d49c4643443",
+      "symbols": [
+        {
+          "name": "enabled",
+          "kind": "function",
+          "line": 9,
+          "end_line": 10
+        },
+        {
+          "name": "is_production",
+          "kind": "function",
+          "line": 13,
+          "end_line": 14
+        },
+        {
+          "name": "positive_int",
+          "kind": "function",
+          "line": 17,
+          "end_line": 24
+        },
+        {
+          "name": "limits_enabled",
+          "kind": "function",
+          "line": 27,
+          "end_line": 28
+        },
+        {
+          "name": "redis_url",
+          "kind": "function",
+          "line": 31,
+          "end_line": 32
+        },
+        {
+          "name": "validate_security_settings",
+          "kind": "function",
+          "line": 35,
+          "end_line": 75
+        }
+      ]
+    },
+    {
+      "path": "services/document_ai.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/services/document_ai.py",
+      "lines": 117,
+      "sha256": "9ca617732c4798b676cbb7b04cac9a2d4ab7e327e268fcd4817d7ddd6785f0ad",
+      "symbols": [
+        {
+          "name": "DocumentAIClient",
+          "kind": "class",
+          "line": 19,
+          "end_line": 114
+        },
+        {
+          "name": "DocumentAIClient.__init__",
+          "kind": "function",
+          "line": 20,
+          "end_line": 23
+        },
+        {
+          "name": "DocumentAIClient.ocr_pdf_page",
+          "kind": "function",
+          "line": 25,
+          "end_line": 86
+        },
+        {
+          "name": "DocumentAIClient._load_documentai_module",
+          "kind": "function",
+          "line": 89,
+          "end_line": 97
+        },
+        {
+          "name": "DocumentAIClient._build_client",
+          "kind": "function",
+          "line": 100,
+          "end_line": 110
+        },
+        {
+          "name": "DocumentAIClient._is_retryable",
+          "kind": "function",
+          "line": 113,
+          "end_line": 114
+        }
+      ]
+    },
+    {
+      "path": "services/document_storage.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/services/document_storage.py",
+      "lines": 244,
+      "sha256": "2c39ab774575ceb6fe3c12961549c2fe3a8b871e8c1810551e1e56b7db83d976",
+      "symbols": [
+        {
+          "name": "StoredDocumentFile",
+          "kind": "class",
+          "line": 14,
+          "end_line": 16
+        },
+        {
+          "name": "DocumentDownload",
+          "kind": "class",
+          "line": 20,
+          "end_line": 24
+        },
+        {
+          "name": "_local_download_path",
+          "kind": "function",
+          "line": 27,
+          "end_line": 35
+        },
+        {
+          "name": "_file_chunks",
+          "kind": "function",
+          "line": 38,
+          "end_line": 41
+        },
+        {
+          "name": "LocalDocumentStorage",
+          "kind": "class",
+          "line": 44,
+          "end_line": 74
+        },
+        {
+          "name": "LocalDocumentStorage.exists",
+          "kind": "function",
+          "line": 47,
+          "end_line": 48
+        },
+        {
+          "name": "LocalDocumentStorage.save",
+          "kind": "function",
+          "line": 50,
+          "end_line": 54
+        },
+        {
+          "name": "LocalDocumentStorage.open_download",
+          "kind": "function",
+          "line": 56,
+          "end_line": 65
+        },
+        {
+          "name": "LocalDocumentStorage.document_files",
+          "kind": "function",
+          "line": 68,
+          "end_line": 74
+        },
+        {
+          "name": "R2DocumentStorage",
+          "kind": "class",
+          "line": 77,
+          "end_line": 231
+        },
+        {
+          "name": "R2DocumentStorage.__init__",
+          "kind": "function",
+          "line": 80,
+          "end_line": 84
+        },
+        {
+          "name": "R2DocumentStorage._client",
+          "kind": "function",
+          "line": 86,
+          "end_line": 101
+        },
+        {
+          "name": "R2DocumentStorage.key_for",
+          "kind": "function",
+          "line": 103,
+          "end_line": 104
+        },
+        {
+          "name": "R2DocumentStorage.exists",
+          "kind": "function",
+          "line": 106,
+          "end_line": 116
+        },
+        {
+          "name": "R2DocumentStorage.save",
+          "kind": "function",
+          "line": 118,
+          "end_line": 124
+        },
+        {
+          "name": "R2DocumentStorage.open_download",
+          "kind": "function",
+          "line": 126,
+          "end_line": 154
+        },
+        {
+          "name": "R2DocumentStorage.presigned_put_url",
+          "kind": "function",
+          "line": 156,
+          "end_line": 165
+        },
+        {
+          "name": "R2DocumentStorage.head_key",
+          "kind": "function",
+          "line": 167,
+          "end_line": 176
+        },
+        {
+          "name": "R2DocumentStorage.copy_key",
+          "kind": "function",
+          "line": 178,
+          "end_line": 187
+        },
+        {
+          "name": "R2DocumentStorage.delete_key",
+          "kind": "function",
+          "line": 189,
+          "end_line": 193
+        },
+        {
+          "name": "R2DocumentStorage.document_files",
+          "kind": "function",
+          "line": 196,
+          "end_line": 213
+        },
+        {
+          "name": "R2DocumentStorage._document_keys",
+          "kind": "function",
+          "line": 215,
+          "end_line": 231
+        },
+        {
+          "name": "document_storage",
+          "kind": "function",
+          "line": 234,
+          "end_line": 244
+        }
+      ]
+    },
+    {
+      "path": "services/gemini.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/services/gemini.py",
+      "lines": 544,
+      "sha256": "7f9a2e548b1f2cab0e429fa0f79d993707cb589ff04ec8e5630947e7cc17e714",
+      "symbols": [
+        {
+          "name": "_env_nonnegative_int",
+          "kind": "function",
+          "line": 23,
+          "end_line": 33
+        },
+        {
+          "name": "_env_float",
+          "kind": "function",
+          "line": 36,
+          "end_line": 43
+        },
+        {
+          "name": "GenerationProfile",
+          "kind": "class",
+          "line": 47,
+          "end_line": 58
+        },
+        {
+          "name": "GenerationResult",
+          "kind": "class",
+          "line": 130,
+          "end_line": 135
+        },
+        {
+          "name": "GeminiClient",
+          "kind": "class",
+          "line": 138,
+          "end_line": 541
+        },
+        {
+          "name": "GeminiClient.__init__",
+          "kind": "function",
+          "line": 139,
+          "end_line": 143
+        },
+        {
+          "name": "GeminiClient._bucket_lock",
+          "kind": "function",
+          "line": 145,
+          "end_line": 147
+        },
+        {
+          "name": "GeminiClient._minimum_interval",
+          "kind": "function",
+          "line": 150,
+          "end_line": 156
+        },
+        {
+          "name": "GeminiClient._pace_requests",
+          "kind": "function",
+          "line": 158,
+          "end_line": 168
+        },
+        {
+          "name": "GeminiClient._retry_delay",
+          "kind": "function",
+          "line": 171,
+          "end_line": 188
+        },
+        {
+          "name": "GeminiClient._post",
+          "kind": "function",
+          "line": 190,
+          "end_line": 283
+        },
+        {
+          "name": "GeminiClient._embedding_request",
+          "kind": "function",
+          "line": 286,
+          "end_line": 293
+        },
+        {
+          "name": "GeminiClient.embed",
+          "kind": "function",
+          "line": 295,
+          "end_line": 311
+        },
+        {
+          "name": "GeminiClient.embed_many",
+          "kind": "function",
+          "line": 313,
+          "end_line": 350
+        },
+        {
+          "name": "GeminiClient._validate_embedding",
+          "kind": "function",
+          "line": 353,
+          "end_line": 360
+        },
+        {
+          "name": "GeminiClient._profile",
+          "kind": "function",
+          "line": 363,
+          "end_line": 370
+        },
+        {
+          "name": "GeminiClient._model_for_profile",
+          "kind": "function",
+          "line": 373,
+          "end_line": 375
+        },
+        {
+          "name": "GeminiClient.generate_result",
+          "kind": "function",
+          "line": 377,
+          "end_line": 494
+        },
+        {
+          "name": "GeminiClient.generate",
+          "kind": "function",
+          "line": 496,
+          "end_line": 509
+        },
+        {
+          "name": "GeminiClient.generate_structured",
+          "kind": "function",
+          "line": 511,
+          "end_line": 541
+        }
+      ]
+    },
+    {
+      "path": "services/jev.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/services/jev.py",
+      "lines": 63,
+      "sha256": "8c2a539a072a50cc4b953508fd65d579185cd4adcddbdd41bb89bb83151c72cd",
+      "symbols": [
+        {
+          "name": "evaluate",
+          "kind": "function",
+          "line": 16,
+          "end_line": 63
+        }
+      ]
+    },
+    {
+      "path": "services/rag_lab_storage.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/services/rag_lab_storage.py",
+      "lines": 79,
+      "sha256": "9959ac4da6ed38cde917b11dc73174cce0e58c1030f1d3f1942e087107da58d7",
+      "symbols": [
+        {
+          "name": "RagLabStorage",
+          "kind": "class",
+          "line": 11,
+          "end_line": 75
+        },
+        {
+          "name": "RagLabStorage.__init__",
+          "kind": "function",
+          "line": 14,
+          "end_line": 16
+        },
+        {
+          "name": "RagLabStorage.file_key",
+          "kind": "function",
+          "line": 18,
+          "end_line": 19
+        },
+        {
+          "name": "RagLabStorage.extraction_key",
+          "kind": "function",
+          "line": 21,
+          "end_line": 22
+        },
+        {
+          "name": "RagLabStorage.save_bytes",
+          "kind": "function",
+          "line": 24,
+          "end_line": 40
+        },
+        {
+          "name": "RagLabStorage.save_json",
+          "kind": "function",
+          "line": 42,
+          "end_line": 43
+        },
+        {
+          "name": "RagLabStorage.load_json",
+          "kind": "function",
+          "line": 45,
+          "end_line": 46
+        },
+        {
+          "name": "RagLabStorage.document_file",
+          "kind": "function",
+          "line": 49,
+          "end_line": 63
+        },
+        {
+          "name": "RagLabStorage._read_bytes",
+          "kind": "function",
+          "line": 65,
+          "end_line": 75
+        },
+        {
+          "name": "rag_lab_storage",
+          "kind": "function",
+          "line": 78,
+          "end_line": 79
+        }
+      ]
+    },
+    {
+      "path": "services/storage.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/services/storage.py",
+      "lines": 19,
+      "sha256": "39e935f13f70d6846bb88068f6af0c1875ec507767415f689a567b961440a27a",
+      "symbols": [
+        {
+          "name": "supabase_client",
+          "kind": "function",
+          "line": 10,
+          "end_line": 19
+        }
+      ]
+    },
+    {
+      "path": "settings.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/settings.py",
+      "lines": 372,
+      "sha256": "54380987ee9b872cda4245dad2a6237b7df2808bffb6ce0f60094870f0d199b3",
+      "symbols": [
+        {
+          "name": "env_bool",
+          "kind": "function",
+          "line": 16,
+          "end_line": 20
+        },
+        {
+          "name": "env_int",
+          "kind": "function",
+          "line": 23,
+          "end_line": 33
+        },
+        {
+          "name": "document_storage_backend",
+          "kind": "function",
+          "line": 36,
+          "end_line": 37
+        },
+        {
+          "name": "r2_settings",
+          "kind": "function",
+          "line": 40,
+          "end_line": 73
+        },
+        {
+          "name": "gemini_api_key",
+          "kind": "function",
+          "line": 76,
+          "end_line": 83
+        },
+        {
+          "name": "embedding_dimensions",
+          "kind": "function",
+          "line": 86,
+          "end_line": 87
+        },
+        {
+          "name": "document_ai_ocr_settings",
+          "kind": "function",
+          "line": 90,
+          "end_line": 122
+        },
+        {
+          "name": "validate_supabase_settings",
+          "kind": "function",
+          "line": 125,
+          "end_line": 148
+        },
+        {
+          "name": "config_status",
+          "kind": "function",
+          "line": 151,
+          "end_line": 217
+        },
+        {
+          "name": "validate_runtime_config",
+          "kind": "function",
+          "line": 220,
+          "end_line": 372
+        }
+      ]
+    },
+    {
+      "path": "structured_logging.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/structured_logging.py",
+      "lines": 88,
+      "sha256": "3d2834b7376285c04accffa7541dc34173cd054649b5111caea977289b76955e",
+      "symbols": [
+        {
+          "name": "JsonLogFormatter",
+          "kind": "class",
+          "line": 37,
+          "end_line": 57
+        },
+        {
+          "name": "JsonLogFormatter.format",
+          "kind": "function",
+          "line": 38,
+          "end_line": 50
+        },
+        {
+          "name": "JsonLogFormatter._extra_fields",
+          "kind": "function",
+          "line": 52,
+          "end_line": 57
+        },
+        {
+          "name": "configure_logging",
+          "kind": "function",
+          "line": 60,
+          "end_line": 88
+        }
+      ]
+    },
+    {
+      "path": "task_queue.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/task_queue.py",
+      "lines": 145,
+      "sha256": "06f57a8730e984f0ea04e949814f3da84209de0078a470726d55bb9ac611c788",
+      "symbols": [
+        {
+          "name": "celery_broker_url",
+          "kind": "function",
+          "line": 16,
+          "end_line": 17
+        },
+        {
+          "name": "celery_result_backend",
+          "kind": "function",
+          "line": 20,
+          "end_line": 22
+        },
+        {
+          "name": "normalize_redis_ssl_url",
+          "kind": "function",
+          "line": 25,
+          "end_line": 35
+        },
+        {
+          "name": "celery_visibility_timeout_seconds",
+          "kind": "function",
+          "line": 38,
+          "end_line": 39
+        },
+        {
+          "name": "celery_task_max_retries",
+          "kind": "function",
+          "line": 42,
+          "end_line": 43
+        },
+        {
+          "name": "celery_task_retry_base_seconds",
+          "kind": "function",
+          "line": 46,
+          "end_line": 47
+        },
+        {
+          "name": "celery_worker_status",
+          "kind": "function",
+          "line": 50,
+          "end_line": 78
+        },
+        {
+          "name": "ingest_worker_status",
+          "kind": "function",
+          "line": 81,
+          "end_line": 82
+        },
+        {
+          "name": "ensure_worker_available",
+          "kind": "function",
+          "line": 85,
+          "end_line": 96
+        },
+        {
+          "name": "ensure_queue_configured",
+          "kind": "function",
+          "line": 99,
+          "end_line": 107
+        },
+        {
+          "name": "enqueue_ingest_job",
+          "kind": "function",
+          "line": 110,
+          "end_line": 126
+        },
+        {
+          "name": "enqueue_rag_lab_job",
+          "kind": "function",
+          "line": 129,
+          "end_line": 145
+        }
+      ]
+    },
+    {
+      "path": "tasks.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tasks.py",
+      "lines": 125,
+      "sha256": "ad913228f49368433bdaa1c565395d0db815d910e9333790b5ba6ff8731a9e12",
+      "symbols": [
+        {
+          "name": "setup_worker_logging",
+          "kind": "function",
+          "line": 44,
+          "end_line": 45
+        },
+        {
+          "name": "log_worker_ready",
+          "kind": "function",
+          "line": 49,
+          "end_line": 53
+        },
+        {
+          "name": "worker_slot",
+          "kind": "function",
+          "line": 57,
+          "end_line": 67
+        },
+        {
+          "name": "run_ingest_job_task",
+          "kind": "function",
+          "line": 75,
+          "end_line": 101
+        },
+        {
+          "name": "run_rag_lab_job_task",
+          "kind": "function",
+          "line": 109,
+          "end_line": 125
+        }
+      ]
+    },
+    {
+      "path": "temporal.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/temporal.py",
+      "lines": 68,
+      "sha256": "9431e57880c72da67af35d2688a347ce350ec1b6b8942cf944da481ed20fec03",
+      "symbols": [
+        {
+          "name": "parse_date",
+          "kind": "function",
+          "line": 10,
+          "end_line": 19
+        },
+        {
+          "name": "extract_temporal_metadata",
+          "kind": "function",
+          "line": 22,
+          "end_line": 44
+        },
+        {
+          "name": "temporal_metadata",
+          "kind": "function",
+          "line": 47,
+          "end_line": 53
+        },
+        {
+          "name": "historical_question",
+          "kind": "function",
+          "line": 56,
+          "end_line": 60
+        },
+        {
+          "name": "applicable_date",
+          "kind": "function",
+          "line": 63,
+          "end_line": 68
+        }
+      ]
+    },
+    {
+      "path": "tests/conftest.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/conftest.py",
+      "lines": 14,
+      "sha256": "27b69071b37fa9b45a02eb449862aa799c840ab398569961a00ae8dabe95d447",
+      "symbols": [
+        {
+          "name": "legacy_rollout_defaults",
+          "kind": "function",
+          "line": 6,
+          "end_line": 14
+        }
+      ]
+    },
+    {
+      "path": "tests/test_api_contracts.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_api_contracts.py",
+      "lines": 80,
+      "sha256": "7fe655a9f0c52b9107d7d95f0ed65b5cae282e6d252c43b3b85bac107bffcd05",
+      "symbols": [
+        {
+          "name": "test_health_response_is_standard_status_shape",
+          "kind": "function",
+          "line": 11,
+          "end_line": 15
+        },
+        {
+          "name": "test_validation_errors_use_standard_error_envelope",
+          "kind": "function",
+          "line": 18,
+          "end_line": 25
+        },
+        {
+          "name": "test_auth_errors_use_standard_error_envelope",
+          "kind": "function",
+          "line": 28,
+          "end_line": 38
+        },
+        {
+          "name": "test_document_library_rejects_roles_below_knowledge_manager",
+          "kind": "function",
+          "line": 42,
+          "end_line": 54
+        },
+        {
+          "name": "test_document_library_allows_knowledge_managers_and_admins",
+          "kind": "function",
+          "line": 58,
+          "end_line": 80
+        }
+      ]
+    },
+    {
+      "path": "tests/test_atomic_indexing_postgres.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_atomic_indexing_postgres.py",
+      "lines": 335,
+      "sha256": "f325934e318103f09f4855d1b62f50227f3a0fc4469e13d449aae0c4cb306e2b",
+      "symbols": [
+        {
+          "name": "command",
+          "kind": "function",
+          "line": 19,
+          "end_line": 20
+        },
+        {
+          "name": "database",
+          "kind": "function",
+          "line": 24,
+          "end_line": 51
+        },
+        {
+          "name": "test_transactional_publication_and_all_retrieval_paths",
+          "kind": "function",
+          "line": 54,
+          "end_line": 56
+        },
+        {
+          "name": "stage",
+          "kind": "function",
+          "line": 59,
+          "end_line": 63
+        },
+        {
+          "name": "test_concurrent_publication_never_exposes_partial_index",
+          "kind": "function",
+          "line": 66,
+          "end_line": 99
+        },
+        {
+          "name": "test_new_rpc_works_as_backend_role",
+          "kind": "function",
+          "line": 102,
+          "end_line": 110
+        },
+        {
+          "name": "test_fresh_install_and_optional_registry_order",
+          "kind": "function",
+          "line": 113,
+          "end_line": 122
+        },
+        {
+          "name": "test_atomic_refresh_rotation_password_invalidation_and_permissions",
+          "kind": "function",
+          "line": 125,
+          "end_line": 160
+        },
+        {
+          "name": "test_rotation_rolls_back_if_replacement_insert_fails",
+          "kind": "function",
+          "line": 163,
+          "end_line": 171
+        },
+        {
+          "name": "test_consistent_ingestion_skips_same_fingerprint_and_fences_expired_writer",
+          "kind": "function",
+          "line": 174,
+          "end_line": 204
+        },
+        {
+          "name": "test_chat_turns_are_atomic_replayable_owner_scoped_and_serialized",
+          "kind": "function",
+          "line": 207,
+          "end_line": 245
+        },
+        {
+          "name": "test_chat_recovery_fences_old_completion",
+          "kind": "function",
+          "line": 248,
+          "end_line": 259
+        },
+        {
+          "name": "test_job_recovery_preserves_live_jobs_and_terminal_results",
+          "kind": "function",
+          "line": 262,
+          "end_line": 284
+        },
+        {
+          "name": "test_consistency_migration_reapplication_and_rpc_permissions",
+          "kind": "function",
+          "line": 287,
+          "end_line": 293
+        },
+        {
+          "name": "test_lab_creation_build_retry_and_fenced_publication",
+          "kind": "function",
+          "line": 296,
+          "end_line": 324
+        },
+        {
+          "name": "test_job_recovery_respects_backoff_and_attempt_budget",
+          "kind": "function",
+          "line": 327,
+          "end_line": 335
+        }
+      ]
+    },
+    {
+      "path": "tests/test_consistency.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_consistency.py",
+      "lines": 157,
+      "sha256": "69d1af71c44de8ab57a4b0d131d19e303f4cbc81c19a6b5f36c4c7a83f1d9cab",
+      "symbols": [
+        {
+          "name": "lease",
+          "kind": "function",
+          "line": 18,
+          "end_line": 19
+        },
+        {
+          "name": "test_invalid_citations_reject_entire_answer",
+          "kind": "function",
+          "line": 24,
+          "end_line": 25
+        },
+        {
+          "name": "test_citation_normalization_only_repairs_unambiguous_labels",
+          "kind": "function",
+          "line": 28,
+          "end_line": 31
+        },
+        {
+          "name": "test_api_exposes_explicit_outcome",
+          "kind": "function",
+          "line": 39,
+          "end_line": 47
+        },
+        {
+          "name": "test_ingestion_fingerprint_covers_content_and_recipe",
+          "kind": "function",
+          "line": 50,
+          "end_line": 56
+        },
+        {
+          "name": "test_same_document_skips_embedding_and_publication",
+          "kind": "function",
+          "line": 59,
+          "end_line": 66
+        },
+        {
+          "name": "test_duplicate_completed_job_does_no_work",
+          "kind": "function",
+          "line": 69,
+          "end_line": 72
+        },
+        {
+          "name": "test_execution_failure_transitions_match_retry_policy",
+          "kind": "function",
+          "line": 76,
+          "end_line": 87
+        },
+        {
+          "name": "test_capacity_wait_stays_recoverable_without_spending_execution_attempt",
+          "kind": "function",
+          "line": 90,
+          "end_line": 100
+        },
+        {
+          "name": "test_chat_completed_request_replays_without_model_or_history_reads",
+          "kind": "function",
+          "line": 103,
+          "end_line": 108
+        },
+        {
+          "name": "test_chat_conflicts_have_explicit_errors",
+          "kind": "function",
+          "line": 112,
+          "end_line": 116
+        },
+        {
+          "name": "test_failed_generation_never_persists_a_partial_chat_turn",
+          "kind": "function",
+          "line": 119,
+          "end_line": 129
+        },
+        {
+          "name": "test_recovery_dispatches_both_job_types_and_leaves_outages_retryable",
+          "kind": "function",
+          "line": 132,
+          "end_line": 147
+        },
+        {
+          "name": "test_delayed_job_does_not_execute_or_consume_attempt",
+          "kind": "function",
+          "line": 150,
+          "end_line": 157
+        }
+      ]
+    },
+    {
+      "path": "tests/test_cost_optimization.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_cost_optimization.py",
+      "lines": 180,
+      "sha256": "f96845f60d611e56c50e990d28a4145c8784a345170da07ca6ad9655a67830d2",
+      "symbols": [
+        {
+          "name": "context",
+          "kind": "function",
+          "line": 12,
+          "end_line": 13
+        },
+        {
+          "name": "test_small_procedure_skips_only_planning",
+          "kind": "function",
+          "line": 16,
+          "end_line": 39
+        },
+        {
+          "name": "test_complex_planning_is_retained",
+          "kind": "function",
+          "line": 51,
+          "end_line": 52
+        },
+        {
+          "name": "history",
+          "kind": "function",
+          "line": 55,
+          "end_line": 63
+        },
+        {
+          "name": "test_history_selection_preserves_verbatim_constraints_and_referenced_replies",
+          "kind": "function",
+          "line": 66,
+          "end_line": 76
+        },
+        {
+          "name": "test_uncertain_or_invalid_selection_keeps_entire_recent_history",
+          "kind": "function",
+          "line": 80,
+          "end_line": 84
+        },
+        {
+          "name": "test_malformed_query_falls_back_to_legacy_rewrite",
+          "kind": "function",
+          "line": 87,
+          "end_line": 90
+        },
+        {
+          "name": "test_history_selection_does_not_add_a_call_for_short_history_or_baseline",
+          "kind": "function",
+          "line": 93,
+          "end_line": 98
+        },
+        {
+          "name": "usage",
+          "kind": "function",
+          "line": 101,
+          "end_line": 103
+        },
+        {
+          "name": "test_cost_counts_thinking_and_discounts_cached_input_once",
+          "kind": "function",
+          "line": 106,
+          "end_line": 113
+        },
+        {
+          "name": "test_lite_cost_can_infer_thinking_from_complete_total",
+          "kind": "function",
+          "line": 116,
+          "end_line": 120
+        },
+        {
+          "name": "test_incomplete_or_unsupported_cost_is_unknown",
+          "kind": "function",
+          "line": 128,
+          "end_line": 130
+        },
+        {
+          "name": "test_invalid_fx_does_not_break_generation_or_invent_inr_cost",
+          "kind": "function",
+          "line": 133,
+          "end_line": 137
+        },
+        {
+          "name": "test_clean_audit_that_echoes_exact_draft_does_not_need_costly_escalation",
+          "kind": "function",
+          "line": 140,
+          "end_line": 145
+        },
+        {
+          "name": "test_query_cost_sums_each_model_and_reports_threshold_without_aborting",
+          "kind": "function",
+          "line": 148,
+          "end_line": 165
+        },
+        {
+          "name": "test_unmetered_attempt_prevents_false_complete_cost",
+          "kind": "function",
+          "line": 168,
+          "end_line": 180
+        }
+      ]
+    },
+    {
+      "path": "tests/test_document_downloads.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_document_downloads.py",
+      "lines": 185,
+      "sha256": "410c36fc8e4acfbb83a01f352faf1d2f3bb5db0d7aa0308467d51952df81db9e",
+      "symbols": [
+        {
+          "name": "Repository",
+          "kind": "class",
+          "line": 16,
+          "end_line": 20
+        },
+        {
+          "name": "Repository.get_document",
+          "kind": "function",
+          "line": 19,
+          "end_line": 20
+        },
+        {
+          "name": "Storage",
+          "kind": "class",
+          "line": 23,
+          "end_line": 27
+        },
+        {
+          "name": "Storage.open_download",
+          "kind": "function",
+          "line": 26,
+          "end_line": 27
+        },
+        {
+          "name": "user",
+          "kind": "function",
+          "line": 30,
+          "end_line": 31
+        },
+        {
+          "name": "test_admin_downloads_byte_exact_original_with_safe_headers",
+          "kind": "function",
+          "line": 44,
+          "end_line": 69
+        },
+        {
+          "name": "test_every_non_admin_role_is_forbidden",
+          "kind": "function",
+          "line": 73,
+          "end_line": 80
+        },
+        {
+          "name": "test_download_requires_bearer_even_when_global_auth_bypass_is_enabled",
+          "kind": "function",
+          "line": 83,
+          "end_line": 86
+        },
+        {
+          "name": "test_invalid_expired_and_disabled_authentication_return_401",
+          "kind": "function",
+          "line": 90,
+          "end_line": 93
+        },
+        {
+          "name": "test_unknown_document_and_missing_original_are_indistinguishable",
+          "kind": "function",
+          "line": 96,
+          "end_line": 111
+        },
+        {
+          "name": "test_local_storage_rejects_traversal_and_streams_from_confined_file",
+          "kind": "function",
+          "line": 114,
+          "end_line": 127
+        },
+        {
+          "name": "test_malicious_unicode_filename_cannot_inject_headers_and_keeps_extension",
+          "kind": "function",
+          "line": 130,
+          "end_line": 137
+        },
+        {
+          "name": "test_new_and_legacy_citations_use_stable_document_id",
+          "kind": "function",
+          "line": 140,
+          "end_line": 163
+        },
+        {
+          "name": "test_openapi_exposes_document_id_and_download_operation",
+          "kind": "function",
+          "line": 166,
+          "end_line": 169
+        },
+        {
+          "name": "test_document_id_downloads_current_original_for_replaced_document",
+          "kind": "function",
+          "line": 172,
+          "end_line": 185
+        }
+      ]
+    },
+    {
+      "path": "tests/test_evidence_optimization.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_evidence_optimization.py",
+      "lines": 92,
+      "sha256": "f9e27d5776c64121536446c1a4088e4b67ad9045fb02c744b3bc745b1383bc5f",
+      "symbols": [
+        {
+          "name": "context",
+          "kind": "function",
+          "line": 9,
+          "end_line": 11
+        },
+        {
+          "name": "test_duplicates_are_not_reintroduced_to_fill_limit",
+          "kind": "function",
+          "line": 14,
+          "end_line": 18
+        },
+        {
+          "name": "test_legally_distinct_evidence_survives",
+          "kind": "function",
+          "line": 27,
+          "end_line": 28
+        },
+        {
+          "name": "test_containment_preserves_whole_clause_and_requires_provenance",
+          "kind": "function",
+          "line": 31,
+          "end_line": 34
+        },
+        {
+          "name": "test_source_cap_fallback_still_excludes_duplicates",
+          "kind": "function",
+          "line": 37,
+          "end_line": 38
+        },
+        {
+          "name": "test_neighbor_exception_wins_last_slot_without_displacing_anchor",
+          "kind": "function",
+          "line": 41,
+          "end_line": 54
+        },
+        {
+          "name": "amendment",
+          "kind": "function",
+          "line": 57,
+          "end_line": 59
+        },
+        {
+          "name": "test_narrow_dated_amendment_uses_flash_medium",
+          "kind": "function",
+          "line": 62,
+          "end_line": 65
+        },
+        {
+          "name": "test_temporal_reconciliation_keeps_high_reasoning",
+          "kind": "function",
+          "line": 72,
+          "end_line": 73
+        },
+        {
+          "name": "test_unknown_future_multiple_or_conflicting_evidence_keeps_high",
+          "kind": "function",
+          "line": 76,
+          "end_line": 84
+        },
+        {
+          "name": "test_repair_is_accepted_but_contradictory_approval_is_not",
+          "kind": "function",
+          "line": 87,
+          "end_line": 92
+        }
+      ]
+    },
+    {
+      "path": "tests/test_jev.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_jev.py",
+      "lines": 315,
+      "sha256": "306c4994f6c986e6bb28c37f13e6fb2a18feafeb389d465bddd46aa542716755",
+      "symbols": [
+        {
+          "name": "test_key_alias_and_protocol",
+          "kind": "function",
+          "line": 13,
+          "end_line": 31
+        },
+        {
+          "name": "test_invalid_probability_falls_back",
+          "kind": "function",
+          "line": 35,
+          "end_line": 46
+        },
+        {
+          "name": "test_failure_is_metered_unknown_and_does_not_log_secrets",
+          "kind": "function",
+          "line": 49,
+          "end_line": 60
+        },
+        {
+          "name": "test_cost_added_without_changing_generation_fields",
+          "kind": "function",
+          "line": 63,
+          "end_line": 71
+        },
+        {
+          "name": "test_verification_in_actual_answer_pipeline",
+          "kind": "function",
+          "line": 80,
+          "end_line": 91
+        },
+        {
+          "name": "test_active_verification_failure_policy_is_configurable",
+          "kind": "function",
+          "line": 98,
+          "end_line": 110
+        },
+        {
+          "name": "test_legal_exclusions_never_call_jev",
+          "kind": "function",
+          "line": 114,
+          "end_line": 117
+        },
+        {
+          "name": "test_high_risk_and_history_never_shortcut",
+          "kind": "function",
+          "line": 120,
+          "end_line": 124
+        },
+        {
+          "name": "test_rerank_promotes_exception_preserving_scores_and_all_candidates",
+          "kind": "function",
+          "line": 127,
+          "end_line": 143
+        },
+        {
+          "name": "test_rewrite_gate_requires_confident_self_containment",
+          "kind": "function",
+          "line": 146,
+          "end_line": 154
+        },
+        {
+          "name": "test_missing_key_and_oversized_request_make_no_network_call",
+          "kind": "function",
+          "line": 157,
+          "end_line": 163
+        },
+        {
+          "name": "test_malformed_response_falls_back",
+          "kind": "function",
+          "line": 169,
+          "end_line": 180
+        },
+        {
+          "name": "test_http_failure_no_retry",
+          "kind": "function",
+          "line": 184,
+          "end_line": 200
+        },
+        {
+          "name": "test_rerank_ignores_small_probability_differences",
+          "kind": "function",
+          "line": 203,
+          "end_line": 209
+        },
+        {
+          "name": "test_invalid_settings_visible_without_breaking_status",
+          "kind": "function",
+          "line": 212,
+          "end_line": 222
+        },
+        {
+          "name": "test_chat_gate_retains_history_and_completes_inside_lease",
+          "kind": "function",
+          "line": 225,
+          "end_line": 251
+        },
+        {
+          "name": "test_active_history_does_not_run_gemini_history_selector",
+          "kind": "function",
+          "line": 254,
+          "end_line": 282
+        },
+        {
+          "name": "test_standard_retrieval_uses_promoted_evidence",
+          "kind": "function",
+          "line": 285,
+          "end_line": 296
+        },
+        {
+          "name": "test_legal_protected_anchor_is_never_sent_to_rerank",
+          "kind": "function",
+          "line": 299,
+          "end_line": 315
+        }
+      ]
+    },
+    {
+      "path": "tests/test_jev_shadow.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_jev_shadow.py",
+      "lines": 368,
+      "sha256": "dd1c0828a9d837ff3dfcf3dcfdbe0ea65ad701f65aeb56ab6df914f1062a2248",
+      "symbols": [
+        {
+          "name": "test_new_features_accept_active",
+          "kind": "function",
+          "line": 13,
+          "end_line": 16
+        },
+        {
+          "name": "test_model_and_planning_proposals_do_not_change_answer_pipeline",
+          "kind": "function",
+          "line": 19,
+          "end_line": 49
+        },
+        {
+          "name": "test_independent_switches_and_unavailable_results",
+          "kind": "function",
+          "line": 52,
+          "end_line": 61
+        },
+        {
+          "name": "test_disabled_features_make_no_calls",
+          "kind": "function",
+          "line": 64,
+          "end_line": 69
+        },
+        {
+          "name": "test_history_keeps_protected_messages_and_does_not_mutate",
+          "kind": "function",
+          "line": 72,
+          "end_line": 87
+        },
+        {
+          "name": "test_document_sampling_is_bounded_nonmutating_and_metered",
+          "kind": "function",
+          "line": 90,
+          "end_line": 115
+        },
+        {
+          "name": "test_uncertain_classification_does_not_force_a_label",
+          "kind": "function",
+          "line": 118,
+          "end_line": 120
+        },
+        {
+          "name": "test_active_routes_are_applied_with_risk_guards",
+          "kind": "function",
+          "line": 123,
+          "end_line": 136
+        },
+        {
+          "name": "test_active_planning_retains_risk_and_explicit_disable",
+          "kind": "function",
+          "line": 139,
+          "end_line": 147
+        },
+        {
+          "name": "test_active_route_change_forces_verification",
+          "kind": "function",
+          "line": 150,
+          "end_line": 165
+        },
+        {
+          "name": "test_active_history_only_removes_unrelated_old_assistant",
+          "kind": "function",
+          "line": 168,
+          "end_line": 176
+        },
+        {
+          "name": "test_active_document_policy_honors_explicit_profile_and_blocks_only_strong_corruption",
+          "kind": "function",
+          "line": 179,
+          "end_line": 192
+        },
+        {
+          "name": "test_active_quality_failure_never_publishes_index",
+          "kind": "function",
+          "line": 195,
+          "end_line": 212
+        },
+        {
+          "name": "test_rag_lab_keeps_jev_quality_findings_as_queryable_warnings",
+          "kind": "function",
+          "line": 215,
+          "end_line": 246
+        },
+        {
+          "name": "test_rag_lab_falls_back_when_jev_profile_produces_no_chunks",
+          "kind": "function",
+          "line": 249,
+          "end_line": 278
+        },
+        {
+          "name": "test_active_classification_changes_index_profile_and_recipe",
+          "kind": "function",
+          "line": 281,
+          "end_line": 303
+        },
+        {
+          "name": "test_lab_profile_is_recovered_from_committed_chunks_on_resume",
+          "kind": "function",
+          "line": 308,
+          "end_line": 335
+        },
+        {
+          "name": "test_real_repository_profile_reader_paginates_and_rejects_mixed_recipes",
+          "kind": "function",
+          "line": 339,
+          "end_line": 368
+        }
+      ]
+    },
+    {
+      "path": "tests/test_legal_backfill.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_legal_backfill.py",
+      "lines": 79,
+      "sha256": "71d4a874dbd28a514e20cf1bdc009f3681b1a148086345ed3a8ba6b227025ac7",
+      "symbols": [
+        {
+          "name": "chunk",
+          "kind": "function",
+          "line": 6,
+          "end_line": 8
+        },
+        {
+          "name": "test_letter_citing_act_is_not_act_or_judgment",
+          "kind": "function",
+          "line": 11,
+          "end_line": 13
+        },
+        {
+          "name": "test_bilingual_rules_identified_from_english_section_deep_in_file",
+          "kind": "function",
+          "line": 16,
+          "end_line": 18
+        },
+        {
+          "name": "test_overlap_headings_do_not_create_multiple_instruments",
+          "kind": "function",
+          "line": 21,
+          "end_line": 24
+        },
+        {
+          "name": "test_ambiguous_editions_are_queued_not_arbitrarily_linked",
+          "kind": "function",
+          "line": 27,
+          "end_line": 35
+        },
+        {
+          "name": "test_commencement_notification_not_classified_as_amendment",
+          "kind": "function",
+          "line": 38,
+          "end_line": 40
+        },
+        {
+          "name": "test_apply_rejects_prod_before_any_reads",
+          "kind": "function",
+          "line": 43,
+          "end_line": 45
+        },
+        {
+          "name": "test_reviewer_profiles_are_not_overwritten_and_rerun_is_noop",
+          "kind": "function",
+          "line": 48,
+          "end_line": 79
+        }
+      ]
+    },
+    {
+      "path": "tests/test_legal_hierarchy.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_legal_hierarchy.py",
+      "lines": 283,
+      "sha256": "ae0f5ada87ff70e2fe8123e82f3c3c3c5e9c9c64fa09d2b3a274dcd340dd3467",
+      "symbols": [
+        {
+          "name": "row",
+          "kind": "function",
+          "line": 20,
+          "end_line": 23
+        },
+        {
+          "name": "Corpus",
+          "kind": "class",
+          "line": 26,
+          "end_line": 33
+        },
+        {
+          "name": "Corpus.__init__",
+          "kind": "function",
+          "line": 27,
+          "end_line": 29
+        },
+        {
+          "name": "Corpus.match_chunks",
+          "kind": "function",
+          "line": 31,
+          "end_line": 33
+        },
+        {
+          "name": "Registry",
+          "kind": "class",
+          "line": 36,
+          "end_line": 47
+        },
+        {
+          "name": "Registry.__init__",
+          "kind": "function",
+          "line": 37,
+          "end_line": 40
+        },
+        {
+          "name": "Registry.profiles",
+          "kind": "function",
+          "line": 42,
+          "end_line": 43
+        },
+        {
+          "name": "Registry.match",
+          "kind": "function",
+          "line": 45,
+          "end_line": 47
+        },
+        {
+          "name": "isolated",
+          "kind": "function",
+          "line": 51,
+          "end_line": 59
+        },
+        {
+          "name": "test_legacy_requests_and_sources_keep_existing_shape",
+          "kind": "function",
+          "line": 62,
+          "end_line": 66
+        },
+        {
+          "name": "test_default_path_never_opens_registry",
+          "kind": "function",
+          "line": 69,
+          "end_line": 72
+        },
+        {
+          "name": "test_enabled_path_routes_without_changing_signature",
+          "kind": "function",
+          "line": 75,
+          "end_line": 79
+        },
+        {
+          "name": "test_explicit_namespace_required",
+          "kind": "function",
+          "line": 83,
+          "end_line": 86
+        },
+        {
+          "name": "test_every_stage_searched_without_handbook_or_catalog",
+          "kind": "function",
+          "line": 89,
+          "end_line": 99
+        },
+        {
+          "name": "test_judicial_evidence_survives_high_scoring_handbook_and_small_budget",
+          "kind": "function",
+          "line": 102,
+          "end_line": 111
+        },
+        {
+          "name": "test_references_in_handbook_guide_later_searches",
+          "kind": "function",
+          "line": 114,
+          "end_line": 117
+        },
+        {
+          "name": "test_draft_dates_do_not_override_legacy_metadata",
+          "kind": "function",
+          "line": 120,
+          "end_line": 123
+        },
+        {
+          "name": "test_historical_scope_is_not_replaced_by_today",
+          "kind": "function",
+          "line": 126,
+          "end_line": 133
+        },
+        {
+          "name": "test_relationships_follow_incoming_amendments_and_cycles",
+          "kind": "function",
+          "line": 136,
+          "end_line": 141
+        },
+        {
+          "name": "test_relationship_retrieval_fetches_incoming_update",
+          "kind": "function",
+          "line": 144,
+          "end_line": 149
+        },
+        {
+          "name": "test_low_score_and_irrelevant_hits_not_claimed_as_coverage",
+          "kind": "function",
+          "line": 152,
+          "end_line": 157
+        },
+        {
+          "name": "authenticate",
+          "kind": "function",
+          "line": 160,
+          "end_line": 162
+        },
+        {
+          "name": "test_new_endpoints_require_admin",
+          "kind": "function",
+          "line": 166,
+          "end_line": 169
+        },
+        {
+          "name": "test_writes_default_disabled_even_for_admin",
+          "kind": "function",
+          "line": 172,
+          "end_line": 175
+        },
+        {
+          "name": "test_preview_does_not_write_chat_or_annotations",
+          "kind": "function",
+          "line": 178,
+          "end_line": 186
+        },
+        {
+          "name": "test_old_schema_compatibility_migration_has_no_legacy_mutations",
+          "kind": "function",
+          "line": 189,
+          "end_line": 195
+        },
+        {
+          "name": "test_profile_defaults_accept_missing_optional_fields",
+          "kind": "function",
+          "line": 198,
+          "end_line": 200
+        },
+        {
+          "name": "test_repository_scopes_reads_and_writes_to_server_namespace",
+          "kind": "function",
+          "line": 203,
+          "end_line": 227
+        },
+        {
+          "name": "test_suggestions_never_assert_reviewed_relationships_or_dates_from_years",
+          "kind": "function",
+          "line": 230,
+          "end_line": 238
+        },
+        {
+          "name": "test_save_checks_all_relationship_targets_without_touching_corpus",
+          "kind": "function",
+          "line": 241,
+          "end_line": 266
+        },
+        {
+          "name": "test_missing_related_excerpt_is_reported",
+          "kind": "function",
+          "line": 269,
+          "end_line": 274
+        },
+        {
+          "name": "test_disabled_mode_formats_original_prompt_identically",
+          "kind": "function",
+          "line": 277,
+          "end_line": 283
+        }
+      ]
+    },
+    {
+      "path": "tests/test_lite_routing.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_lite_routing.py",
+      "lines": 130,
+      "sha256": "b494c9258e4b1428bbfe62e3596b4c937fa23c0ba005f4d6a66d63471309ff74",
+      "symbols": [
+        {
+          "name": "source",
+          "kind": "function",
+          "line": 12,
+          "end_line": 14
+        },
+        {
+          "name": "policy",
+          "kind": "function",
+          "line": 18,
+          "end_line": 21
+        },
+        {
+          "name": "test_routine_procedure_uses_lite_without_plan",
+          "kind": "function",
+          "line": 24,
+          "end_line": 27
+        },
+        {
+          "name": "test_legal_reconciliation_not_extraction",
+          "kind": "function",
+          "line": 34,
+          "end_line": 36
+        },
+        {
+          "name": "test_cross_instrument_conditions_retain_flash",
+          "kind": "function",
+          "line": 43,
+          "end_line": 44
+        },
+        {
+          "name": "test_multiple_sources_and_review_gaps_not_eligible",
+          "kind": "function",
+          "line": 47,
+          "end_line": 51
+        },
+        {
+          "name": "test_lite_extraction_requires_audit_even_with_general_audit_disabled",
+          "kind": "function",
+          "line": 54,
+          "end_line": 63
+        },
+        {
+          "name": "test_high_risk_direct_question_goes_straight_to_flash_audit",
+          "kind": "function",
+          "line": 66,
+          "end_line": 74
+        },
+        {
+          "name": "test_lite_rejection_escalates_once",
+          "kind": "function",
+          "line": 77,
+          "end_line": 84
+        },
+        {
+          "name": "test_rollback_restores_procedure_route",
+          "kind": "function",
+          "line": 87,
+          "end_line": 89
+        },
+        {
+          "name": "test_legal_batch_preserves_six_search_stages",
+          "kind": "function",
+          "line": 92,
+          "end_line": 100
+        },
+        {
+          "name": "test_embedding_missing_usage_is_unknown_and_preserves_generation_fields",
+          "kind": "function",
+          "line": 103,
+          "end_line": 113
+        },
+        {
+          "name": "test_embedding_pricing_requires_matching_model",
+          "kind": "function",
+          "line": 116,
+          "end_line": 126
+        },
+        {
+          "name": "test_history_cannot_silently_downgrade_a_followup",
+          "kind": "function",
+          "line": 129,
+          "end_line": 130
+        }
+      ]
+    },
+    {
+      "path": "tests/test_p0_boundaries.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_p0_boundaries.py",
+      "lines": 87,
+      "sha256": "cce86153e0d1535a6067ef796384f06b378d5411f43575d80677e565709e5a3f",
+      "symbols": [
+        {
+          "name": "test_heading_normalization_preserves_source_facts",
+          "kind": "function",
+          "line": 19,
+          "end_line": 22
+        },
+        {
+          "name": "test_faq_heading_content_is_not_discarded",
+          "kind": "function",
+          "line": 25,
+          "end_line": 30
+        },
+        {
+          "name": "test_invalid_overlap_returns_422_without_echoing_input",
+          "kind": "function",
+          "line": 33,
+          "end_line": 47
+        },
+        {
+          "name": "test_validation_error_does_not_echo_password",
+          "kind": "function",
+          "line": 50,
+          "end_line": 53
+        },
+        {
+          "name": "test_failed_build_never_mutates_active_chunks",
+          "kind": "function",
+          "line": 57,
+          "end_line": 87
+        }
+      ]
+    },
+    {
+      "path": "tests/test_quality_boundaries.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_quality_boundaries.py",
+      "lines": 1806,
+      "sha256": "6bd463dacf1c72bb9e4b167e859ac9dcea1cdbfcdfd442a12b642fc65fccb13d",
+      "symbols": [
+        {
+          "name": "upload_file",
+          "kind": "function",
+          "line": 44,
+          "end_line": 49
+        },
+        {
+          "name": "test_password_validation_rejects_weak_passwords",
+          "kind": "function",
+          "line": 52,
+          "end_line": 57
+        },
+        {
+          "name": "test_json_log_formatter_preserves_structured_context",
+          "kind": "function",
+          "line": 60,
+          "end_line": 80
+        },
+        {
+          "name": "test_upload_helpers_normalize_names_and_extensions",
+          "kind": "function",
+          "line": 83,
+          "end_line": 87
+        },
+        {
+          "name": "test_default_upload_extensions_include_powerpoint",
+          "kind": "function",
+          "line": 90,
+          "end_line": 93
+        },
+        {
+          "name": "test_document_library_item_exposes_only_frontend_metadata",
+          "kind": "function",
+          "line": 96,
+          "end_line": 133
+        },
+        {
+          "name": "test_document_library_search_quotes_postgrest_reserved_characters",
+          "kind": "function",
+          "line": 136,
+          "end_line": 137
+        },
+        {
+          "name": "test_failed_document_library_item_exposes_retry_state",
+          "kind": "function",
+          "line": 140,
+          "end_line": 161
+        },
+        {
+          "name": "test_document_library_query_is_filtered_and_paginated",
+          "kind": "function",
+          "line": 164,
+          "end_line": 230
+        },
+        {
+          "name": "test_prepare_uploads_accepts_multiple_files",
+          "kind": "function",
+          "line": 233,
+          "end_line": 246
+        },
+        {
+          "name": "test_prepare_uploads_rejects_duplicate_filenames_in_one_request",
+          "kind": "function",
+          "line": 249,
+          "end_line": 261
+        },
+        {
+          "name": "test_prepare_uploads_rejects_aggregate_batch_over_memory_limit",
+          "kind": "function",
+          "line": 264,
+          "end_line": 277
+        },
+        {
+          "name": "test_prepare_uploads_rejects_too_many_files",
+          "kind": "function",
+          "line": 280,
+          "end_line": 293
+        },
+        {
+          "name": "test_batch_save_checks_conflicts_before_writing",
+          "kind": "function",
+          "line": 296,
+          "end_line": 322
+        },
+        {
+          "name": "test_ingest_queue_requires_configured_broker",
+          "kind": "function",
+          "line": 325,
+          "end_line": 333
+        },
+        {
+          "name": "test_celery_broker_url_defaults_rediss_certificate_validation",
+          "kind": "function",
+          "line": 336,
+          "end_line": 339
+        },
+        {
+          "name": "test_enqueue_ingest_job_delegates_to_celery_task",
+          "kind": "function",
+          "line": 342,
+          "end_line": 357
+        },
+        {
+          "name": "test_worker_status_reports_online_celery_consumer",
+          "kind": "function",
+          "line": 360,
+          "end_line": 374
+        },
+        {
+          "name": "test_worker_availability_fails_before_job_is_queued",
+          "kind": "function",
+          "line": 377,
+          "end_line": 391
+        },
+        {
+          "name": "test_r2_document_storage_uses_prefixed_s3_keys",
+          "kind": "function",
+          "line": 394,
+          "end_line": 415
+        },
+        {
+          "name": "test_create_presigned_uploads_uses_isolated_staging_key",
+          "kind": "function",
+          "line": 418,
+          "end_line": 459
+        },
+        {
+          "name": "test_complete_direct_uploads_copies_staged_file_and_audits",
+          "kind": "function",
+          "line": 462,
+          "end_line": 506
+        },
+        {
+          "name": "test_chunk_document_preserves_heading_context",
+          "kind": "function",
+          "line": 509,
+          "end_line": 527
+        },
+        {
+          "name": "test_retrieve_passes_query_text_for_hybrid_search",
+          "kind": "function",
+          "line": 530,
+          "end_line": 575
+        },
+        {
+          "name": "test_reranker_boosts_exact_legal_identifier",
+          "kind": "function",
+          "line": 578,
+          "end_line": 615
+        },
+        {
+          "name": "test_reranker_keeps_hybrid_score_dominant_for_generic_matches",
+          "kind": "function",
+          "line": 618,
+          "end_line": 656
+        },
+        {
+          "name": "test_retrieve_expands_neighbor_chunks",
+          "kind": "function",
+          "line": 659,
+          "end_line": 712
+        },
+        {
+          "name": "test_neighbor_expansion_does_not_displace_direct_matches",
+          "kind": "function",
+          "line": 715,
+          "end_line": 756
+        },
+        {
+          "name": "test_retrieve_keeps_low_scored_hybrid_candidates_by_default",
+          "kind": "function",
+          "line": 759,
+          "end_line": 785
+        },
+        {
+          "name": "test_chunk_embedding_includes_document_and_section_context",
+          "kind": "function",
+          "line": 788,
+          "end_line": 804
+        },
+        {
+          "name": "test_embedding_2_query_uses_question_answering_prefix",
+          "kind": "function",
+          "line": 807,
+          "end_line": 819
+        },
+        {
+          "name": "test_retrieval_plan_scales_with_question_complexity",
+          "kind": "function",
+          "line": 822,
+          "end_line": 829
+        },
+        {
+          "name": "test_document_metadata_extracts_legal_fields_and_better_title",
+          "kind": "function",
+          "line": 832,
+          "end_line": 851
+        },
+        {
+          "name": "test_repeated_pdf_margin_lines_are_removed",
+          "kind": "function",
+          "line": 854,
+          "end_line": 863
+        },
+        {
+          "name": "test_answer_abstains_when_retrieval_confidence_is_low",
+          "kind": "function",
+          "line": 866,
+          "end_line": 872
+        },
+        {
+          "name": "test_answer_uses_model_when_low_scored_context_exists",
+          "kind": "function",
+          "line": 875,
+          "end_line": 902
+        },
+        {
+          "name": "test_citation_validation_preserves_uncited_answers_and_removes_invalid_references",
+          "kind": "function",
+          "line": 905,
+          "end_line": 909
+        },
+        {
+          "name": "test_overview_answer_uses_evidence_plan_and_requests_grounded_follow_up",
+          "kind": "function",
+          "line": 912,
+          "end_line": 969
+        },
+        {
+          "name": "test_broad_question_expands_retrieval_facets_in_one_embedding_batch",
+          "kind": "function",
+          "line": 972,
+          "end_line": 1015
+        },
+        {
+          "name": "test_unsupported_answer_is_reported_as_abstention",
+          "kind": "function",
+          "line": 1018,
+          "end_line": 1019
+        },
+        {
+          "name": "test_answer_model_route_uses_evidence_complexity",
+          "kind": "function",
+          "line": 1022,
+          "end_line": 1033
+        },
+        {
+          "name": "test_read_docx_extracts_tables_as_structured_blocks",
+          "kind": "function",
+          "line": 1036,
+          "end_line": 1057
+        },
+        {
+          "name": "test_read_pptx_extracts_each_slide_and_tables",
+          "kind": "function",
+          "line": 1060,
+          "end_line": 1078
+        },
+        {
+          "name": "test_read_legacy_ppt_extracts_text_atoms_by_slide",
+          "kind": "function",
+          "line": 1081,
+          "end_line": 1123
+        },
+        {
+          "name": "test_read_pdf_extracts_tables_as_structured_blocks",
+          "kind": "function",
+          "line": 1126,
+          "end_line": 1153
+        },
+        {
+          "name": "test_pdf_ocr_fallback_processes_only_deficient_pages",
+          "kind": "function",
+          "line": 1156,
+          "end_line": 1188
+        },
+        {
+          "name": "test_pdf_ocr_fallback_enforces_page_limit_before_requests",
+          "kind": "function",
+          "line": 1191,
+          "end_line": 1206
+        },
+        {
+          "name": "test_document_ai_client_builds_ocr_request_and_retries",
+          "kind": "function",
+          "line": 1209,
+          "end_line": 1267
+        },
+        {
+          "name": "test_chunk_document_preserves_table_header_context",
+          "kind": "function",
+          "line": 1270,
+          "end_line": 1300
+        },
+        {
+          "name": "test_gemini_client_redacts_upstream_error_body",
+          "kind": "function",
+          "line": 1303,
+          "end_line": 1319
+        },
+        {
+          "name": "test_gemini_client_retries_quota_error",
+          "kind": "function",
+          "line": 1322,
+          "end_line": 1346
+        },
+        {
+          "name": "test_gemini_generation_uses_task_specific_answer_controls",
+          "kind": "function",
+          "line": 1349,
+          "end_line": 1367
+        },
+        {
+          "name": "test_gemini_generation_uses_native_structured_output",
+          "kind": "function",
+          "line": 1370,
+          "end_line": 1388
+        },
+        {
+          "name": "test_gemini_client_batches_embeddings",
+          "kind": "function",
+          "line": 1391,
+          "end_line": 1409
+        },
+        {
+          "name": "test_gemini_client_does_not_recursively_split_rejected_embedding_batch",
+          "kind": "function",
+          "line": 1412,
+          "end_line": 1434
+        },
+        {
+          "name": "test_gemini_client_singleton_batch_uses_retrying_single_endpoint",
+          "kind": "function",
+          "line": 1437,
+          "end_line": 1448
+        },
+        {
+          "name": "test_runtime_config_allows_zero_retrieval_max_per_source",
+          "kind": "function",
+          "line": 1451,
+          "end_line": 1463
+        },
+        {
+          "name": "test_runtime_config_rejects_negative_retrieval_max_per_source",
+          "kind": "function",
+          "line": 1466,
+          "end_line": 1477
+        },
+        {
+          "name": "test_chat_repository_rejects_missing_owned_session",
+          "kind": "function",
+          "line": 1480,
+          "end_line": 1501
+        },
+        {
+          "name": "test_ingest_marks_document_failed_when_chunk_insert_fails",
+          "kind": "function",
+          "line": 1504,
+          "end_line": 1540
+        },
+        {
+          "name": "test_ingest_persists_embedding_rows_in_bounded_batches",
+          "kind": "function",
+          "line": 1543,
+          "end_line": 1590
+        },
+        {
+          "name": "test_explicit_ingest_rebuilds_replaced_source_under_stable_document_id",
+          "kind": "function",
+          "line": 1593,
+          "end_line": 1636
+        },
+        {
+          "name": "test_ingest_job_processes_only_source_stored_in_job_metadata",
+          "kind": "function",
+          "line": 1639,
+          "end_line": 1669
+        },
+        {
+          "name": "test_ingest_job_records_extraction_failure_for_document_filter",
+          "kind": "function",
+          "line": 1672,
+          "end_line": 1703
+        },
+        {
+          "name": "test_preview_chunks_returns_bounded_page_and_omits_content_by_default",
+          "kind": "function",
+          "line": 1706,
+          "end_line": 1732
+        },
+        {
+          "name": "test_preview_chunks_can_include_truncated_content",
+          "kind": "function",
+          "line": 1735,
+          "end_line": 1758
+        },
+        {
+          "name": "test_preview_chunks_passes_source_filter_to_document_iterator",
+          "kind": "function",
+          "line": 1761,
+          "end_line": 1775
+        },
+        {
+          "name": "test_preview_chunks_requires_source_unless_all_sources_is_explicit",
+          "kind": "function",
+          "line": 1778,
+          "end_line": 1782
+        },
+        {
+          "name": "test_preview_chunks_all_sources_requires_explicit_opt_in",
+          "kind": "function",
+          "line": 1785,
+          "end_line": 1799
+        },
+        {
+          "name": "test_preview_chunks_rejects_source_and_all_sources_together",
+          "kind": "function",
+          "line": 1802,
+          "end_line": 1806
+        }
+      ]
+    },
+    {
+      "path": "tests/test_query_routing.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_query_routing.py",
+      "lines": 94,
+      "sha256": "40f25c28d44876cd802b899dfc2107d8a4c47fe2c92ff0b6580883ebac72e112",
+      "symbols": [
+        {
+          "name": "test_factual_questions_do_not_trigger_procedural_pipeline",
+          "kind": "function",
+          "line": 14,
+          "end_line": 17
+        },
+        {
+          "name": "test_workflows_and_synthesis_retain_complex_pipeline",
+          "kind": "function",
+          "line": 32,
+          "end_line": 34
+        },
+        {
+          "name": "test_high_risk_questions_keep_high_reasoning",
+          "kind": "function",
+          "line": 41,
+          "end_line": 42
+        },
+        {
+          "name": "test_background_document_count_does_not_escalate_simple_lookup",
+          "kind": "function",
+          "line": 45,
+          "end_line": 50
+        },
+        {
+          "name": "test_requested_model_split_is_preserved",
+          "kind": "function",
+          "line": 53,
+          "end_line": 56
+        },
+        {
+          "name": "test_exact_repeated_evidence_is_aliased_without_losing_source_numbers",
+          "kind": "function",
+          "line": 59,
+          "end_line": 69
+        },
+        {
+          "name": "test_deduplication_preserves_different_provenance_dates_and_qualifications",
+          "kind": "function",
+          "line": 77,
+          "end_line": 80
+        },
+        {
+          "name": "test_concise_prompt_preserves_full_evidence_and_allows_requested_detail",
+          "kind": "function",
+          "line": 83,
+          "end_line": 94
+        }
+      ]
+    },
+    {
+      "path": "tests/test_rag_lab.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_rag_lab.py",
+      "lines": 242,
+      "sha256": "9ab03be56233c9f6fb64fb819c5e1997326bd3a936c5f40d219d67c98a8738bb",
+      "symbols": [
+        {
+          "name": "test_chunking_config_rejects_overlap_equal_to_chunk_size",
+          "kind": "function",
+          "line": 17,
+          "end_line": 19
+        },
+        {
+          "name": "test_chunk_document_accepts_explicit_profile",
+          "kind": "function",
+          "line": 22,
+          "end_line": 34
+        },
+        {
+          "name": "test_upload_files_uses_experiment_scoped_generated_storage_key",
+          "kind": "function",
+          "line": 37,
+          "end_line": 69
+        },
+        {
+          "name": "test_extracted_document_reuses_cached_extraction",
+          "kind": "function",
+          "line": 72,
+          "end_line": 84
+        },
+        {
+          "name": "test_insert_embedded_batch_uses_one_embedding_request",
+          "kind": "function",
+          "line": 87,
+          "end_line": 109
+        },
+        {
+          "name": "test_failed_revision_resumes_existing_chunks",
+          "kind": "function",
+          "line": 112,
+          "end_line": 172
+        },
+        {
+          "name": "test_revision_fails_when_any_file_has_no_searchable_chunks",
+          "kind": "function",
+          "line": 175,
+          "end_line": 214
+        },
+        {
+          "name": "test_rag_lab_routes_require_admin",
+          "kind": "function",
+          "line": 217,
+          "end_line": 224
+        },
+        {
+          "name": "test_admin_can_create_rag_lab_experiment",
+          "kind": "function",
+          "line": 227,
+          "end_line": 242
+        }
+      ]
+    },
+    {
+      "path": "tests/test_security_hardening.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_security_hardening.py",
+      "lines": 206,
+      "sha256": "95c1a21a59b004df5fad811c3540add851a8a85e939e3bc18b05810433158d5e",
+      "symbols": [
+        {
+          "name": "development",
+          "kind": "function",
+          "line": 20,
+          "end_line": 25
+        },
+        {
+          "name": "test_access_tokens_and_legacy_tokens_invalidated",
+          "kind": "function",
+          "line": 28,
+          "end_line": 42
+        },
+        {
+          "name": "test_refresh_uses_one_atomic_rpc_and_keeps_response_contract",
+          "kind": "function",
+          "line": 45,
+          "end_line": 58
+        },
+        {
+          "name": "test_change_password_response_uses_incremented_version",
+          "kind": "function",
+          "line": 61,
+          "end_line": 72
+        },
+        {
+          "name": "test_production_guards",
+          "kind": "function",
+          "line": 77,
+          "end_line": 83
+        },
+        {
+          "name": "test_production_bootstrap_and_bypass_disabled_even_before_startup",
+          "kind": "function",
+          "line": 86,
+          "end_line": 91
+        },
+        {
+          "name": "test_redaction_covers_errors_logs_and_durable_failures",
+          "kind": "function",
+          "line": 94,
+          "end_line": 105
+        },
+        {
+          "name": "test_request_model_limits_and_no_password_echo",
+          "kind": "function",
+          "line": 108,
+          "end_line": 117
+        },
+        {
+          "name": "test_declared_body_size_rejected_before_routing",
+          "kind": "function",
+          "line": 120,
+          "end_line": 123
+        },
+        {
+          "name": "test_chunked_body_and_disconnect_release_slot",
+          "kind": "function",
+          "line": 126,
+          "end_line": 148
+        },
+        {
+          "name": "test_redis_outage_fails_closed",
+          "kind": "function",
+          "line": 151,
+          "end_line": 160
+        },
+        {
+          "name": "test_worker_capacity_retry_and_release",
+          "kind": "function",
+          "line": 163,
+          "end_line": 184
+        },
+        {
+          "name": "test_user_quota_is_wired_after_authentication",
+          "kind": "function",
+          "line": 187,
+          "end_line": 195
+        },
+        {
+          "name": "test_placeholder_secret_and_excessive_request_target_rejected",
+          "kind": "function",
+          "line": 198,
+          "end_line": 206
+        }
+      ]
+    },
+    {
+      "path": "tests/test_security_redis.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_security_redis.py",
+      "lines": 108,
+      "sha256": "cd61a95184c153e07cf2235ab0fa6311e5116db3ce1aaac857c8fd197d729027",
+      "symbols": [
+        {
+          "name": "connection",
+          "kind": "function",
+          "line": 18,
+          "end_line": 46
+        },
+        {
+          "name": "test_atomic_admission_across_clients_and_release",
+          "kind": "function",
+          "line": 49,
+          "end_line": 78
+        },
+        {
+          "name": "test_quota_survives_lease_release_and_has_retry_after",
+          "kind": "function",
+          "line": 81,
+          "end_line": 91
+        },
+        {
+          "name": "test_live_lease_renews_and_crashed_lease_expires",
+          "kind": "function",
+          "line": 94,
+          "end_line": 108
+        }
+      ]
+    },
+    {
+      "path": "tests/test_temporal.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_temporal.py",
+      "lines": 91,
+      "sha256": "b8f97bedc636022142aaefccfc0824225656ca9b45933cbd816b91de72eac5ac",
+      "symbols": [
+        {
+          "name": "candidate",
+          "kind": "function",
+          "line": 9,
+          "end_line": 14
+        },
+        {
+          "name": "test_extracts_explicit_dates_without_treating_referenced_year_as_date",
+          "kind": "function",
+          "line": 17,
+          "end_line": 22
+        },
+        {
+          "name": "test_ambiguous_and_referenced_dates_stay_unknown",
+          "kind": "function",
+          "line": 25,
+          "end_line": 29
+        },
+        {
+          "name": "test_newer_equally_relevant_evidence_ranks_first",
+          "kind": "function",
+          "line": 32,
+          "end_line": 35
+        },
+        {
+          "name": "test_recency_does_not_override_stronger_relevance_or_historical_queries",
+          "kind": "function",
+          "line": 38,
+          "end_line": 42
+        },
+        {
+          "name": "test_future_effective_provisions_get_no_current_recency_boost",
+          "kind": "function",
+          "line": 45,
+          "end_line": 48
+        },
+        {
+          "name": "test_named_rule_year_does_not_disable_current_updates",
+          "kind": "function",
+          "line": 51,
+          "end_line": 53
+        },
+        {
+          "name": "test_existing_chunk_uses_explicit_text_dates_only",
+          "kind": "function",
+          "line": 56,
+          "end_line": 60
+        },
+        {
+          "name": "test_final_prompt_contains_dates_and_precedence_rules",
+          "kind": "function",
+          "line": 63,
+          "end_line": 75
+        },
+        {
+          "name": "test_update_search_merges_amendment_before_context_selection",
+          "kind": "function",
+          "line": 78,
+          "end_line": 91
+        }
+      ]
+    },
+    {
+      "path": "tests/test_token_efficiency.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_token_efficiency.py",
+      "lines": 221,
+      "sha256": "6d35071e45f7025e5804d6044a4050d448f84f7a7e1171ec11a3949f98eeb00d",
+      "symbols": [
+        {
+          "name": "test_first_message_skips_rewrite_without_changing_identifiers",
+          "kind": "function",
+          "line": 18,
+          "end_line": 24
+        },
+        {
+          "name": "test_followup_still_uses_full_recent_history",
+          "kind": "function",
+          "line": 27,
+          "end_line": 35
+        },
+        {
+          "name": "test_chat_passes_prior_history_without_duplicating_latest_question",
+          "kind": "function",
+          "line": 38,
+          "end_line": 51
+        },
+        {
+          "name": "test_verifier_preserves_evidence_and_can_correct_draft",
+          "kind": "function",
+          "line": 55,
+          "end_line": 68
+        },
+        {
+          "name": "test_compact_verification_returns_original_draft_exactly",
+          "kind": "function",
+          "line": 71,
+          "end_line": 78
+        },
+        {
+          "name": "test_invalid_or_unsupported_verification_never_passes_draft",
+          "kind": "function",
+          "line": 89,
+          "end_line": 92
+        },
+        {
+          "name": "test_verification_failure_still_abstains",
+          "kind": "function",
+          "line": 95,
+          "end_line": 100
+        },
+        {
+          "name": "test_rejected_lite_audit_escalates_once_without_bypassing_verification",
+          "kind": "function",
+          "line": 103,
+          "end_line": 117
+        },
+        {
+          "name": "test_verification_escalation_is_bounded_and_can_be_disabled",
+          "kind": "function",
+          "line": 120,
+          "end_line": 135
+        },
+        {
+          "name": "test_usage_includes_truncated_generations_and_resets_between_queries",
+          "kind": "function",
+          "line": 138,
+          "end_line": 165
+        },
+        {
+          "name": "test_missing_usage_is_unknown_not_zero",
+          "kind": "function",
+          "line": 168,
+          "end_line": 178
+        },
+        {
+          "name": "test_concurrent_queries_do_not_mix_usage",
+          "kind": "function",
+          "line": 181,
+          "end_line": 194
+        },
+        {
+          "name": "test_compact_approval_still_runs_planning_and_final_citation_validation",
+          "kind": "function",
+          "line": 197,
+          "end_line": 221
+        }
+      ]
+    },
+    {
+      "path": "tests/test_truncation_recovery.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/tests/test_truncation_recovery.py",
+      "lines": 114,
+      "sha256": "2d1e418da065bf25d01d64560b21a59be724b01879f583deb197b9724c1cd08d",
+      "symbols": [
+        {
+          "name": "response",
+          "kind": "function",
+          "line": 11,
+          "end_line": 16
+        },
+        {
+          "name": "client",
+          "kind": "function",
+          "line": 20,
+          "end_line": 25
+        },
+        {
+          "name": "test_retry_keeps_evidence_schema_model_and_thinking",
+          "kind": "function",
+          "line": 29,
+          "end_line": 55
+        },
+        {
+          "name": "test_repeated_truncation_is_bounded_and_never_returns_partial",
+          "kind": "function",
+          "line": 58,
+          "end_line": 71
+        },
+        {
+          "name": "test_disabled_or_exhausted_recovery_does_not_repeat",
+          "kind": "function",
+          "line": 76,
+          "end_line": 87
+        },
+        {
+          "name": "test_success_does_not_retry_and_medium_budget_unchanged",
+          "kind": "function",
+          "line": 90,
+          "end_line": 101
+        },
+        {
+          "name": "test_upstream_errors_do_not_trigger_truncation_recovery",
+          "kind": "function",
+          "line": 104,
+          "end_line": 114
+        }
+      ]
+    },
+    {
+      "path": "token_usage.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/token_usage.py",
+      "lines": 154,
+      "sha256": "8413e894c11a79850617d4b6b27665f74395cbad106dd695701fa6c3400023a8",
+      "symbols": [
+        {
+          "name": "current_query_id",
+          "kind": "function",
+          "line": 22,
+          "end_line": 24
+        },
+        {
+          "name": "record_unmetered_attempt",
+          "kind": "function",
+          "line": 27,
+          "end_line": 30
+        },
+        {
+          "name": "record_generation",
+          "kind": "function",
+          "line": 33,
+          "end_line": 38
+        },
+        {
+          "name": "record_verification_escalation",
+          "kind": "function",
+          "line": 43,
+          "end_line": 46
+        },
+        {
+          "name": "record_decision",
+          "kind": "function",
+          "line": 49,
+          "end_line": 62
+        },
+        {
+          "name": "record_embedding",
+          "kind": "function",
+          "line": 64,
+          "end_line": 77
+        },
+        {
+          "name": "track_query_usage",
+          "kind": "function",
+          "line": 79,
+          "end_line": 154
+        }
+      ]
+    },
+    {
+      "path": "upload_utils.py",
+      "absolute_path": "/Users/anshumansharma/Documents/Playground/upload_utils.py",
+      "lines": 47,
+      "sha256": "621c1e0f1ed4eb22dbcd4c93f86b864646367ec11653d02caf8ad0795247d96b",
+      "symbols": [
+        {
+          "name": "safe_filename",
+          "kind": "function",
+          "line": 7,
+          "end_line": 13
+        },
+        {
+          "name": "upload_max_bytes",
+          "kind": "function",
+          "line": 16,
+          "end_line": 17
+        },
+        {
+          "name": "upload_batch_max_bytes",
+          "kind": "function",
+          "line": 20,
+          "end_line": 21
+        },
+        {
+          "name": "upload_batch_max_files",
+          "kind": "function",
+          "line": 24,
+          "end_line": 25
+        },
+        {
+          "name": "allowed_upload_extensions",
+          "kind": "function",
+          "line": 28,
+          "end_line": 30
+        },
+        {
+          "name": "read_upload_limited",
+          "kind": "function",
+          "line": 33,
+          "end_line": 47
+        }
+      ]
+    }
+  ],
+  "sql_files": [
+    "migrations/001_phase1_pilot_hardening.sql",
+    "migrations/002_jwt_auth.sql",
+    "migrations/003_password_login_refresh_tokens.sql",
+    "migrations/004_ingest_jobs.sql",
+    "migrations/005_hybrid_retrieval.sql",
+    "migrations/006_fix_match_document_chunks_ambiguous_id.sql",
+    "migrations/007_document_library.sql",
+    "migrations/008_failed_documents_library.sql",
+    "migrations/009_rag_lab.sql",
+    "migrations/010_legal_registry.sql",
+    "migrations/011_atomic_document_indexing.sql",
+    "migrations/012_auth_security.sql",
+    "migrations/013_consistency.sql"
+  ]
+}

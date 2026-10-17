@@ -12,3 +12,6 @@ def legacy_rollout_defaults(monkeypatch):
     # Existing contracts run under shipped defaults; feature tests opt in explicitly.
     for flag in ("RAG_LITE_EXTRACTION", "RAG_RISK_BASED_VERIFICATION", "RAG_LEGAL_BATCH_EMBEDDINGS"):
         monkeypatch.setenv(flag, "false")
+    monkeypatch.setenv("RAG_LITE_FIRST", "false")
+    for name in ("RAG_ROUTING_POLICY", "RAG_AUDIT_POLICY", "RAG_EVIDENCE_COMPACTION"):
+        monkeypatch.setenv(name, "legacy")
