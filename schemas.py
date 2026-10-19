@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
+from document_categorization import CategorizationInput
+
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
 CredentialStr = Annotated[str, StringConstraints(min_length=1, max_length=256)]
 RefreshTokenStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1024)]
@@ -186,6 +188,7 @@ class UploadDocumentResponse(BaseModel):
     status: str
     filename: str
     path: str
+    categorization: dict[str, Any] | None = None
 
 
 class UploadDocumentsResponse(BaseModel):
@@ -209,6 +212,7 @@ class DocumentLibraryItemResponse(BaseModel):
     ingested_at: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
+    categorization: dict[str, Any] | None = None
 
 
 class DocumentLibraryPaginationResponse(BaseModel):
@@ -227,6 +231,7 @@ class DirectUploadFileRequest(BaseModel):
     filename: NonEmptyStr = Field(max_length=255)
     size_bytes: int = Field(gt=0)
     content_type: str | None = Field(default=None, max_length=255)
+    replace_failed: bool = False
 
 
 class CreatePresignedUploadsRequest(BaseModel):
@@ -241,6 +246,7 @@ class PresignedUploadResponse(BaseModel):
     headers: dict[str, str]
     expires_in_seconds: int
     max_bytes: int
+    replace_failed: bool = False
 
 
 class PresignedUploadsResponse(BaseModel):
@@ -251,6 +257,8 @@ class PresignedUploadsResponse(BaseModel):
 class CompleteDirectUploadFileRequest(BaseModel):
     upload_id: UUID
     filename: NonEmptyStr = Field(max_length=255)
+    categorization: CategorizationInput | None = None
+    replace_failed: bool = False
 
 
 class CompleteDirectUploadsRequest(BaseModel):

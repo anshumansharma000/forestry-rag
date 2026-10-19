@@ -5,6 +5,7 @@ import os
 
 from chunking import chunk_document, iter_document_chunks
 from consistency import OperationBusy, check_job_schedule
+from document_categorization import merge_categorization
 from documents import iter_documents
 from errors import AppError, ErrorCode
 from jev_shadow import document_policy
@@ -51,6 +52,22 @@ def _build_index(repository, *, source, lease):
 
     for doc in iter_documents(source=source):
         documents_seen += 1
+        if hasattr(repository, "categorization_for_source"):
+            existing = repository.categorization_for_source(doc["source"])
+            categorization = merge_categorization((doc.get("metadata") or {}).get("categorization") or {}, existing)
+            categorization.pop("registry_namespace", None)
+            if os.getenv("LEGAL_REGISTRY_WRITES_ENABLED", "false").lower() == "true":
+                from legal_registry import legal_namespace
+
+                categorization["registry_namespace"] = legal_namespace()
+            metadata = {**(doc.get("metadata") or {}), "categorization": categorization}
+            # Explicit corrections also feed legacy date/authority consumers.
+            for field in ("issued_date", "effective_date"):
+                if field in categorization["overrides"]:
+                    metadata[field] = categorization["overrides"][field]
+            if "issuing_authority" in categorization["overrides"]:
+                metadata["authority"] = categorization["overrides"]["issuing_authority"]
+            doc = {**doc, "metadata": metadata, "_expected_categorization": existing}
         fingerprint = content_fingerprint(doc)
         doc = {**doc, '_lease_token': lease.token,
                'metadata': {**(doc.get('metadata') or {}), 'content_fingerprint': fingerprint}}

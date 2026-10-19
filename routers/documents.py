@@ -1,3 +1,4 @@
+import json
 import mimetypes
 import os
 import re
@@ -9,10 +10,12 @@ from typing import Literal
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
+from pydantic import TypeAdapter, ValidationError
 
 from auth import CurrentUser, audit_event, require_exact_admin, require_roles
+from document_categorization import CATEGORY_LABELS, CategorizationInput, DocumentCategory
 from errors import AppError, ErrorCode
 from ingest_service import create_ingest_job, get_ingest_job, mark_ingest_job_enqueue_failed, mark_ingest_job_enqueued, preview_chunks
 from repositories import DocumentRepository
@@ -37,6 +40,7 @@ from task_queue import (
 from task_queue import (
     ingest_worker_status as get_ingest_worker_status,
 )
+from upload_policy import ensure_upload_conflicts, upload_write_guard
 from upload_utils import (
     allowed_upload_extensions,
     read_upload_limited,
@@ -57,7 +61,7 @@ DOWNLOAD_CONTENT_TYPES = {
 }
 
 
-@router.get("/documents", response_model=DocumentLibraryResponse)
+@router.get("/documents", response_model=DocumentLibraryResponse, response_model_exclude_unset=True)
 def list_documents(
     status_filter: Literal["indexed", "failed"] = Query(default="indexed", alias="status"),
     search: str | None = Query(default=None, min_length=1, max_length=200),
@@ -69,6 +73,7 @@ def list_documents(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=100),
     _user: CurrentUser = Depends(require_roles("knowledge_manager")),
+    category: DocumentCategory | None = None,
 ):
     return DocumentRepository().list_documents(
         ingest_status=status_filter,
@@ -80,7 +85,42 @@ def list_documents(
         sort_order=sort_order,
         offset=offset,
         limit=limit,
+        **({"category": category} if category else {}),
     )
+
+
+@router.get("/documents/categories")
+def document_categories(_user: CurrentUser = Depends(require_roles("knowledge_manager"))):
+    return {"categories": [{"value": value, "label": label} for value, label in CATEGORY_LABELS.items()]}
+
+
+@router.get("/documents/{document_id}/categorization")
+def get_document_categorization(
+    document_id: UUID,
+    _user: CurrentUser = Depends(require_roles("knowledge_manager")),
+):
+    document = DocumentRepository().get_document(str(document_id))
+    if not document:
+        raise AppError("Document not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+    return {"document_id": str(document_id), "categorization": (document.get("metadata") or {}).get("categorization")}
+
+
+@router.patch("/documents/{document_id}/categorization")
+def update_document_categorization(
+    document_id: UUID,
+    body: CategorizationInput,
+    request: Request,
+    user: CurrentUser = Depends(require_roles("knowledge_manager")),
+):
+    repository = DocumentRepository()
+    document = repository.get_document(str(document_id))
+    if not document:
+        raise AppError("Document not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+    repository.check_categorization_support()
+    categorization = repository.save_categorization(document["source"], body.model_dump(mode="json", exclude_unset=True), user.id)
+    audit_event(request, user, "documents.categorization.updated", "document", str(document_id),
+                {"fields": sorted(body.model_fields_set)})
+    return {"document_id": str(document_id), "categorization": categorization}
 
 
 @router.get(
@@ -176,6 +216,8 @@ class PendingUpload:
     filename: str
     content: bytes
     content_type: str | None
+    categorization: CategorizationInput | None = None
+    replace_failed: bool = False
 
 
 @dataclass(frozen=True)
@@ -183,12 +225,15 @@ class PendingDirectUpload:
     filename: str
     size_bytes: int
     content_type: str
+    replace_failed: bool = False
 
 
 @dataclass(frozen=True)
 class CompletedDirectUpload:
     upload_id: UUID
     filename: str
+    categorization: CategorizationInput | None = None
+    replace_failed: bool = False
 
 
 @router.post("/ingest", status_code=status.HTTP_202_ACCEPTED, response_model=IngestJobEnvelope)
@@ -240,27 +285,32 @@ def ingest_job(job_id: str, _user: CurrentUser = Depends(require_roles("knowledg
     return {"job": job}
 
 
-@router.post("/documents/upload", response_model=UploadDocumentResponse)
+@router.post("/documents/upload", response_model=UploadDocumentResponse, response_model_exclude_unset=True)
 def upload_document(
     request: Request,
     file: UploadFile = File(...),
     user: CurrentUser = Depends(require_roles("knowledge_manager")),
+    categorization: str | None = Form(default=None, max_length=50000),
+    replace_failed: bool = Form(default=False),
 ):
-    [pending_upload] = prepare_uploads([file])
+    metadata = parse_upload_categorizations(categorization, single=True)
+    [pending_upload] = prepare_uploads([file], metadata, replace_failed=replace_failed)
     return save_uploads(request, user, [pending_upload])[0]
 
 
-@router.post("/documents/uploads", response_model=UploadDocumentsResponse)
+@router.post("/documents/uploads", response_model=UploadDocumentsResponse, response_model_exclude_unset=True)
 def upload_documents(
     request: Request,
     files: list[UploadFile] = File(...),
     user: CurrentUser = Depends(require_roles("knowledge_manager")),
+    categorizations: str | None = Form(default=None, max_length=250000),
+    replace_failed: bool = Form(default=False),
 ):
-    pending_uploads = prepare_uploads(files)
+    pending_uploads = prepare_uploads(files, parse_upload_categorizations(categorizations), replace_failed=replace_failed)
     return {"status": "ok", "files": save_uploads(request, user, pending_uploads)}
 
 
-@router.post("/documents/uploads/presign", response_model=PresignedUploadsResponse)
+@router.post("/documents/uploads/presign", response_model=PresignedUploadsResponse, response_model_exclude_unset=True)
 def create_presigned_document_uploads(
     request_body: CreatePresignedUploadsRequest,
     user: CurrentUser = Depends(require_roles("knowledge_manager")),
@@ -269,7 +319,7 @@ def create_presigned_document_uploads(
     return {"status": "ok", "uploads": create_presigned_uploads(user, pending_uploads)}
 
 
-@router.post("/documents/uploads/complete", response_model=UploadDocumentsResponse)
+@router.post("/documents/uploads/complete", response_model=UploadDocumentsResponse, response_model_exclude_unset=True)
 def complete_presigned_document_uploads(
     request: Request,
     request_body: CompleteDirectUploadsRequest,
@@ -279,7 +329,21 @@ def complete_presigned_document_uploads(
     return {"status": "ok", "files": complete_direct_uploads(request, user, completed_uploads)}
 
 
-def prepare_uploads(files: list[UploadFile]) -> list[PendingUpload]:
+def parse_upload_categorizations(raw: str | None, *, single: bool = False):
+    if raw is None:
+        return None
+    try:
+        if single:
+            return CategorizationInput.model_validate_json(raw)
+        return TypeAdapter(dict[str, CategorizationInput]).validate_python(json.loads(raw))
+    except (ValueError, ValidationError) as exc:
+        raise HTTPException(status_code=422, detail="Invalid categorization. Use documented category values and metadata fields.") from exc
+
+
+def prepare_uploads(
+    files: list[UploadFile], categorizations: dict[str, CategorizationInput] | CategorizationInput | None = None,
+    *, replace_failed: bool = False,
+) -> list[PendingUpload]:
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
     if len(files) > upload_batch_max_files():
@@ -289,6 +353,10 @@ def prepare_uploads(files: list[UploadFile]) -> list[PendingUpload]:
         )
 
     allowed_extensions = allowed_upload_extensions()
+    if isinstance(categorizations, dict):
+        filenames = {file.filename for file in files}
+        if set(categorizations) - filenames:
+            raise HTTPException(status_code=422, detail="Categorization keys must match uploaded filenames exactly.")
     max_bytes = upload_max_bytes()
     pending_uploads = []
     seen_filenames = set()
@@ -317,7 +385,10 @@ def prepare_uploads(files: list[UploadFile]) -> list[PendingUpload]:
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"Upload batch exceeds limit of {upload_batch_max_bytes()} bytes",
             )
-        pending_uploads.append(PendingUpload(filename=filename, content=content, content_type=file.content_type))
+        metadata = categorizations.get(file.filename) if isinstance(categorizations, dict) else categorizations
+        pending_uploads.append(PendingUpload(
+            filename=filename, content=content, content_type=file.content_type, categorization=metadata, replace_failed=replace_failed,
+        ))
     return pending_uploads
 
 
@@ -341,6 +412,7 @@ def prepare_direct_uploads(files: list[DirectUploadFileRequest]) -> list[Pending
                 filename=filename,
                 size_bytes=file.size_bytes,
                 content_type=(file.content_type or "application/octet-stream").strip() or "application/octet-stream",
+                replace_failed=file.replace_failed,
             )
         )
     return pending_uploads
@@ -364,15 +436,16 @@ def prepare_completed_direct_uploads(files: list[CompleteDirectUploadFileRequest
             )
         seen_filenames.add(filename)
         seen_upload_ids.add(file.upload_id)
-        completed_uploads.append(CompletedDirectUpload(upload_id=file.upload_id, filename=filename))
+        completed_uploads.append(CompletedDirectUpload(
+            upload_id=file.upload_id, filename=filename, categorization=file.categorization, replace_failed=file.replace_failed,
+        ))
     return completed_uploads
 
 
 def create_presigned_uploads(user: CurrentUser, pending_uploads: list[PendingDirectUpload]) -> list[dict]:
     storage = direct_upload_storage()
     ensure_direct_upload_prefix_is_isolated(storage)
-    if not document_replace_allowed():
-        ensure_no_storage_conflicts(storage, [upload.filename for upload in pending_uploads])
+    ensure_upload_conflicts(storage, pending_uploads)
 
     expires_in_seconds = presigned_upload_expires_seconds()
     uploads = []
@@ -388,15 +461,17 @@ def create_presigned_uploads(user: CurrentUser, pending_uploads: list[PendingDir
                 "headers": {"Content-Type": upload.content_type},
                 "expires_in_seconds": expires_in_seconds,
                 "max_bytes": upload_max_bytes(),
+                **({"replace_failed": True} if upload.replace_failed else {}),
             }
         )
     return uploads
 
 
 def complete_direct_uploads(request: Request, user: CurrentUser, completed_uploads: list[CompletedDirectUpload]) -> list[dict[str, str]]:
+    if any(upload.categorization is not None for upload in completed_uploads):
+        DocumentRepository().check_categorization_support()
     storage = direct_upload_storage()
     ensure_direct_upload_prefix_is_isolated(storage)
-    allow_replace = document_replace_allowed()
     max_bytes = upload_max_bytes()
     staged_objects = []
 
@@ -422,55 +497,69 @@ def complete_direct_uploads(request: Request, user: CurrentUser, completed_uploa
             )
         staged_objects.append((upload, staging_key, content_length, head.get("ContentType")))
 
-    if not allow_replace:
-        try:
-            ensure_no_storage_conflicts(storage, [upload.filename for upload in completed_uploads])
-        except AppError:
-            for _upload, staging_key, _content_length, _content_type in staged_objects:
+    try:
+        with upload_write_guard(storage, completed_uploads) as lease:
+            results = []
+            for upload, staging_key, content_length, content_type in staged_objects:
+                if lease is not None:
+                    lease.check()
+                destination_key = storage.key_for(upload.filename)
+                path = storage.copy_key(staging_key, destination_key)
                 storage.delete_key(staging_key)
-            raise
-
-    results = []
-    for upload, staging_key, content_length, content_type in staged_objects:
-        destination_key = storage.key_for(upload.filename)
-        path = storage.copy_key(staging_key, destination_key)
-        storage.delete_key(staging_key)
-        audit_event(
-            request,
-            user,
-            "documents.upload",
-            "document",
-            upload.filename,
-            {
-                "filename": upload.filename,
-                "bytes": content_length,
-                "content_type": content_type,
-                "direct_upload": True,
-                "upload_id": str(upload.upload_id),
-            },
-        )
-        results.append({"status": "ok", "filename": upload.filename, "path": path})
-    return results
+                audit_event(
+                    request,
+                    user,
+                    "documents.upload",
+                    "document",
+                    upload.filename,
+                    {
+                        "filename": upload.filename,
+                        "bytes": content_length,
+                        "content_type": content_type,
+                        "direct_upload": True,
+                        "replaced_failed": upload.replace_failed,
+                        "upload_id": str(upload.upload_id),
+                    },
+                )
+                result = {"status": "ok", "filename": upload.filename, "path": path}
+                if upload.categorization is not None:
+                    result["categorization"] = persist_upload_categorization(upload.filename, upload.categorization, user.id)
+                results.append(result)
+        return results
+    except AppError:
+        for _upload, staging_key, _content_length, _content_type in staged_objects:
+            storage.delete_key(staging_key)
+        raise
 
 
 def save_uploads(request: Request, user: CurrentUser, pending_uploads: list[PendingUpload]) -> list[dict[str, str]]:
+    if any(upload.categorization is not None for upload in pending_uploads):
+        DocumentRepository().check_categorization_support()
     storage = document_storage()
-    if not document_replace_allowed():
-        ensure_no_storage_conflicts(storage, [upload.filename for upload in pending_uploads])
-
-    results = []
-    for upload in pending_uploads:
-        path = storage.save(upload.filename, upload.content)
-        audit_event(
-            request,
-            user,
-            "documents.upload",
-            "document",
-            upload.filename,
-            {"filename": upload.filename, "bytes": len(upload.content), "content_type": upload.content_type},
-        )
-        results.append({"status": "ok", "filename": upload.filename, "path": path})
+    with upload_write_guard(storage, pending_uploads) as lease:
+        results = []
+        for upload in pending_uploads:
+            if lease is not None:
+                lease.check()
+            path = storage.save(upload.filename, upload.content)
+            audit_event(
+                request,
+                user,
+                "documents.upload",
+                "document",
+                upload.filename,
+                {"filename": upload.filename, "bytes": len(upload.content),
+                 "content_type": upload.content_type, "replaced_failed": upload.replace_failed},
+            )
+            result = {"status": "ok", "filename": upload.filename, "path": path}
+            if upload.categorization is not None:
+                result["categorization"] = persist_upload_categorization(upload.filename, upload.categorization, user.id)
+            results.append(result)
     return results
+
+
+def persist_upload_categorization(filename: str, categorization: CategorizationInput, user_id: str) -> dict:
+    return DocumentRepository().save_categorization(filename, categorization.model_dump(mode="json", exclude_unset=True), user_id)
 
 
 def validate_upload_filename(filename: str, allowed_extensions: set[str]) -> str:
@@ -489,17 +578,6 @@ def raise_duplicate_filename(filename: str) -> None:
         status_code=status.HTTP_409_CONFLICT,
         details={"filename": filename},
     )
-
-
-def ensure_no_storage_conflicts(storage, filenames: list[str]) -> None:
-    for filename in filenames:
-        if storage.exists(filename):
-            raise AppError(
-                "A document with this filename already exists.",
-                code=ErrorCode.CONFLICT,
-                status_code=status.HTTP_409_CONFLICT,
-                details={"filename": filename},
-            )
 
 
 def direct_upload_storage():
@@ -529,10 +607,6 @@ def ensure_direct_upload_prefix_is_isolated(storage) -> None:
             code=ErrorCode.CONFIG_ERROR,
             details={"R2_PREFIX": document_prefix, "R2_UPLOAD_STAGING_PREFIX": staging_prefix},
         )
-
-
-def document_replace_allowed() -> bool:
-    return os.getenv("ALLOW_DOCUMENT_REPLACE", "false").strip().lower() in {"1", "true", "yes"}
 
 
 def presigned_upload_expires_seconds() -> int:

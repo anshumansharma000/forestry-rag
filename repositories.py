@@ -5,6 +5,7 @@ from typing import Any
 from supabase import Client
 
 from consistency import DatabaseLease
+from errors import AppError, ErrorCode
 from rag_errors import RagError
 from services.storage import supabase_client
 
@@ -28,11 +29,57 @@ class DocumentRepository:
         result = self.client.table("documents").select("id,source,kind,title,metadata").eq("id", document_id).limit(1).execute()
         return result.data[0] if result.data else None
 
+    def upload_state(self, source: str) -> str:
+        """Only a source with no published index can be replaced after confirmation."""
+        rows = self.client.table("documents").select("id,metadata").eq("source", source).limit(1).execute().data or []
+        metadata = (rows[0].get("metadata") or {}) if rows else {}
+        if metadata.get("ingest_status") == "indexed":
+            return "indexed"
+        if rows and self.client.table("document_chunks").select("id").eq("document_id", rows[0]["id"]).limit(1).execute().data:
+            return "indexed"
+        # Filenames have already passed safe_filename (no quotes or commas).
+        active = (self.client.table("ingest_jobs").select("id").eq("kind", "documents.ingest")
+                  .in_("status", ["queued", "running"])
+                  .or_(f'metadata->>source.eq."{source}",metadata->>scope.eq.corpus').limit(1).execute().data)
+        if active:
+            return "processing"
+        return "failed" if metadata.get("ingest_status") == "failed" else "unindexed"
+
     def document_ids_by_sources(self, sources: set[str]) -> dict[str, str]:
         if not sources:
             return {}
         result = self.client.table("documents").select("id,source").in_("source", sorted(sources)).execute()
         return {row["source"]: str(row["id"]) for row in result.data or [] if row.get("source") and row.get("id")}
+
+    def categorization_for_source(self, source: str) -> dict:
+        rows = self.client.table("documents").select("metadata").eq("source", source).limit(1).execute().data or []
+        if not rows:
+            return {}
+        return (rows[0].get("metadata") or {}).get("categorization") or {}
+
+    def save_categorization(self, source: str, patch: dict, user_id: str) -> dict:
+        from legal_registry import legal_namespace
+
+        # Preserve the existing independent write gate for legal annotations.
+        namespace = legal_namespace() if os.getenv("LEGAL_REGISTRY_WRITES_ENABLED", "false").lower() == "true" else None
+        return self.client.rpc("save_document_categorization", {
+            "p_source": source, "p_patch": patch, "p_updated_by": user_id, "p_namespace": namespace,
+        }).execute().data
+
+    def check_categorization_support(self) -> None:
+        from legal_registry import legal_namespace
+
+        if os.getenv("LEGAL_REGISTRY_WRITES_ENABLED", "false").lower() == "true":
+            legal_namespace()
+        try:
+            self.client.rpc("document_categorization_ready", {}).execute()
+        except Exception as exc:
+            if getattr(exc, "code", None) not in ("PGRST202", "42883"):
+                raise
+            raise AppError(
+                "Apply migration 016_document_categorization.sql before uploading categorization metadata.",
+                code=ErrorCode.CONFIG_ERROR,
+            ) from exc
 
     def list_documents(
         self,
@@ -46,6 +93,7 @@ class DocumentRepository:
         sort_order: str = "desc",
         offset: int = 0,
         limit: int = 25,
+        category: str | None = None,
     ) -> dict[str, Any]:
         fields = "id,source,kind,title,page_count,metadata,created_at,updated_at"
         query = self.client.table("documents").select(fields, count="exact").eq("metadata->>ingest_status", ingest_status)
@@ -57,6 +105,8 @@ class DocumentRepository:
             query = query.eq("kind", kind)
         if document_type:
             query = query.eq("metadata->>document_type", document_type)
+        if category:
+            query = query.eq("metadata->categorization->values->>document_type", category)
         if year:
             query = query.contains("metadata", {"years": [year]})
 
@@ -81,6 +131,21 @@ class DocumentRepository:
     def begin_revision(self, doc: dict) -> dict:
         snapshot = {key: doc.get(key) for key in ("source", "kind", "title", "page_count")}
         snapshot["metadata"] = {**(doc.get("metadata") or {}), "index_version": index_version()}
+        if "_expected_categorization" in doc:
+            try:
+                return self.client.rpc("begin_categorized_revision", {
+                    "p_document": snapshot, "p_token": doc["_lease_token"],
+                    "p_expected_categorization": doc["_expected_categorization"],
+                }).execute().data
+            except Exception as exc:
+                # Older deployments keep ingesting uncategorized files until the
+                # additive migration is applied. Never hide an actual DB failure.
+                existing = doc["_expected_categorization"]
+                if (
+                    existing.get("overrides") or existing.get("registry_namespace")
+                    or getattr(exc, "code", None) not in ("PGRST202", "42883")
+                ):
+                    raise
         return self.client.rpc("begin_consistent_revision", {"p_document": snapshot, "p_token": doc["_lease_token"]}).execute().data
 
     def insert_revision_chunks(self, rows: list[dict]) -> int:
@@ -194,7 +259,7 @@ def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
     metadata = row.get("metadata") or {}
     source = row.get("source") or ""
     ingest_status = metadata.get("ingest_status") or "indexed"
-    return {
+    item = {
         "id": row["id"],
         "filename": source,
         "title": row.get("title") or source,
@@ -211,6 +276,9 @@ def document_library_item(row: dict[str, Any]) -> dict[str, Any]:
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }
+    if metadata.get("categorization"):
+        item["categorization"] = metadata["categorization"]
+    return item
 
 
 class ChatRepository:

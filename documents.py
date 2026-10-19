@@ -503,6 +503,8 @@ def is_generic_title_line(line: str) -> bool:
 
 
 def extract_document_metadata(source: str, title: str, pages: list[dict]) -> dict:
+    from document_categorization import infer_categorization
+
     sample = normalize_text("\n".join(page["text"] for page in pages[:5]))[:20000]
     haystack = f"{title}\n{source}\n{sample}"
     document_type = infer_document_type(f"{title}\n{source}")
@@ -514,6 +516,7 @@ def extract_document_metadata(source: str, title: str, pages: list[dict]) -> dic
         "years": sorted(set(re.findall(r"\b(?:19|20)\d{2}\b", haystack))),
         "authority": infer_authority(sample),
         **extract_temporal_metadata(sample),
+        "categorization": infer_categorization(source, title, pages),
     }
 
 

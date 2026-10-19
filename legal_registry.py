@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from document_categorization import DocumentCategory
 from rag_errors import RagError
 from services.storage import supabase_client
 
@@ -35,6 +36,8 @@ class LegalRelationship(BaseModel):
 
 class LegalProfile(BaseModel):
     instrument_type: InstrumentType = "unknown"
+    document_category: DocumentCategory | None = None
+    categorization: dict | None = None
     issued_date: date | None = None
     effective_date: date | None = None
     jurisdiction: str | None = Field(default=None, max_length=500)

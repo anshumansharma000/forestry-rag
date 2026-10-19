@@ -305,6 +305,7 @@ def test_batch_save_checks_conflicts_before_writing(monkeypatch):
             return f"/docs/{filename}"
 
     monkeypatch.delenv("ALLOW_DOCUMENT_REPLACE", raising=False)
+    monkeypatch.setattr("upload_policy.DocumentRepository", lambda: SimpleNamespace(upload_state=lambda source: "indexed"))
     monkeypatch.setattr(routers.documents, "document_storage", lambda: Storage())
     monkeypatch.setattr(routers.documents, "audit_event", lambda *_args, **_kwargs: None)
 
