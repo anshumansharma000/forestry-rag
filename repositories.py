@@ -357,7 +357,7 @@ class ChatRepository:
         self.assert_session_owner(session_id, user_id)
         rows = (
             self.client.table("chat_messages")
-            .select("id,role,content,created_at")
+            .select("id,role,content,metadata,created_at")
             .eq("session_id", session_id)
             .order("created_at", desc=True)
             .order("id", desc=True)

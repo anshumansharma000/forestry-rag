@@ -6,6 +6,10 @@ import pytest
 def legacy_rollout_defaults(monkeypatch):
     from jev_settings import FEATURES
 
+    # Existing offline tests must not make real search calls on abstentions.
+    monkeypatch.setenv("RAG_WEB_FALLBACK", "false")
+    monkeypatch.setenv("RAG_SCOPE_GATE", "false")
+
     for name in FEATURES:
         feature = name.upper()
         monkeypatch.setenv(f"JEV_{feature}_MODE", "off")

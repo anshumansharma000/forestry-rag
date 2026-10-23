@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -192,6 +193,10 @@ def config_status() -> dict:
         "gemini_truncation_max_output_tokens": env_int("GEMINI_TRUNCATION_MAX_OUTPUT_TOKENS", 16384),
         "rag_evidence_planning": env_bool("RAG_EVIDENCE_PLANNING", True),
         "rag_answer_verification": env_bool("RAG_ANSWER_VERIFICATION", True),
+        "rag_web_fallback": env_bool("RAG_WEB_FALLBACK", True),
+        "rag_scope_gate": env_bool("RAG_SCOPE_GATE", True),
+        "gemini_web_model": os.getenv("GEMINI_WEB_MODEL", "gemini-3.5-flash-lite"),
+        "gemini_scope_model": os.getenv("GEMINI_SCOPE_MODEL", "gemini-3.5-flash-lite"),
         "cost_policy_version": COST_POLICY_VERSION,
         "rag_lite_extraction": env_bool("RAG_LITE_EXTRACTION", False),
         "rag_risk_based_verification": env_bool("RAG_RISK_BASED_VERIFICATION", False),
@@ -228,6 +233,16 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
     invalid = invalid_settings()
     if not status["answer_pipeline"]["valid"]:
         invalid.append(status["answer_pipeline"]["invalid"])
+    for name, default in (("RAG_WEB_DAILY_BUDGET_USD", 5.0), ("RAG_WEB_RESERVE_USD", .10)):
+        if positive_setting(name, default) is None:
+            invalid.append(name)
+    if os.getenv("RAG_WEB_PRIMARY_DOMAINS") is not None:
+        from web_sources import allowed_domains
+
+        if not allowed_domains() or any(
+            not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", d) for d in allowed_domains()
+        ):
+            invalid.append("RAG_WEB_PRIMARY_DOMAINS")
     if not status["gemini_api_key_configured"]:
         missing.append("GEMINI_API_KEY")
     if not status["supabase_url_configured"]:
@@ -313,6 +328,14 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "GEMINI_PLAN_MAX_OUTPUT_TOKENS",
         "GEMINI_VERIFY_MAX_OUTPUT_TOKENS",
         "GEMINI_VERIFY_COMPLEX_MAX_OUTPUT_TOKENS",
+        "GEMINI_WEB_MAX_OUTPUT_TOKENS",
+        "GEMINI_WEB_TIMEOUT_SECONDS",
+        "GEMINI_SCOPE_MAX_OUTPUT_TOKENS",
+        "GEMINI_SCOPE_TIMEOUT_SECONDS",
+        "RAG_WEB_USER_DAILY_CALLS",
+        "RAG_WEB_GLOBAL_DAILY_CALLS",
+        "RAG_WEB_MONTHLY_QUERIES",
+        "RAG_WEB_RESERVED_QUERIES",
     ):
         raw = os.getenv(name)
         if raw is None or not raw.strip():
@@ -361,6 +384,8 @@ def validate_runtime_config(require_auth: bool = True) -> dict:
         "GEMINI_COMPLEX_HIGH_THINKING_LEVEL",
         "GEMINI_VERIFY_THINKING_LEVEL",
         "GEMINI_VERIFY_COMPLEX_THINKING_LEVEL",
+        "GEMINI_WEB_THINKING_LEVEL",
+        "GEMINI_SCOPE_THINKING_LEVEL",
     ):
         raw = os.getenv(name)
         if raw and raw.strip().lower() not in {"minimal", "low", "medium", "high"}:

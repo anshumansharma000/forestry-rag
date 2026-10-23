@@ -9,7 +9,7 @@ import os
 from datetime import UTC, date, datetime
 
 PRICING_VERSION = "google-standard-2026-09-17"
-COST_POLICY_VERSION = "query-api-accounting-2026-10-17"
+COST_POLICY_VERSION = "query-api-accounting-2026-10-22"
 EMBEDDING_PRICING_VERSION = "google-text-embedding-standard-2026-10-17"
 
 
@@ -19,8 +19,9 @@ def normalized_usage(usage: dict) -> dict:
     prompt, output, total = (usage.get(k) for k in ("promptTokenCount", "candidatesTokenCount", "totalTokenCount"))
     thoughts = usage.get("thoughtsTokenCount")
     if thoughts is None and all(type(v) is int and v >= 0 for v in (prompt, output, total)):
-        if not usage.get("toolUsePromptTokenCount", 0) and total >= prompt + output:
-            result["thoughtsTokenCount"] = total - prompt - output
+        tool = usage.get("toolUsePromptTokenCount", 0)
+        if type(tool) is int and tool >= 0 and total >= prompt + output + tool:
+            result["thoughtsTokenCount"] = total - prompt - output - tool
     # An omitted optional cache count denotes no reported cached content.
     result.setdefault("cachedContentTokenCount", 0)
     return result
@@ -78,15 +79,28 @@ def generation_cost(model: str, usage: dict, *, as_of: date | None = None) -> di
     total = usage.get("totalTokenCount")
     if any(type(v) is not int or v < 0 for v in (prompt, output, cached)) or cached > prompt:
         return result
-    # Current app sends text without external tools. Do not guess costs for tool-use additions.
-    if usage.get("toolUsePromptTokenCount", 0):
+    tool = usage.get("toolUsePromptTokenCount", 0)
+    if type(tool) is not int or tool < 0:
         return result
     if thoughts is None and type(total) is int:
-        thoughts = total - prompt - output
+        thoughts = total - prompt - output - tool
     if type(thoughts) is not int or thoughts < 0:
         return result
-    if total is not None and (type(total) is not int or total != prompt + output + thoughts):
+    if total is not None and (type(total) is not int or total != prompt + tool + output + thoughts):
         return result
-    usd = ((prompt - cached) * input_rate + cached * cached_rate + (output + thoughts) * output_rate) / 1_000_000
+    usd = ((prompt - cached + tool) * input_rate + cached * cached_rate + (output + thoughts) * output_rate) / 1_000_000
     result.update({"estimated_cost_usd": usd, "estimated_cost_inr": usd * fx if fx is not None else None})
     return result
+
+
+def search_cost(model: str, metadata: dict | None) -> dict:
+    """Gross search estimate; never assume this app owns the provider's free allowance."""
+    queries = metadata.get("webSearchQueries") if isinstance(metadata, dict) else None
+    valid = isinstance(queries, list) and all(isinstance(q, str) for q in queries)
+    count = len({q.strip() for q in queries if q.strip()}) if valid else None
+    known = count is not None and model.startswith(("gemini-3", "gemini-4"))
+    usd = count * .014 if known else None
+    fx = positive_setting("COST_USD_TO_INR", 90)
+    return {"search_queries": count, "estimated_cost_usd": usd,
+            "estimated_cost_inr": usd * fx if usd is not None and fx else None,
+            "pricing_version": "google-search-gross-2026-10-22", "free_allowance_applied": False}

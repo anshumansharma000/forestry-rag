@@ -188,6 +188,7 @@ def test_recent_history_queries_newest_and_omits_sources():
     assert repo.get_recent_messages_for_answer("s", "u", 3) == [{"id": "1"}, {"id": "2"}, {"id": "3"}]
     assert calls[0][0] == "owner"
     assert "sources" not in next(a[0] for n, a, kw in calls if n == "select")
+    assert "metadata" in next(a[0] for n, a, kw in calls if n == "select")
     assert [kw for n, a, kw in calls if n == "order"] == [{"desc": True}, {"desc": True}]
 
 
@@ -559,6 +560,15 @@ def test_answer_cache_requires_real_support_audit_and_same_user(cache, monkeypat
 
     with trace_request(), access_scope("u1"):
         query_cache.answer_cached("What is the permit fee?", None, unaudited)
+    assert not cache.values
+
+    def web_response():
+        # Even a stale document-audit approval must not authorize caching web answers.
+        audited("verify", True)
+        return {**response, "answer_origin": "web"}
+
+    with trace_request(), access_scope("u1"):
+        query_cache.answer_cached("What is the permit fee?", None, web_response)
     assert not cache.values
 
 

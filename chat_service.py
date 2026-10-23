@@ -7,10 +7,12 @@ from pipeline_settings import PipelineSettings
 from pipeline_trace import stage
 from prompts import answer_is_abstention, answer_outcome, answer_with_gemini, rewrite_question_for_retrieval
 from query_context import QueryContext, resolve_combined, use_context
+from query_scope import scope_response
 from rag_errors import RagError
 from repositories import ChatRepository, DocumentRepository
 from retrieval import cited_source_payload, retrieval_confidence, retrieve, source_payload
 from token_usage import track_query_usage
+from web_fallback import apply_web_fallback
 
 
 def create_chat_session(title: str | None = None, user_id: str | None = None, repository: ChatRepository | None = None) -> dict:
@@ -126,6 +128,11 @@ def chat_ask(
             else:
                 previous_messages = get_chat_messages(session_id, user_id, repository=repository)
         policy = PipelineSettings.read()
+        blocked = scope_response(message, previous_messages)
+        if blocked is not None:
+            lease.check()
+            result = {**blocked, "session_id": session_id, "request_id": request_id, "search_query": message}
+            return repository.complete_turn(session_id, user_id, request_id, token, result)
         if policy.context_v2 and policy.resolver == "combined":
             context = resolve_combined(previous_messages, message)
             with use_context(context):
@@ -142,6 +149,8 @@ def chat_ask(
                 "confidence": retrieval_confidence(contexts),
                 "abstained": answer_is_abstention(answer),
             }
+            lease.check()
+            result = apply_web_fallback(result, context.policy_question(), user_id=user_id, scope_checked=True)
             lease.check()
             return repository.complete_turn(session_id, user_id, request_id, token, result)
         answer_history = previous_messages
@@ -174,5 +183,8 @@ def chat_ask(
             "confidence": retrieval_confidence(contexts),
             "abstained": answer_is_abstention(answer),
         }
+        lease.check()
+        result = apply_web_fallback(result, context.policy_question() if context else search_query,
+                                    user_id=user_id, scope_checked=True)
         lease.check()
         return repository.complete_turn(session_id, user_id, request_id, token, result)

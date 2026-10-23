@@ -9,7 +9,7 @@ from contextvars import ContextVar
 from functools import wraps
 from uuid import uuid4
 
-from generation_cost import COST_POLICY_VERSION, embedding_cost, generation_cost, normalized_usage, positive_setting
+from generation_cost import COST_POLICY_VERSION, embedding_cost, generation_cost, normalized_usage, positive_setting, search_cost
 from pipeline_trace import event, trace_request
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,13 @@ def record_verification_escalation() -> None:
     if usage is not None:
         with usage["lock"]:
             usage["verification_escalations"] += 1
+
+
+def record_search(model: str, metadata: dict | None) -> None:
+    usage = _usage.get()
+    if usage is not None:
+        with usage["lock"]:
+            usage["searches"].append({"operation": "web_search", "model": model, **search_cost(model, metadata)})
 
 
 def record_decision(operation: str, model: str | None, metadata: dict | None, *, elapsed_ms: float, succeeded: bool) -> dict:
@@ -106,6 +113,7 @@ def track_query_usage(function):
             "calls": [],
             "embeddings": [],
             "decisions": [],
+            "searches": [],
             "unmetered_attempts": 0,
             "unmetered_stages": [],
             "verification_escalations": 0,
@@ -140,11 +148,18 @@ def track_query_usage(function):
                 embedding_total = sum(e[key] for e in embeddings) if all(e[key] is not None for e in embeddings) else None
                 decisions = usage["decisions"]
                 decision_total = sum(d[key] for d in decisions) if all(d[key] is not None for d in decisions) else None
+                searches = usage["searches"]
+                search_total = (
+                    sum(s[key] for s in searches)
+                    if all(s[key] is not None for s in searches)
+                    and not any(s["operation"] == "web_fallback" for s in usage["unmetered_stages"]) else None
+                )
                 api_costs[f"embedding_cost_{currency}"] = embedding_total
                 api_costs[f"decision_cost_{currency}"] = decision_total
+                api_costs[f"search_cost_{currency}"] = search_total
                 api_costs[f"total_api_cost_{currency}"] = (
-                    costs[key] + embedding_total + decision_total
-                    if costs[key] is not None and embedding_total is not None and decision_total is not None
+                    costs[key] + embedding_total + decision_total + search_total
+                    if costs[key] is not None and embedding_total is not None and decision_total is not None and search_total is not None
                     else None
                 )
             max_cost = positive_setting("COST_QUERY_MAX_INR", 1.5)
@@ -181,6 +196,7 @@ def track_query_usage(function):
                     "embedding_stages": embeddings,
                     "decision_calls": len(usage["decisions"]),
                     "decision_stages": usage["decisions"],
+                    "search_stages": usage["searches"],
                     "total_api_cost_complete": api_costs["total_api_cost_usd"] is not None,
                     "cost_complete": costs["estimated_cost_usd"] is not None,
                     "unmetered_generation_attempts": usage["unmetered_attempts"],
@@ -200,7 +216,7 @@ def track_query_usage(function):
 
             # One compact completion record for operators; keep the detailed
             # accounting above compatible with existing consumers.
-            all_calls = [*calls, *embeddings, *usage["decisions"], *usage["unmetered_stages"]]
+            all_calls = [*calls, *embeddings, *usage["decisions"], *usage["searches"], *usage["unmetered_stages"]]
             known_costs = {
                 currency: sum(call[f"estimated_cost_{currency}"] for call in all_calls if call[f"estimated_cost_{currency}"] is not None)
                 for currency in ("usd", "inr")
@@ -233,6 +249,14 @@ def track_query_usage(function):
                     "generation_calls": len(calls),
                     "embedding_calls": len(embeddings),
                     "decision_calls": len(usage["decisions"]),
+                    "search_calls": len(usage["searches"]),
+                    "search_queries": (
+                        sum(s["search_queries"] for s in usage["searches"])
+                        if all(s["search_queries"] is not None for s in usage["searches"])
+                        and not any(s["operation"] == "web_fallback" for s in usage["unmetered_stages"]) else None
+                    ),
+                    "search_cost_usd": api_costs["search_cost_usd"],
+                    "search_cost_inr": api_costs["search_cost_inr"],
                     "duration_ms": round((time.perf_counter() - started) * 1000, 3),
                     "cost_policy_version": COST_POLICY_VERSION,
                     **target_details,

@@ -150,10 +150,23 @@ class SourceResponse(BaseModel):
     text: str
 
 
-AnswerOutcome = Literal['answered', 'insufficient_evidence', 'unsupported_answer', 'not_generated']
+AnswerOutcome = Literal['answered', 'insufficient_evidence', 'unsupported_answer', 'not_generated',
+                        'out_of_scope', 'clarification_required', 'conversational']
 
 
-class AskResponse(BaseModel):
+class WebSourceResponse(BaseModel):
+    citation_number: int
+    url: str
+    title: str
+
+
+class WebFallbackResponse(BaseModel):
+    answer_origin: Literal['documents', 'web', 'conversational'] = 'documents'
+    web_sources: list[WebSourceResponse] = Field(default_factory=list)
+    web_search_entry_point: str | None = None
+
+
+class AskResponse(WebFallbackResponse):
     outcome: AnswerOutcome = 'answered'
     answer: str
     sources: list[SourceResponse]
@@ -284,7 +297,7 @@ class ChatMessageResponse(BaseModel):
     created_at: str | None = None
 
 
-class ChatAskResponse(BaseModel):
+class ChatAskResponse(WebFallbackResponse):
     request_id: UUID | str | None = None
     outcome: AnswerOutcome = 'answered'
     session_id: UUID | str

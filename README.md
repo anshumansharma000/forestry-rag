@@ -553,6 +553,128 @@ Retrieval is a multi-stage hybrid pipeline:
 - Adaptive profiles choose candidate, anchor, final-context, and token budgets based on question shape. Results suppress near-duplicate chunks, then add neighboring chunks without displacing stronger anchors.
 - Low-confidence evidence causes the answer layer to abstain. Generated answers must contain valid citations or they are rejected as unsupported.
 
+Regular `/ask` and chat requests now try a Google Search fallback after either insufficient document evidence or an
+unsupported document answer (`RAG_WEB_FALLBACK=true` by default; set it to `false` to restore document-only behavior).
+The fallback uses the existing Gemini API key and its own `GEMINI_WEB_MODEL` settings, through
+[Gemini search grounding](https://ai.google.dev/gemini-api/docs/generate-content/google-search).
+It sends the question, including retained conversational scope when available, to the provider; retrieved document
+excerpts are not included. It does not run in admin legal previews or RAG Lab evaluations.
+
+Successful web answers begin with an explicit disclosure that database evidence was insufficient and the answer uses
+internet sources unverified against the database. Only text segments attributed by the search provider to usable web
+sources are published, with clickable `Web N` citations. Responses add `answer_origin=web`, `web_sources`
+(`citation_number`, `url`, `title`), and `web_search_entry_point`. Existing `sources` and `confidence` still describe
+document retrieval; `cited_sources` is empty for web answers. `outcome=answered` and `abstained=false` describe the
+successful web result, not successful database verification. Document answers default to `answer_origin=documents`.
+Search failures, truncated responses, and absent usable web grounding preserve the original abstention. Provider
+attribution is not an independent factual or legal audit. Web answers never enter the document answer cache.
+
+Before scope classification, `/ask` and chat messages receive a model-free conversational check
+(`conversational_routing.py`). Messages consisting entirely of approved greetings, wellbeing questions/replies,
+thanks, goodbyes, introductions, identity/capability questions, availability checks, getting-started questions,
+sample-question requests, compliments, apologies, general frustration/confusion, feedback, or requests for a light
+joke get professional predefined replies. Most categories offer several wordings. Identity replies identify the
+assistant as AI; sample questions and jokes contain no legal claims. General frustration receives a brief,
+supportive acknowledgement and an invitation to explain the forestry matter.
+Matching ignores capitalization, common punctuation, extra whitespace and straight/curly apostrophes;
+combinations such as "Hey, what's up?" and "Thanks, bye!" are supported. Responses have
+`outcome=conversational`, `answer_origin=conversational`, `abstained=false`, empty sources and no confidence score.
+Clients should display these as ordinary chat text without citations. No classifier, answer model, embedding,
+document retrieval, cached document answer, or web search is invoked for these messages. Chat replies use the
+existing atomic turn persistence and request-ID replay, so retries return the saved wording.
+
+The check matches the entire message and never strips a greeting off a substantive request.
+"Hi, what are the tree-felling rules?" and "Thanks, who won the match?" still pass through the scope gate.
+Context-dependent replies such as "yes please", "okay", and "What about on private land?" also go through that
+gate with recent chat history; they are not matched as predefined pleasantries. Unrecognized small talk can receive
+a generated reply from that same scope-classification call, as described below. Confusion, negative feedback,
+example requests and getting-started questions also use
+the normal context-aware answer path when history includes a substantive assistant response. For example,
+"I don't understand" and "Give me examples" after a forestry answer refer back to that answer, even if greetings
+or thanks intervened. Recent history includes message metadata to distinguish predefined replies from substantive
+answers; legacy answers without metadata conservatively use the normal path.
+The conversational check remains active if the scope gate is disabled; keep
+`RAG_SCOPE_GATE=true` to enforce relevance for other messages. Extend the approved phrases and responses in
+`conversational_routing.py` when real usage identifies missing pleasantries. Offline regression coverage is in
+`tests/test_conversational_routing.py`.
+
+Before retrieval or cached-answer reuse, remaining questions and chat messages pass a tool-free Flash-Lite scope
+classification (`RAG_SCOPE_GATE=true`). It covers forestry, wildlife, conservation, related law/policy and forest-department
+administration. The same call can classify an unfamiliar social message as `conversational` and return a short `reply`;
+no second writing call is made. The assistant's identity, tone, forestry boundaries and one-to-two-sentence instruction
+are inline in `query_scope.py` (`SCOPE_INSTRUCTION`), separate from the JSON user/history input. No separate Markdown
+file, service, model configuration, or frontend response type is needed. The reply uses the same conversational API
+shape as templates, bypasses document caching/retrieval and web search, and is persisted/replayed like any chat turn.
+
+The structured routing schema requires `scope` and `reply` (empty for non-conversational routes). Only a conversational
+verdict can publish generated text; text returned with other verdicts is ignored. Runtime validation limits replies to
+320 characters and 60 whitespace-separated words, rejects empty/non-string content, common link/HTML/citation markup,
+and embedded control characters, and uses a fixed conversational fallback if validation fails. A failed, truncated,
+unparseable or unknown route returns the existing predefined clarification instead of guessing or retrying. The prompt
+also asks for plain text, no legal/factual advice, no repeated introductions, no routine follow-up question, and a reply
+in the user's language. These semantic requirements remain model judgments, not guarantees provided by length checks.
+Messages requesting corrections/examples of a forestry answer are instructed to stay on the substantive answer path.
+
+Unrelated or mixed unrelated requests return `outcome=out_of_scope`; unclear requests and classifier
+failures return `outcome=clarification_required`. Both have `abstained=true`, empty sources and a user-facing explanation.
+Chat classification receives recent history (at most 6000 characters total and 1500 per message) to resolve follow-ups
+and preserves the atomic/idempotent turn flow; full answer context is still handled separately by the existing resolver.
+Clients must handle these additive outcome values. Admin legal previews and Lab evaluations remain document-only.
+The classification is a model judgment, not a guarantee against adversarial prompts; it needs representative live evaluation.
+
+Default scope model: `gemini-3.5-flash-lite`, minimal thinking, 192 output tokens for the entire structured response
+(including thinking), 20-second timeout. Existing `GEMINI_SCOPE_*` overrides remain respected. Template replies have
+no model usage; generated social replies are accounted for under `scope_classification`, without a separate generation
+stage or search charge. Offline coverage in `tests/test_generated_conversation.py` checks the real client request payload
+against scripted provider responses, invalid output fallbacks, and idempotent chat replay; no paid live model evaluation
+is performed by these tests. Default web model:
+`gemini-3.5-flash-lite`, minimal thinking, 1200 output tokens, 45-second timeout. Neither path retries parsing/truncation
+or failed generation automatically. Document-answer model configuration is independent.
+
+Web evidence is filtered to the configured `RAG_WEB_PRIMARY_DOMAINS` host suffixes. Defaults are `gov.in`, `nic.in`,
+`.gov`, `gov.uk`, `legislation.gov.uk`, `fao.org`, and `un.org`. Matching uses hostname boundaries, HTTPS and normal
+TLS ports. Opaque Google citation URLs are resolved only through the fixed `vertexaisearch.cloud.google.com`
+grounding redirect endpoint; the server reads its redirect Location without fetching the destination or following
+redirect chains. Unsupported/unresolvable sources are excluded. At most eight unique citation URLs are considered.
+Only passages with at least one approved supporting source are published. The model is instructed to use official
+legislation/court/government publications for binding legal claims and to preserve jurisdiction and date; filtering
+hosts does not independently verify legal applicability or currentness.
+
+Search admission uses atomic Redis counters, shared across processes through the existing security/broker Redis:
+
+| Setting | Default |
+|---|---:|
+| `RAG_WEB_USER_DAILY_CALLS` | 20 |
+| `RAG_WEB_GLOBAL_DAILY_CALLS` | 200 |
+| `RAG_WEB_MONTHLY_QUERIES` | 4000 |
+| `RAG_WEB_DAILY_BUDGET_USD` | $5.00 gross web model + search cost |
+| `RAG_WEB_RESERVED_QUERIES` | 3 per admission |
+| `RAG_WEB_RESERVE_USD` | $0.10 per admission |
+
+Daily/monthly windows use the Redis server's UTC clock. Missing user identity, exhausted capacity or Redis outage
+denies web search and preserves the document abstention. Admission reserves calls, queries and cost before contacting
+Gemini. Settlement reconciles reported actual queries and token/tool charges once; failed calls with unknown usage retain
+their reservations and latch a day-scoped uncertainty circuit to stop further admissions. Reservations survive process
+crashes and are not automatically refunded. Counter keys expire after 40 days. These are caps on **new admissions**:
+Gemini's native tool has no application-enforced query maximum within an in-flight call. Its actual cost/query count
+can exceed the reservation, after which further work is denied when capacity is exhausted. The prompt requests at most
+three queries, but this is not a hard provider limit. These controls cannot guarantee an absolute provider spending cap.
+The web budget excludes the preceding classifier/document pipeline. Tune it separately from the older cost-reporting target.
+
+Accounting reports model tokens (including tool-use prompt and thinking tokens), unique nonempty reported search queries,
+search cost, and combined estimated API cost. Search is estimated at the gross $14/1000-query rate; Google's shared
+5,000-query **monthly** allowance is not deducted because other applications/models can consume it. Actual invoices
+can therefore be lower. Missing/invalid usage remains explicitly unknown and never becomes zero. The complete estimate
+is a usage estimate, not a billing reconciliation. Logs record codes/counts/costs, not raw queries or source text.
+
+Clients should show the disclosure and web links, and must render the provider's Search Suggestions from
+`web_search_entry_point` according to the linked provider requirements (use an isolated rendering surface for the supplied
+HTML). This backend repository does not contain that frontend. Apply `migrations/016_web_fallback_metadata.sql` to retain
+the structured web fields in assistant-message metadata when history is reloaded; the disclosure and links remain in
+saved answer text even before that migration. Search adds latency and separate tool charges. No paid live search validation
+or deployment is performed by the offline tests. Offline regressions use scripted scope verdicts and search responses;
+atomic quota tests use a disposable local Redis socket (`RAG_REDIS_TESTS=1`), never the configured service.
+
 Broad, procedural, and comparison questions receive an evidence-planning pass before final writing. The final compiler
 groups related excerpts, ranks core rules ahead of adjacent material, adapts the Markdown structure to the question, and
 uses short, spaced paragraphs and scannable lists instead of dense text blocks. It ends supported answers with a brief

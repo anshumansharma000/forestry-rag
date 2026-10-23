@@ -14,7 +14,7 @@ from generation_cost import generation_cost, normalized_usage
 from pipeline_network import post as pooled_post
 from pipeline_trace import event, measured
 from settings import embedding_dimensions, env_int, gemini_api_key
-from token_usage import record_attempt, record_embedding, record_generation, record_unmetered_attempt
+from token_usage import record_attempt, record_embedding, record_generation, record_search, record_unmetered_attempt
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,16 @@ class GenerationProfile:
 
 
 GENERATION_PROFILES: dict[str, GenerationProfile] = {
+    "scope_classification": GenerationProfile(
+        "GEMINI_SCOPE_MODEL", "gemini-3.5-flash-lite", "GEMINI_SCOPE_TEMPERATURE", 0.0,
+        "GEMINI_SCOPE_MAX_OUTPUT_TOKENS", 192, "GEMINI_SCOPE_THINKING_LEVEL", "minimal",
+        "GEMINI_SCOPE_TIMEOUT_SECONDS", 20, "utility",
+    ),
+    "web_fallback": GenerationProfile(
+        "GEMINI_WEB_MODEL", "gemini-3.5-flash-lite", "GEMINI_WEB_TEMPERATURE", 0.0,
+        "GEMINI_WEB_MAX_OUTPUT_TOKENS", 1200, "GEMINI_WEB_THINKING_LEVEL", "minimal",
+        "GEMINI_WEB_TIMEOUT_SECONDS", 45, "web",
+    ),
     "rewrite_context": GenerationProfile(
         "GEMINI_UTILITY_MODEL",
         "gemini-3.5-flash-lite",
@@ -175,6 +185,7 @@ class GenerationResult:
     operation: str
     finish_reason: str | None
     usage_metadata: dict[str, Any]
+    grounding_metadata: dict[str, Any] | None = None
 
 
 class GeminiClient:
@@ -430,6 +441,7 @@ class GeminiClient:
         operation: str = "answer_direct",
         system_instruction: str | None = None,
         response_schema: dict | None = None,
+        google_search: bool = False,
     ) -> GenerationResult:
         profile = self._profile(operation)
         model = self._model_for_profile(profile)
@@ -464,8 +476,13 @@ class GeminiClient:
         }
         if system_instruction:
             payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+        if google_search:
+            payload["tools"] = [{"google_search": {}}]
 
-        recovery_enabled = os.getenv("GEMINI_TRUNCATION_RECOVERY", "true").strip().lower() in {"true", "1", "yes"}
+        recovery_enabled = (
+            not google_search and operation != "scope_classification"
+            and os.getenv("GEMINI_TRUNCATION_RECOVERY", "true").strip().lower() in {"true", "1", "yes"}
+        )
         recovery_ceiling = env_int("GEMINI_TRUNCATION_MAX_OUTPUT_TOKENS", 16384)
         for attempt in range(2):
             started = time.perf_counter()
@@ -476,6 +493,7 @@ class GeminiClient:
                 timeout=env_int(profile.timeout_env, profile.default_timeout),
                 bucket=profile.rate_bucket,
                 operation=operation,
+                **({"max_retries": 0} if google_search or operation == "scope_classification" else {}),
             )
             usage_metadata = data.get("usageMetadata") if isinstance(data.get("usageMetadata"), dict) else {}
             normalized = normalized_usage(usage_metadata)
@@ -484,6 +502,8 @@ class GeminiClient:
                                          elapsed_ms=round((time.perf_counter() - started) * 1000, 2))
             candidates = data.get("candidates")
             first_candidate = candidates[0] if isinstance(candidates, list) and candidates else None
+            if google_search:
+                record_search(model, first_candidate.get("groundingMetadata") if isinstance(first_candidate, dict) else None)
             logged_finish_reason = first_candidate.get("finishReason") if isinstance(first_candidate, dict) else None
             logger.info(
                 "gemini_generation_received",
@@ -555,7 +575,7 @@ class GeminiClient:
                 status_code=502,
                 details={"finish_reason": finish_reason},
             )
-        return GenerationResult(text, model, operation, finish_reason, usage_metadata)
+        return GenerationResult(text, model, operation, finish_reason, usage_metadata, candidate.get("groundingMetadata"))
 
     def generate(
         self,

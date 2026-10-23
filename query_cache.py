@@ -347,6 +347,8 @@ def answer_cached(question, top_k, compute):
                 return False
             return (
                 result["outcome"] == "answered"
+                and result["answer_origin"] == "documents"
+                and not result["web_sources"]
                 and not result["abstained"]
                 and answer_outcome(answer) == "answered"
                 and validate_answer_citations(answer, len(sources), require_citation=True) == answer
