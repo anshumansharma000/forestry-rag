@@ -150,6 +150,30 @@ def delete_document(
     return {"status": "deleted", "document_id": str(document_id)}
 
 
+@router.get("/documents/{document_id}/preview")
+def preview_document(
+    document_id: UUID,
+    request: Request,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=40, ge=1, le=100),
+    user: CurrentUser = Depends(require_exact_admin),
+):
+    repository = DocumentRepository()
+    document = repository.get_document(str(document_id))
+    if not document:
+        raise AppError("Document not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+    rows = repository.preview_chunks(str(document_id), offset, limit)
+    if not rows and offset == 0:
+        raise AppError("No indexed text is available to preview. Process this document first.",
+                       code=ErrorCode.NOT_FOUND, status_code=404)
+    sections = rows[:limit]
+    audit_event(request, user, "documents.preview", "document", str(document_id), {"offset": offset, "limit": limit})
+    return {
+        "document_id": str(document_id), "filename": document["source"], "sections": sections,
+        "next_offset": offset + len(sections) if len(rows) > limit else None,
+    }
+
+
 @router.get(
     "/documents/{document_id}/download",
     response_class=StreamingResponse,

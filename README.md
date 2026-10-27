@@ -722,3 +722,9 @@ or enabling the feature. Development and production must use different registry 
 Admins can permanently delete a single library file and its search index with
 `DELETE /documents/{document_id}`. Apply migration 017 before deploying the feature.
 See [deletion setup, retry behavior, and frontend flow](engineering/document-deletion/README.md).
+
+### View documents
+
+Admins can use **View** beside **Delete** in the Documents tab to preview PDFs,
+text files and indexed Word/PowerPoint text. No database migration is needed.
+See [document preview behavior and API](engineering/document-preview/README.md).

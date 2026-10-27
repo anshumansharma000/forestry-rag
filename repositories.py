@@ -29,6 +29,14 @@ class DocumentRepository:
         result = self.client.table("documents").select("id,source,kind,title,metadata").eq("id", document_id).limit(1).execute()
         return result.data[0] if result.data else None
 
+    def preview_chunks(self, document_id: str, offset: int, limit: int) -> list[dict[str, Any]]:
+        # Only published chunks; never return embeddings or revision staging.
+        result = (self.client.table("document_chunks")
+                  .select("chunk_index,section_heading,page_start,page_end,content")
+                  .eq("document_id", document_id).order("chunk_index")
+                  .range(offset, offset + limit).execute())
+        return result.data or []
+
     def prepare_delete(self, document_id: str, token: str) -> dict:
         try:
             result = self.client.rpc("prepare_document_delete", {"p_id": document_id, "p_token": token}).execute().data
