@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
+from starlette.types import ASGIApp
 
 from errors import AppError, app_error_handler, http_error_handler, unhandled_error_handler, validation_error_handler
 from job_recovery import recovery_loop
@@ -22,18 +23,28 @@ logger = logging.getLogger(__name__)
 request_logger = logging.getLogger("app.requests")
 
 
+class CORSFastAPI(FastAPI):
+    def __init__(self, *, cors_origins: list[str], **kwargs):
+        super().__init__(**kwargs)
+        self.cors_origins = cors_origins
+
+    def build_middleware_stack(self) -> ASGIApp:
+        # Wrap ServerErrorMiddleware too, so unexpected 500 responses carry
+        # the same CORS policy as successful and handled-error responses.
+        return CORSMiddleware(
+            super().build_middleware_stack(),
+            allow_origins=self.cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+
 def create_app() -> FastAPI:
     configure_logging()
-    app = FastAPI(title="Forest Department Pilot RAG", lifespan=lifespan)
+    app = CORSFastAPI(title="Forest Department Pilot RAG", lifespan=lifespan, cors_origins=allowed_cors_origins())
     app.middleware("http")(log_requests)
     app.add_middleware(SecurityMiddleware)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_cors_origins(),
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(HTTPException, http_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)

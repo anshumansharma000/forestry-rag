@@ -29,6 +29,27 @@ class DocumentRepository:
         result = self.client.table("documents").select("id,source,kind,title,metadata").eq("id", document_id).limit(1).execute()
         return result.data[0] if result.data else None
 
+    def prepare_delete(self, document_id: str, token: str) -> dict:
+        try:
+            result = self.client.rpc("prepare_document_delete", {"p_id": document_id, "p_token": token}).execute().data
+        except Exception as exc:
+            if getattr(exc, "code", None) == "PGRST202":
+                raise AppError(
+                    "Document deletion is not set up in the database. Apply database migration 017 and retry.",
+                    code=ErrorCode.CONFIG_ERROR, status_code=503,
+                    details={"migration": "017_admin_document_deletion.sql"},
+                ) from exc
+            raise
+        if result.get("status") == "missing":
+            raise AppError("Document not found.", code=ErrorCode.NOT_FOUND, status_code=404)
+        if result.get("status") == "busy":
+            raise AppError("This document or the library is queued or processing. Try again when processing finishes.",
+                           code=ErrorCode.CONFLICT, status_code=409)
+        return result
+
+    def finish_delete(self, document_id: str, token: str, audit: dict) -> None:
+        self.client.rpc("finish_document_delete", {"p_id": document_id, "p_token": token, "p_audit": audit}).execute()
+
     def upload_state(self, source: str) -> str:
         """Only a source with no published index can be replaced after confirmation."""
         rows = self.client.table("documents").select("id,metadata").eq("source", source).limit(1).execute().data or []

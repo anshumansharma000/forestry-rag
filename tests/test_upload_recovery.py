@@ -215,3 +215,19 @@ def test_repository_prefers_published_evidence_and_active_jobs(metadata, chunks,
     if expected in {"processing", "failed", "unindexed"}:
         assert ("ingest_jobs", "in_", ("status", ["queued", "running"])) in calls
         assert ("ingest_jobs", "or_", ('metadata->>source.eq."failed.pdf",metadata->>scope.eq.corpus',)) in calls
+
+
+def test_missing_original_with_live_index_cannot_be_uploaded_over(recovery, monkeypatch):
+    class MissingOriginal:
+        def exists(self, source):
+            return False
+    with pytest.raises(AppError) as error:
+        upload_policy.ensure_upload_conflicts(MissingOriginal(), [routes.PendingUpload('indexed.pdf', b'new', 'application/pdf')])
+    assert error.value.status_code == 409
+    assert error.value.details['can_replace_failed'] is False
+
+
+def test_new_uploads_also_share_the_deletion_lease(recovery):
+    routes.save_uploads(None, recovery.user, [routes.PendingUpload('new.pdf', b'new', 'application/pdf')])
+    events = [call[0] for call in recovery.calls]
+    assert events.index('lock') < events.index('state') < events.index('save') < events.index('unlock')

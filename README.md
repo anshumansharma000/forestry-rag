@@ -716,3 +716,9 @@ to existing API contracts. The new retrieval path is disabled by default. Admin 
 follow reviewed amendment/order relationships, and preserve the shared production corpus. See
 [legal hierarchy setup, API, compatibility, and dev validation](docs/legal_hierarchy.md) before applying migration 010
 or enabling the feature. Development and production must use different registry namespaces on a shared database.
+
+### Admin document deletion
+
+Admins can permanently delete a single library file and its search index with
+`DELETE /documents/{document_id}`. Apply migration 017 before deploying the feature.
+See [deletion setup, retry behavior, and frontend flow](engineering/document-deletion/README.md).

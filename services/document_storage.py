@@ -53,6 +53,19 @@ class LocalDocumentStorage:
         destination.write_bytes(content)
         return str(destination)
 
+    def delete(self, filename: str) -> None:
+        # Reject unsafe DB-owned names even when the file is already missing.
+        if not filename or filename in {".", ".."} or Path(filename).name != filename:
+            raise AppError("Invalid document filename.", code=ErrorCode.STORAGE_ERROR)
+        root = DOCS_DIR.resolve()
+        path = root / filename
+        if path.is_symlink() or path.resolve().parent != root:
+            raise AppError("Invalid document path.", code=ErrorCode.STORAGE_ERROR)
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            raise AppError("Could not delete document. Please retry.", code=ErrorCode.STORAGE_ERROR, status_code=503) from exc
+
     def open_download(self, filename: str, content_type: str) -> DocumentDownload | None:
         path = _local_download_path(filename)
         if path is None:
@@ -122,6 +135,15 @@ class R2DocumentStorage:
         except Exception as exc:
             raise AppError("Could not upload document to R2.", code=ErrorCode.STORAGE_ERROR) from exc
         return f"r2://{self.bucket}/{key}"
+
+    def delete(self, filename: str) -> None:
+        if not filename or filename in {".", ".."} or Path(filename).name != filename:
+            raise AppError("Invalid document filename.", code=ErrorCode.STORAGE_ERROR)
+        try:
+            # S3 deletion is idempotent, including an already missing original.
+            self.client.delete_object(Bucket=self.bucket, Key=self.key_for(filename))
+        except Exception as exc:
+            raise AppError("Could not delete document from R2. Please retry.", code=ErrorCode.STORAGE_ERROR, status_code=503) from exc
 
     def open_download(self, filename: str, content_type: str) -> DocumentDownload | None:
         # Document sources are filenames, never arbitrary object keys.

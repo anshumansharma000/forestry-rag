@@ -1,5 +1,5 @@
 import json
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 import ingest_service
 import routers.documents as routes
+import upload_policy
 from app import app
 from auth import CurrentUser, get_current_user
 from document_categorization import CATEGORY_LABELS, CategorizationInput, infer_categorization, merge_categorization
@@ -99,6 +100,13 @@ def api(monkeypatch):
             return f"/docs/{filename}"
 
     class Repository:
+        @contextmanager
+        def index_lease(self):
+            yield SimpleNamespace(check=lambda: None)
+
+        def upload_state(self, source):
+            return "unindexed"
+
         def check_categorization_support(self):
             pass
 
@@ -111,6 +119,7 @@ def api(monkeypatch):
 
     monkeypatch.setattr(routes, "document_storage", Storage)
     monkeypatch.setattr(routes, "DocumentRepository", Repository)
+    monkeypatch.setattr(upload_policy, "DocumentRepository", Repository)
     monkeypatch.setattr(routes, "audit_event", lambda *a: None)
     app.dependency_overrides[get_current_user] = lambda: CurrentUser(id="manager", email="test@example.com", role="knowledge_manager")
     with TestClient(app) as client:
@@ -181,6 +190,8 @@ def test_direct_upload_completion_persists_metadata(monkeypatch):
     monkeypatch.setattr(routes, "document_storage", lambda: storage)
     monkeypatch.setattr(routes, "audit_event", lambda *a: None)
     monkeypatch.setattr(routes, "DocumentRepository", lambda: SimpleNamespace(check_categorization_support=lambda: None))
+    monkeypatch.setattr(upload_policy, "DocumentRepository", lambda: SimpleNamespace(
+        index_lease=lambda: nullcontext(SimpleNamespace(check=lambda: None)), upload_state=lambda source: "unindexed"))
     monkeypatch.setattr(routes, "persist_upload_categorization", lambda *a: stored.append(a) or {"values": {"document_type": "rules"}})
     metadata = CategorizationInput(document_type="rules")
     result = routes.complete_direct_uploads(

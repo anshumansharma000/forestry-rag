@@ -10,10 +10,10 @@ def ensure_upload_conflicts(storage, uploads, repository=None):
     conflicts = []
     for index, upload in enumerate(uploads):
         exists = storage.exists(upload.filename)
-        if not exists and not upload.replace_failed:
-            continue
         repository = repository or DocumentRepository()
         state = repository.upload_state(upload.filename)
+        if not exists and not upload.replace_failed and state not in {"indexed", "processing"}:
+            continue
         recoverable = state in {"failed", "unindexed"}
         if upload.replace_failed and recoverable:
             continue
@@ -37,13 +37,9 @@ def ensure_upload_conflicts(storage, uploads, repository=None):
 
 @contextmanager
 def upload_write_guard(storage, uploads):
-    if any(upload.replace_failed for upload in uploads):
-        repository = DocumentRepository()
-        # Share the ingestion lease so no worker reads a source while its stored
-        # bytes are being replaced. Presigned PUTs still target isolated staging.
-        with repository.index_lease() as lease:
-            ensure_upload_conflicts(storage, uploads, repository)
-            yield lease
-    else:
-        ensure_upload_conflicts(storage, uploads)
-        yield None
+    repository = DocumentRepository()
+    # Every final storage write shares the ingestion/deletion lease, including
+    # new uploads whose original may have disappeared during a deletion retry.
+    with repository.index_lease() as lease:
+        ensure_upload_conflicts(storage, uploads, repository)
+        yield lease

@@ -18,6 +18,7 @@ import prompts
 import retrieval
 import routers.documents
 import task_queue
+import upload_policy
 from auth import validate_password
 from chunking import chunk_document
 from documents import (
@@ -293,7 +294,19 @@ def test_prepare_uploads_rejects_too_many_files(monkeypatch):
     assert exc.value.detail == "Upload batch exceeds limit of 2 files"
 
 
-def test_batch_save_checks_conflicts_before_writing(monkeypatch):
+@pytest.fixture
+def upload_repository(monkeypatch):
+    class Repository:
+        def index_lease(self):
+            return nullcontext(SimpleNamespace(check=lambda: None))
+
+        def upload_state(self, source):
+            return "unindexed"
+
+    monkeypatch.setattr(upload_policy, "DocumentRepository", Repository)
+
+
+def test_batch_save_checks_conflicts_before_writing(monkeypatch, upload_repository):
     saved = []
 
     class Storage:
@@ -305,7 +318,9 @@ def test_batch_save_checks_conflicts_before_writing(monkeypatch):
             return f"/docs/{filename}"
 
     monkeypatch.delenv("ALLOW_DOCUMENT_REPLACE", raising=False)
-    monkeypatch.setattr("upload_policy.DocumentRepository", lambda: SimpleNamespace(upload_state=lambda source: "indexed"))
+    monkeypatch.setattr("upload_policy.DocumentRepository", lambda: SimpleNamespace(
+        index_lease=lambda: nullcontext(SimpleNamespace(check=lambda: None)),
+        upload_state=lambda source: "indexed" if source == "existing.pdf" else "unindexed"))
     monkeypatch.setattr(routers.documents, "document_storage", lambda: Storage())
     monkeypatch.setattr(routers.documents, "audit_event", lambda *_args, **_kwargs: None)
 
@@ -416,7 +431,7 @@ def test_r2_document_storage_uses_prefixed_s3_keys(monkeypatch):
     assert calls == [{"Bucket": "fisrag-docs", "Key": "source-docs/rules.pdf", "Body": b"content"}]
 
 
-def test_create_presigned_uploads_uses_isolated_staging_key(monkeypatch):
+def test_create_presigned_uploads_uses_isolated_staging_key(monkeypatch, upload_repository):
     calls = []
 
     class Storage:
@@ -460,7 +475,7 @@ def test_create_presigned_uploads_uses_isolated_staging_key(monkeypatch):
     assert calls[0]["content_type"] == "application/pdf"
 
 
-def test_complete_direct_uploads_copies_staged_file_and_audits(monkeypatch):
+def test_complete_direct_uploads_copies_staged_file_and_audits(monkeypatch, upload_repository):
     calls = []
     audits = []
 

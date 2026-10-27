@@ -123,6 +123,33 @@ def update_document_categorization(
     return {"document_id": str(document_id), "categorization": categorization}
 
 
+@router.delete("/documents/{document_id}")
+def delete_document(
+    document_id: UUID,
+    request: Request,
+    user: CurrentUser = Depends(require_exact_admin),
+):
+    repository = DocumentRepository()
+    # Same lease as ingestion and upload finalization. Check support and active
+    # jobs before touching storage, so a missing migration cannot remove bytes.
+    with repository.index_lease() as lease:
+        document = repository.prepare_delete(str(document_id), lease.token)
+        lease.check()
+        document_storage().delete(document["source"])
+        try:
+            repository.finish_delete(str(document_id), lease.token, {
+                "actor_user_id": user.id, "actor_email": user.email, "actor_role": user.role,
+                "ip_address": request.client.host if request.client else None,
+                "user_agent": request.headers.get("user-agent"),
+            })
+        except Exception as exc:
+            raise AppError(
+                "The original file was removed, but database cleanup could not finish. Retry Delete to complete it.",
+                code=ErrorCode.STORAGE_ERROR, status_code=503,
+            ) from exc
+    return {"status": "deleted", "document_id": str(document_id)}
+
+
 @router.get(
     "/documents/{document_id}/download",
     response_class=StreamingResponse,
